@@ -218,7 +218,9 @@ async def call_get_cves_by_name(cve_name):
     response_model=List[DomainSchema],
     tags=["Domains"],
 )
-async def call_search_domains(domain_search: DomainSearch, current_user: User = Depends(get_current_active_user)):
+async def call_search_domains(
+    domain_search: DomainSearch, current_user: User = Depends(get_current_active_user)
+):
     try:
         return search_domains(domain_search, current_user)
     except Exception as e:
@@ -258,7 +260,10 @@ async def call_get_domain_by_id(domain_id: str):
     response_model=List[VulnerabilitySchema],
     tags=["Vulnerabilities"],
 )
-async def call_search_vulnerabilities(vulnerability_search: VulnerabilitySearch, current_user: User = Depends(get_current_active_user)):
+async def call_search_vulnerabilities(
+    vulnerability_search: VulnerabilitySearch,
+    current_user: User = Depends(get_current_active_user),
+):
     try:
         return search_vulnerabilities(vulnerability_search, current_user)
     except Exception as e:

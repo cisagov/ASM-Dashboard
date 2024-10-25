@@ -11,10 +11,10 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from fastapi import HTTPException
 
+from ..auth import get_org_memberships, is_global_view_admin
 from ..helpers.filter_helpers import filter_domains, sort_direction
 from ..models import Domain
 from ..schema_models.domain import DomainFilters, DomainSearch
-from ..auth import is_global_view_admin, get_org_memberships
 
 
 def get_domain_by_id(domain_id: str):
@@ -44,7 +44,7 @@ def search_domains(domain_search: DomainSearch, current_user):
         domains = Domain.objects.all().order_by(
             sort_direction(domain_search.sort, domain_search.order)
         )
-    
+
         # Apply global filters based on user permissions
         if not is_global_view_admin(current_user):
             orgs = get_org_memberships(current_user)

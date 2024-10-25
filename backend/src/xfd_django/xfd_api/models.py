@@ -2,8 +2,8 @@
 
 
 # Standard Python Libraries
-import uuid
 from datetime import datetime, timezone
+import uuid
 
 # Third-Party Libraries
 from django.contrib.postgres.fields import ArrayField, JSONField
@@ -249,8 +249,10 @@ class Log(models.Model):
 
     class Meta:
         """The Meta class for Log."""
+
         managed = False
-        db_table = 'log'
+        db_table = "log"
+
 
 class Notification(models.Model):
     """The Notification model."""
@@ -719,22 +721,22 @@ class Vulnerability(models.Model):
     """The Vulnerability model."""
 
     class SeverityChoices(models.TextChoices):
-        NONE = 'None'
-        LOW = 'Low'
-        MEDIUM = 'Medium'
-        HIGH = 'High'
-        CRITICAL = 'Critical'
+        NONE = "None"
+        LOW = "Low"
+        MEDIUM = "Medium"
+        HIGH = "High"
+        CRITICAL = "Critical"
 
     class StateChoices(models.TextChoices):
-        OPEN = 'open'
-        CLOSED = 'closed'
+        OPEN = "open"
+        CLOSED = "closed"
 
     class SubstateChoices(models.TextChoices):
-        UNCONFIRMED = 'unconfirmed'
-        EXPLOITABLE = 'exploitable'
-        FALSE_POSITIVE = 'false-positive'
-        ACCEPTED_RISK = 'accepted-risk'
-        REMEDIATED = 'remediated'
+        UNCONFIRMED = "unconfirmed"
+        EXPLOITABLE = "exploitable"
+        FALSE_POSITIVE = "false-positive"
+        ACCEPTED_RISK = "accepted-risk"
+        REMEDIATED = "remediated"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     createdAt = models.DateTimeField(auto_now_add=True, db_column="createdAt")
@@ -750,20 +752,25 @@ class Vulnerability(models.Model):
         max_digits=65535, decimal_places=65535, blank=True, null=True
     )
     severity = models.CharField(
-        max_length=10,
-        choices=SeverityChoices.choices,
-        blank=True,
-        null=True
+        max_length=10, choices=SeverityChoices.choices, blank=True, null=True
     )
     needsPopulation = models.BooleanField(db_column="needsPopulation")
-    state = models.CharField(max_length=10, choices=StateChoices.choices, default=StateChoices.OPEN)
-    substate = models.CharField(max_length=15, choices=SubstateChoices.choices, default=SubstateChoices.UNCONFIRMED)
+    state = models.CharField(
+        max_length=10, choices=StateChoices.choices, default=StateChoices.OPEN
+    )
+    substate = models.CharField(
+        max_length=15,
+        choices=SubstateChoices.choices,
+        default=SubstateChoices.UNCONFIRMED,
+    )
     source = models.CharField()
     notes = models.CharField()
     actions = models.JSONField(default=list)
     structuredData = models.JSONField(db_column="structuredData", default=dict)
     isKev = models.BooleanField(db_column="isKev", blank=True, null=True, default=False)
-    kevResults = models.JSONField(db_column="kevResults", blank=True, null=True, default=dict)
+    kevResults = models.JSONField(
+        db_column="kevResults", blank=True, null=True, default=dict
+    )
     domain = models.ForeignKey(
         Domain, models.DO_NOTHING, db_column="domainId", blank=True, null=True
     )
@@ -785,16 +792,19 @@ class Vulnerability(models.Model):
     def setState(self, substate, automatic, user=None):
         """Set the state and update actions."""
         self.substate = substate
-        self.state = 'open' if substate in ['unconfirmed', 'exploitable'] else 'closed'
-        self.actions.insert(0, {
-            "type": "state-change",
-            "state": self.state,
-            "substate": self.substate,
-            "automatic": automatic,
-            "userId": user.id if user else None,
-            "userName": user.fullName if user else None,
-            "date": datetime.now(timezone.utc)
-        })
+        self.state = "open" if substate in ["unconfirmed", "exploitable"] else "closed"
+        self.actions.insert(
+            0,
+            {
+                "type": "state-change",
+                "state": self.state,
+                "substate": self.substate,
+                "automatic": automatic,
+                "userId": user.id if user else None,
+                "userName": user.fullName if user else None,
+                "date": datetime.now(timezone.utc),
+            },
+        )
 
     def save(self, *args, **kwargs):
         """Override save to set severity based on cvss."""
@@ -810,6 +820,7 @@ class Vulnerability(models.Model):
             else:
                 self.severity = self.SeverityChoices.CRITICAL
         super().save(*args, **kwargs)
+
 
 class Webpage(models.Model):
     """The Webpage model."""

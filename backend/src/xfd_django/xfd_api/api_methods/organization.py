@@ -15,7 +15,7 @@ from ..auth import (
     is_org_admin,
     is_regional_admin,
     is_regional_admin_for_organization,
-    matches_user_region
+    matches_user_region,
 )
 from ..helpers.regionStateMap import REGION_STATE_MAP
 from ..models import Organization, OrganizationTag, Role, Scan, ScanTask, User
@@ -692,7 +692,9 @@ def add_user_to_org_v2(organization_id: str, user_data, current_user):
 
         # Check if the current user's region matches the user's region
         if not matches_user_region(current_user, user.region_id):
-            raise HTTPException(status_code=403, detail="Unauthorized access due to region mismatch.")
+            raise HTTPException(
+                status_code=403, detail="Unauthorized access due to region mismatch."
+            )
 
         # Prepare the new role data
         new_role_data = {
