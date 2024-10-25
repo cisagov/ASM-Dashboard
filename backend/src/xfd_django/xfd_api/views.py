@@ -395,14 +395,6 @@ async def call_get_organizations(regionId):
     return get_organizations(regionId)
 
 
-# TODO: Typescript endpoints for reference, not implemented in FastAPI.
-# Remove after implementation
-# authenticatedRoute.post(
-#   '/saved-searches',
-#   handlerToExpress(savedSearches.create)
-# );
-
-
 # ========================================
 #   Saved Search  Endpoints
 # ========================================
@@ -438,25 +430,35 @@ async def call_create_saved_search(
     response_model=List[SavedSearchSchema],
     tags=["Testing"],
 )
-async def call_list_saved_searches():
+async def call_list_saved_searches(
+    current_user: User = Depends(get_current_active_user),
+):
     """Retrieve a list of all saved searches."""
-    return list_saved_searches()
+    return list_saved_searches(current_user)
 
 
 # Get individual saved search is implemented in the following function
 @api_router.get(
     "/saved-searches/{saved_search_id}",
+    dependencies=[Depends(get_current_active_user)],
     response_model=SavedSearchSchema,
     tags=["Testing"],
 )
-async def call_get_saved_search(saved_search_id: str):
+async def call_get_saved_search(
+    saved_search_id: str, current_user: User = Depends(get_current_active_user)
+):
+    request = {
+        "saved_search_id": saved_search_id,
+        "createdById": current_user.id,
+    }
     """Retrieve a saved search by its ID."""
-    return get_saved_search(saved_search_id)
+    return get_saved_search(request)
 
 
 # TODO: Implement the following functions
 @api_router.put(
     "/saved-searches/{saved_search_id}",
+    dependencies=[Depends(get_current_active_user)],
     response_model=SavedSearchSchema,
     tags=["Testing"],
 )
@@ -464,6 +466,7 @@ async def call_update_saved_search(
     saved_search_id: str,
     name: str,
     search_term: str,
+    current_user: User = Depends(get_current_active_user),
 ):
     """Update a saved search by its ID."""
 
@@ -471,6 +474,7 @@ async def call_update_saved_search(
         "name": name,
         "saved_search_id": saved_search_id,
         "searchTerm": search_term,
+        "createdById": current_user.id,
     }
 
     return update_saved_search(request)
@@ -479,11 +483,20 @@ async def call_update_saved_search(
 # Delete saved search is implemented in the following function
 @api_router.delete(
     "/saved-searches/{saved_search_id}",
+    dependencies=[Depends(get_current_active_user)],
     tags=["Testing"],
 )
-async def call_delete_saved_search(saved_search_id: str):
+async def call_delete_saved_search(
+    saved_search_id: str, current_user: User = Depends(get_current_active_user)
+):
     """Delete a saved search by its ID."""
-    return delete_saved_search(saved_search_id)
+
+    request = {
+        "saved_search_id": saved_search_id,
+        "createdById": current_user.id,
+    }
+
+    return delete_saved_search(request)
 
 
 # GET ALL

@@ -22,7 +22,7 @@ class SavedSearch(BaseModel):
     createdAt: datetime
     updatedAt: datetime
     name: str
-    searchTerm: str = ""
+    searchTerm: str
     sortDirection: str
     sortField: str
     count: int
