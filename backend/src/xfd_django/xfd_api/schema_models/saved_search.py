@@ -11,6 +11,7 @@ from pydantic import BaseModel
 class SavedSearchFilters(BaseModel):
     """SavedSearchFilters schema."""
 
+    type: Optional[str]
     field: str
     values: List[Any]
 

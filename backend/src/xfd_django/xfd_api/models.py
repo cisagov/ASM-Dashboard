@@ -477,9 +477,10 @@ class Role(models.Model):
 class SavedSearch(models.Model):
     """The SavedSearch model."""
 
-    id = models.UUIDField(primary_key=True)
-    createdAt = models.DateTimeField(db_column="createdAt")
-    updatedAt = models.DateTimeField(db_column="updatedAt")
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    createdAt = models.DateTimeField(db_column="createdAt", auto_now_add=True)
+    updatedAt = models.DateTimeField(db_column="updatedAt", auto_now=True)
+
     name = models.CharField()
     searchTerm = models.CharField(db_column="searchTerm")
     sortDirection = models.CharField(db_column="sortDirection")

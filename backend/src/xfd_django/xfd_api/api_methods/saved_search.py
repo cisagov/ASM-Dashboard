@@ -27,14 +27,9 @@ def validate_name(value: str):
 
 def create_saved_search(request):
     try:
-        user = User.objects.get(id=request.get("createdById"))
-
         validate_name(request.get("name"))
 
         search = SavedSearch.objects.create(
-            id=uuid.uuid4(),
-            createdAt=datetime.now(timezone.utc),
-            updatedAt=datetime.now(timezone.utc),
             name=request.get("name"),
             count=request.get("count", 0),  # Default to 0 if count does not exist
             sortDirection=request.get("sortDirection", ""),
@@ -48,11 +43,25 @@ def create_saved_search(request):
                     "values": [request.get("regionId")],
                 }
             ],
-            createdById=user,
+            createdById=request.get("createdById"),
         )
 
+        response = {
+            "id": str(search.id),
+            "createdAt": search.createdAt,
+            "updatedAt": search.updatedAt,
+            "name": search.name,
+            "searchTerm": search.searchTerm,
+            "sortDirection": search.sortDirection,
+            "sortField": search.sortField,
+            "count": search.count,
+            "filters": search.filters,
+            "searchPath": search.searchPath,
+            "createdById": search.createdById.id,
+        }
+
         search.save()
-        return JsonResponse({"status": "Created", "search": search.id}, status=201)
+        return response
 
     except User.DoesNotExist:
         raise HTTPException(status_code=404, detail="User not found")
@@ -65,8 +74,6 @@ def list_saved_searches(request):
     """List all saved searches."""
 
     try:
-        user = User.objects.get(id=request.id)
-
         all_saved_searches = SavedSearch.objects.all()
         saved_search_list = []
         for search in all_saved_searches:
@@ -105,8 +112,6 @@ def list_saved_searches(request):
 
 def get_saved_search(request):
     try:
-        user = User.objects.get(id=request.get("createdById"))
-
         if not uuid.UUID(request.get("saved_search_id")):
             raise HTTPException({"error": "Invalid UUID"}, status=404)
 
@@ -135,8 +140,6 @@ def get_saved_search(request):
 
 def update_saved_search(request):
     try:
-        user = User.objects.get(id=request.get("createdById"))
-
         if not uuid.UUID(request["saved_search_id"]):
             raise HTTPException(status_code=404, detail={"error": "Invalid UUID"})
 

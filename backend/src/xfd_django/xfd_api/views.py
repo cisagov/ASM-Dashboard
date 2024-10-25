@@ -21,13 +21,13 @@ Dependencies:
 import os
 from re import A
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 
 # Third-Party Libraries
 from django.shortcuts import render
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse, Response
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
-from pydantic import UUID
 
 # from .schemas import Cpe
 from . import schema_models
@@ -39,7 +39,6 @@ from .api_methods.api_keys import get_api_keys
 from .api_methods.cpe import get_cpes_by_id
 from .api_methods.cve import get_cves_by_id, get_cves_by_name
 from .api_methods.domain import export_domains, get_domain_by_id, search_domains
-from .api_methods.search import export, search_post
 from .api_methods.saved_search import (
     create_saved_search,
     delete_saved_search,
@@ -47,6 +46,7 @@ from .api_methods.saved_search import (
     list_saved_searches,
     update_saved_search,
 )
+from .api_methods.search import export, search_post
 from .api_methods.user import get_users
 from .api_methods.vulnerability import (
     get_vulnerability_by_id,
@@ -67,8 +67,8 @@ from .schema_models.domain import Domain as DomainSchema
 from .schema_models.domain import DomainFilters, DomainSearch
 from .schema_models.notification import Notification as NotificationSchema
 from .schema_models.role import Role as RoleSchema
-from .schema_models.search import SearchBody, SearchRequest, SearchResponse
 from .schema_models.saved_search import SavedSearch as SavedSearchSchema
+from .schema_models.search import SearchBody, SearchRequest, SearchResponse
 from .schema_models.user import User as UserSchema
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
 from .schema_models.vulnerability import VulnerabilitySearch
@@ -421,7 +421,7 @@ async def delete_api_key(
 @api_router.post(
     "/saved-searches",
     dependencies=[Depends(get_current_active_user)],
-    # response_model=SavedSearchSchema,
+    response_model=SavedSearchSchema,
     tags=["Testing"],
 )
 async def call_create_saved_search(
@@ -430,20 +430,22 @@ async def call_create_saved_search(
     region_id: str,
     current_user: User = Depends(get_current_active_user),
 ):
+    """Create a new saved search."""
+
     request = {
         "name": name,
         "searchTerm": search_term,
         "regionId": region_id,
-        "createdById": current_user.id,
+        "createdById": current_user,
     }
-    """Create a new saved search."""
+
     return create_saved_search(request)
 
 
 # Get all existing saved searches is implemented in the following function
 @api_router.get(
     "/saved-searches",
-    # dependencies=[Depends(get_current_active_user)],
+    dependencies=[Depends(get_current_active_user)],
     response_model=List[SavedSearchSchema],
     tags=["Testing"],
 )
