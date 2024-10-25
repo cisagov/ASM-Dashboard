@@ -3,14 +3,15 @@
 # Standard Python Libraries
 import os
 from typing import List, Optional
-import httpx
 
 # Third-Party Libraries
 from django.shortcuts import render
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
-from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
-from pydantic import UUID4
 from fastapi.responses import RedirectResponse, Response
+from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
+import httpx
+from pydantic import UUID4
+
 
 # Helper function to handle cookie manipulation
 def manipulate_cookie(request: Request, cookie_name: str):
@@ -21,16 +22,21 @@ def manipulate_cookie(request: Request, cookie_name: str):
 
 
 # Helper function to proxy requests
-async def proxy_request(request: Request,  target_url: str, path: Optional[str] = None, cookie_name: Optional[str] = None):
+async def proxy_request(
+    request: Request,
+    target_url: str,
+    path: Optional[str] = None,
+    cookie_name: Optional[str] = None,
+):
     """Proxy the request to the target URL."""
     headers = dict(request.headers)
-    
+
     # Cookie manipulation for specific cookie names
     if cookie_name:
         cookies = manipulate_cookie(request, cookie_name)
         if cookies:
-            headers['Cookie'] = f"{cookie_name}={cookies[cookie_name]}"
-    
+            headers["Cookie"] = f"{cookie_name}={cookies[cookie_name]}"
+
     # Make the request to the target URL
     async with httpx.AsyncClient() as client:
         proxy_response = await client.request(
@@ -38,15 +44,15 @@ async def proxy_request(request: Request,  target_url: str, path: Optional[str] 
             url=f"{target_url}/{path}",
             headers=headers,
             params=request.query_params,
-            content=await request.body()
+            content=await request.body(),
         )
-    
+
     # Remove chunked encoding for API Gateway compatibility
     proxy_response_headers = dict(proxy_response.headers)
     proxy_response_headers.pop("transfer-encoding", None)
-    
+
     return Response(
         content=proxy_response.content,
         status_code=proxy_response.status_code,
-        headers=proxy_response_headers
+        headers=proxy_response_headers,
     )
