@@ -57,13 +57,13 @@ export const Header: React.FC<HeaderProps> = ({
   const { user, logout } = useAuthContext();
   const theme = useTheme();
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  // const [drawerOpen, setDrawerOpen] = useState(false);
+  // const [isMobile, setIsMobile] = useState(false);
 
-  let drawerItems: NavItemType[] = [];
-  const toggleDrawer = (newOpen: boolean) => () => {
-    setDrawerOpen(newOpen);
-  };
+  // let drawerItems: NavItemType[] = [];
+  // const toggleDrawer = (newOpen: boolean) => () => {
+  //   setDrawerOpen(newOpen);
+  // };
 
   const { userLevel, formattedUserType } = useUserLevel();
 
@@ -72,15 +72,15 @@ export const Header: React.FC<HeaderProps> = ({
       title: 'Overview',
       path: '/',
       users: STANDARD_USER,
-      exact: true,
-      onClick: toggleDrawer(false)
+      exact: true
+      // onClick: 'test'
     },
     {
       title: 'Inventory',
       path: '/inventory',
       users: STANDARD_USER,
-      exact: false,
-      onClick: toggleDrawer(false)
+      exact: false
+      // onClick: 'test'
     }
   ].filter(({ users }) => users <= userLevel);
 
@@ -122,7 +122,7 @@ export const Header: React.FC<HeaderProps> = ({
       onClick: logout,
       exact: true
     }
-  ];
+  ].filter(({ users }) => users <= userLevel);
 
   // const orgPageMatch = useRouteMatch('/organizations/:id');
 
@@ -130,28 +130,26 @@ export const Header: React.FC<HeaderProps> = ({
     <NavItem key={item.title.toString()} {...item} />
   ));
 
-  const handleResize = () => {
-    if (window.innerWidth < 1330) {
-      setIsMobile(true);
-    } else {
-      setIsMobile(false);
-    }
-  };
+  // const handleResize = () => {
+  //   if (window.innerWidth < 1330) {
+  //     setIsMobile(true);
+  //   } else {
+  //     setIsMobile(false);
+  //   }
+  // };
 
-  useEffect(() => {
-    window.addEventListener('resize', handleResize);
-  });
+  // useEffect(() => {
+  //   window.addEventListener('resize', handleResize);
+  // });
 
-  if (isMobile && userMenuItems) {
-    userMenuItems.forEach((item) => {
-      if (item.title !== 'Logout') {
-        item.onClick = toggleDrawer(false);
-      }
-    });
-    drawerItems = [...navItems, ...userMenuItems];
-  }
-
-  const isSmallerThanMds = useMediaQuery(theme.breakpoints.down('mds'));
+  // if (isMobile && userMenuItems) {
+  //   userMenuItems.forEach((item) => {
+  //     if (item.title !== 'Logout') {
+  //       item.onClick = toggleDrawer(false);
+  //     }
+  //   });
+  //   drawerItems = [...navItems, ...userMenuItems];
+  // }
 
   return (
     <Root>
@@ -200,36 +198,26 @@ export const Header: React.FC<HeaderProps> = ({
                   alt="CyHy Dashboard Icon Navigate Home"
                 />
               </Link>
-              {!isMobile && (
-                <Box
-                  display="flex"
-                  width="max-content"
-                  sx={{
-                    [theme.breakpoints.down('sm')]: {
-                      display: 'flex'
-                    }
-                  }}
-                >
-                  {desktopNavItems.slice()}
-                </Box>
-              )}
-            </Box>
-            {!isSmallerThanMds ? (
               <Box
+                width="max-content"
+                sx={{
+                  display: { xs: 'none', sm: 'none', md: 'flex' }
+                }}
+              >
+                {desktopNavItems}
+              </Box>
+            </Box>
+            {userLevel > 0 && (
+              <Box
+                sx={{ display: { xs: 'none', sm: 'none', md: 'flex' } }}
                 textTransform="uppercase"
-                display="flex"
                 width="auto"
                 minWidth="max-content"
               >
-                {user && userLevel > 0 ? (
-                  <Typography>{formattedUserType}</Typography>
-                ) : (
-                  <></>
-                )}
+                <Typography>{formattedUserType}</Typography>
               </Box>
-            ) : (
-              <></>
             )}
+
             <Box
               display="flex"
               flexDirection="row"
@@ -237,9 +225,9 @@ export const Header: React.FC<HeaderProps> = ({
               justifyContent="end"
             >
               {userLevel > 0 && (
-                <>{!isMobile && <UserMenu userMenuItems={userMenuItems} />}</>
+                <UserMenu userMenuItems={userMenuItems} navItems={navItems} />
               )}
-              {user && isMobile && (
+              {/* {user && isMobile && (
                 <IconButton
                   edge="start"
                   style={{
@@ -252,12 +240,12 @@ export const Header: React.FC<HeaderProps> = ({
                 >
                   <MenuIcon />
                 </IconButton>
-              )}
+              )} */}
             </Box>
           </Toolbar>
         </Box>
       </AppBar>
-      <Drawer
+      {/* <Drawer
         anchor="right"
         open={drawerOpen}
         onClose={toggleDrawer(false)}
@@ -285,7 +273,7 @@ export const Header: React.FC<HeaderProps> = ({
             </React.Fragment>
           ))}
         </List>
-      </Drawer>
+      </Drawer> */}
     </Root>
   );
 };
