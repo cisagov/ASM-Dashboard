@@ -36,7 +36,7 @@ from .api_methods.cpe import get_cpes_by_id
 from .api_methods.cve import get_cves_by_id, get_cves_by_name
 from .api_methods.domain import export_domains, get_domain_by_id, search_domains
 from .api_methods.organization import get_organizations, read_orgs
-from .api_methods.user import accept_terms, delete_user, get_users
+from .api_methods.user import accept_terms, delete_user, get_users, update_user
 from .api_methods.vulnerability import get_vulnerability_by_id, update_vulnerability
 from .auth import get_current_active_user
 from .login_gov import callback, login
@@ -112,7 +112,6 @@ async def call_read_orgs():
 async def list_assessments():
     """
     Lists all assessments for the logged-in user.
-
     Args:
         current_user (User): The current authenticated user.
 
@@ -320,28 +319,27 @@ async def callback_route(request: Request):
 # GET Current User
 @api_router.post("/users/acceptTerms", tags=["Users"])
 async def call_accept_terms(
-    version: str, current_user: User = Depends(get_current_active_user)
+    request: Request, current_user: User = Depends(get_current_active_user)
 ):
     """
     Accept the latest terms of service.
-
     Args:
         version (str): The version of the terms of service.
 
     Returns:
         User: The updated user.
     """
-    return accept_terms(current_user, version)
+    return accept_terms(request)
 
 
 # TODO: Add authentication and  permissions
 @api_router.delete("/users/{userId}", tags=["Users"])
-async def call_delete_user(userId: str):
+async def call_delete_user(userId, request: Request):
     """
     Delete a user by ID.
-
     Args:
         userId : The ID of the user to delete.
+        request : The HTTP request containing authorization.
 
     Raises:
         HTTPException: If the user is not authorized or the user is not found.
@@ -349,7 +347,8 @@ async def call_delete_user(userId: str):
     Returns:
         JSONResponse: The result of the deletion.
     """
-    return delete_user(userId)
+    request.path_params["user_id"] = userId
+    return delete_user(request)
 
 
 @api_router.get("/users/me", tags=["Users"])
@@ -358,17 +357,16 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 
 
 @api_router.get(
-    "/users/{regionId}",
+    "/users",
     response_model=List[UserSchema],
     # dependencies=[Depends(get_current_active_user)],
     tags=["Users"],
 )
-async def call_get_users(regionId):
+async def call_get_users(request: Request):
     """
     Call get_users()
-
     Args:
-        regionId: Region IDs to filter users by.
+        request : The HTTP request containing query parameters.
 
     Raises:
         HTTPException: If the user is not authorized or no users are found.
@@ -376,7 +374,25 @@ async def call_get_users(regionId):
     Returns:
         List[User]: A list of users matching the filter criteria.
     """
-    return get_users(regionId)
+    return get_users(request)
+
+
+@api_router.post("/users/{userId}", tags=["Users"])
+async def call_update_user(userId, request: Request):
+    """
+    Update a user by ID.
+    Args:
+        userId : The ID of the user to update.
+        request : The HTTP request containing authorization and target for update.
+
+    Raises:
+        HTTPException: If the user is not authorized or the user is not found.
+
+    Returns:
+        JSONResponse: The result of the update.
+    """
+    request.path_params["user_id"] = userId
+    return update_user(request)
 
 
 ######################
