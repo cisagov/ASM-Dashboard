@@ -20,14 +20,14 @@ Dependencies:
 # Standard Python Libraries
 import os
 from re import A
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
+from uuid import UUID
 
 # Third-Party Libraries
 from django.shortcuts import render
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse, Response
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
-from pydantic import UUID
 
 # from .schemas import Cpe
 from . import schema_models
@@ -39,6 +39,13 @@ from .api_methods.api_keys import get_api_keys
 from .api_methods.cpe import get_cpes_by_id
 from .api_methods.cve import get_cves_by_id, get_cves_by_name
 from .api_methods.domain import export_domains, get_domain_by_id, search_domains
+from .api_methods.saved_search import (
+    create_saved_search,
+    delete_saved_search,
+    get_saved_search,
+    list_saved_searches,
+    update_saved_search,
+)
 from .api_methods.search import export, search_post
 from .api_methods.user import get_users
 from .api_methods.vulnerability import (
@@ -48,7 +55,7 @@ from .api_methods.vulnerability import (
 )
 from .auth import get_current_active_user
 from .login_gov import callback, login
-from .models import Assessment, User
+from .models import Assessment, SavedSearch, User
 from .schema_models import organization as OrganizationSchema
 from .schema_models import scan as scanSchema
 from .schema_models import scan_tasks as scanTaskSchema
@@ -60,6 +67,7 @@ from .schema_models.domain import Domain as DomainSchema
 from .schema_models.domain import DomainFilters, DomainSearch
 from .schema_models.notification import Notification as NotificationSchema
 from .schema_models.role import Role as RoleSchema
+from .schema_models.saved_search import SavedSearch as SavedSearchSchema
 from .schema_models.search import SearchBody, SearchRequest, SearchResponse
 from .schema_models.user import User as UserSchema
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
@@ -402,6 +410,95 @@ async def delete_api_key(
 ):
     """Delete api key by id."""
     return api_key_methods.delete(id, current_user)
+
+
+# ========================================
+#   Saved Search  Endpoints
+# ========================================
+
+
+# Create a new saved search
+@api_router.post(
+    "/saved-searches",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=SavedSearchSchema,
+    tags=["Saved Search"],
+)
+async def call_create_saved_search(
+    name: str,
+    search_term: str,
+    region_id: str,
+    current_user: User = Depends(get_current_active_user),
+):
+    """Create a new saved search."""
+
+    request = {
+        "name": name,
+        "searchTerm": search_term,
+        "regionId": region_id,
+        "createdById": current_user,
+    }
+
+    return create_saved_search(request)
+
+
+# Get all existing saved searches
+@api_router.get(
+    "/saved-searches",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=List[SavedSearchSchema],
+    tags=["Saved Search"],
+)
+async def call_list_saved_searches():
+    """Retrieve a list of all saved searches."""
+    return list_saved_searches()
+
+
+# Get individual saved search by ID
+@api_router.get(
+    "/saved-searches/{saved_search_id}",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=SavedSearchSchema,
+    tags=["Saved Search"],
+)
+async def call_get_saved_search(saved_search_id: str):
+    """Retrieve a saved search by its ID."""
+    return get_saved_search(saved_search_id)
+
+
+# Update saved search by ID
+@api_router.put(
+    "/saved-searches/{saved_search_id}",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=SavedSearchSchema,
+    tags=["Saved Search"],
+)
+async def call_update_saved_search(
+    saved_search_id: str,
+    name: str,
+    search_term: str,
+    current_user: User = Depends(get_current_active_user),
+):
+    """Update a saved search by its ID."""
+
+    request = {
+        "name": name,
+        "saved_search_id": saved_search_id,
+        "searchTerm": search_term,
+    }
+
+    return update_saved_search(request)
+
+
+# Delete saved search by ID
+@api_router.delete(
+    "/saved-searches/{saved_search_id}",
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Saved Search"],
+)
+async def call_delete_saved_search(saved_search_id: str):
+    """Delete a saved search by its ID."""
+    return delete_saved_search(saved_search_id)
 
 
 # GET ALL
