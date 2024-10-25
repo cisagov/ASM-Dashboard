@@ -23,11 +23,13 @@ from typing import List, Optional
 
 # Third-Party Libraries
 from django.shortcuts import render
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse, Response
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
-import httpx
-from pydantic import UUID4
+from re import A
+from typing import Any, List, Optional
+
+from pydantic import UUID
 
 # from .schemas import Cpe
 from . import schema_models
@@ -39,8 +41,13 @@ from .api_methods.api_keys import get_api_keys
 from .api_methods.cpe import get_cpes_by_id
 from .api_methods.cve import get_cves_by_id, get_cves_by_name
 from .api_methods.domain import export_domains, get_domain_by_id, search_domains
+from .api_methods.search import export, search_post
 from .api_methods.user import get_users
-from .api_methods.vulnerability import get_vulnerability_by_id, update_vulnerability
+from .api_methods.vulnerability import (
+    get_vulnerability_by_id,
+    search_vulnerabilities,
+    update_vulnerability,
+)
 from .auth import get_current_active_user
 from .login_gov import callback, login
 from .models import Assessment, User
@@ -55,8 +62,10 @@ from .schema_models.domain import Domain as DomainSchema
 from .schema_models.domain import DomainFilters, DomainSearch
 from .schema_models.notification import Notification as NotificationSchema
 from .schema_models.role import Role as RoleSchema
+from .schema_models.search import SearchBody, SearchRequest, SearchResponse
 from .schema_models.user import User as UserSchema
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
+from .schema_models.vulnerability import VulnerabilitySearch
 
 # Define API router
 api_router = APIRouter()
@@ -74,9 +83,9 @@ async def healthcheck():
     return {"status": "ok2"}
 
 
-######################
-# Proxy
-######################
+# ========================================
+#   Proxy Endpoints
+# ========================================
 
 
 # Matomo Proxy
@@ -134,9 +143,9 @@ async def pe_proxy(
     return await proxy.proxy_request(request, os.getenv("PE_API_URL", ""), path)
 
 
-######################
-# Assessments
-######################
+# ========================================
+#   Assessment Endpoints
+# ========================================
 
 
 # TODO: Uncomment checks for current_user once authentication is implemented
@@ -173,16 +182,6 @@ async def list_assessments():
         raise HTTPException(status_code=404, detail="No assessments found")
 
     return list(assessments)
-
-
-@api_router.post("/search")
-async def search():
-    pass
-
-
-@api_router.post("/search/export")
-async def export_search():
-    pass
 
 
 @api_router.get(
@@ -270,10 +269,15 @@ async def call_get_domain_by_id(domain_id: str):
     return get_domain_by_id(domain_id)
 
 
-@api_router.post("/vulnerabilities/search")
-async def search_vulnerabilities():
+@api_router.post(
+    "/vulnerabilities/search",
+    # dependencies=[Depends(get_current_active_user)],
+    response_model=List[VulnerabilitySchema],
+    tags=["Vulnerabilities"],
+)
+async def call_search_vulnerabilities(vulnerability_search: VulnerabilitySearch):
     try:
-        pass
+        return search_vulnerabilities(vulnerability_search)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -317,9 +321,10 @@ async def call_update_vulnerability(vuln_id, data: VulnerabilitySchema):
     return update_vulnerability(vuln_id, data)
 
 
-######################
-# Auth
-######################
+# ========================================
+#   Auth Endpoints
+# ========================================
+
 
 
 # Okta Callback
@@ -348,9 +353,9 @@ async def callback_route(request: Request):
         raise HTTPException(status_code=400, detail=str(error))
 
 
-######################
-# Users
-######################
+# ========================================
+#   Users Endpoints
+# ========================================
 
 
 # GET Current User
@@ -381,9 +386,9 @@ async def call_get_users(regionId):
     return get_users(regionId)
 
 
-######################
-# API-Keys
-######################
+# ========================================
+#   Api-Key Endpoints
+# ========================================
 
 
 # POST
@@ -416,9 +421,9 @@ async def get_api_key(id: str, current_user: User = Depends(get_current_active_u
     return api_key_methods.get_by_id(id, current_user)
 
 
-#########################
-#     Notifications
-#########################
+# ========================================
+#   Notification Endpoints
+# ========================================
 
 
 # POST
@@ -602,7 +607,7 @@ async def list_scan_tasks(
     tags=["Scan Tasks"],
 )
 async def kill_scan_tasks(
-    scan_task_id: UUID4, current_user: User = Depends(get_current_active_user)
+    scan_task_id: UUID, current_user: User = Depends(get_current_active_user)
 ):
     """Kill a scan task."""
     return scan_tasks.kill_scan_task(scan_task_id, current_user)
@@ -615,7 +620,7 @@ async def kill_scan_tasks(
     tags=["Scan Tasks"],
 )
 async def get_scan_task_logs(
-    scan_task_id: UUID4, current_user: User = Depends(get_current_active_user)
+    scan_task_id: UUID, current_user: User = Depends(get_current_active_user)
 ):
     """Get logs from a particular scan task."""
     return scan_tasks.get_scan_task_logs(scan_task_id, current_user)
@@ -830,3 +835,35 @@ async def list_organizations_v2(
 ):
     """Retrieve a list of all organizations (version 2)."""
     return organization.list_organizations_v2(state, regionId, current_user)
+
+# ========================================
+#   Search Endpoints
+# ========================================
+
+@api_router.post(
+    "/search",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=SearchResponse,
+    tags=["Search"],
+)
+async def search(request: SearchRequest):
+    try:
+        search_post(request)
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@api_router.post(
+    "/search/export", dependencies=[Depends(get_current_active_user)], tags=["Search"]
+)
+async def export_endpoint(request: Request):
+    try:
+        body = await request.json()
+        search_body = SearchBody(**body)  # Parse request body into SearchBody
+        result = export(search_body, request)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
