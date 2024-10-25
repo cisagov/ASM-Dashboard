@@ -19,7 +19,7 @@ class Domain(BaseModel):
     id: UUID
     createdAt: datetime
     updatedAt: datetime
-    syncedAt: datetime
+    syncedAt: Optional[datetime] = None
     ip: str
     fromRootDomain: Optional[str]
     subdomainSource: Optional[str]
@@ -33,8 +33,10 @@ class Domain(BaseModel):
     ssl: Optional[Any]
     censysCertificatesResults: Optional[dict]
     trustymailResults: Optional[dict]
-    discoveredById_id: Optional[UUID]
-    organizationId_id: Optional[UUID]
+    discoveredBy_id: Optional[UUID]
+    organization_id: Optional[UUID]
+    isFceb: Optional[bool]
+    fromCidr: Optional[bool]
 
     class Config:
         """Domain base schema config."""
