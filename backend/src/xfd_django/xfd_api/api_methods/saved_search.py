@@ -70,22 +70,13 @@ def create_saved_search(request):
         raise HTTPException(status_code=404, detail=str(e))
 
 
-def list_saved_searches(request):
+def list_saved_searches():
     """List all saved searches."""
 
     try:
         all_saved_searches = SavedSearch.objects.all()
         saved_search_list = []
         for search in all_saved_searches:
-            filters_without_type = []
-            for filter in search.filters:
-                # Exclude the "type" field by constructing a new dictionary without it
-                filter_without_type = {
-                    "field": filter["field"],  # Keep field
-                    "values": filter["values"],  # Keep values
-                }
-                filters_without_type.append(filter_without_type)
-
             response = {
                 "id": str(search.id),
                 "createdAt": search.createdAt,
@@ -95,7 +86,7 @@ def list_saved_searches(request):
                 "sortDirection": search.sortDirection,
                 "sortField": search.sortField,
                 "count": search.count,
-                "filters": filters_without_type,
+                "filters": search.filters,
                 "searchPath": search.searchPath,
                 "createdById": search.createdById.id,
             }
@@ -110,12 +101,12 @@ def list_saved_searches(request):
         raise HTTPException(status_code=404, detail=str(e))
 
 
-def get_saved_search(request):
+def get_saved_search(saved_search_id):
     try:
-        if not uuid.UUID(request.get("saved_search_id")):
+        if not uuid.UUID(saved_search_id):
             raise HTTPException({"error": "Invalid UUID"}, status=404)
 
-        saved_search = SavedSearch.objects.get(id=request.get("saved_search_id"))
+        saved_search = SavedSearch.objects.get(id=saved_search_id)
         response = {
             "id": str(saved_search.id),
             "createdAt": saved_search.createdAt,
@@ -173,18 +164,19 @@ def update_saved_search(request):
     return response
 
 
-def delete_saved_search(request):
+def delete_saved_search(saved_search_id):
     """Delete saved search by id."""
 
     try:
-        user = User.objects.get(id=request.get("createdById"))
-        if not uuid.UUID(request.get("saved_search_id")):
+        if not uuid.UUID(saved_search_id):
             raise HTTPException(status_code=404, detail={"error": "Invalid UUID"})
-        search_id = request.get("saved_search_id")
-        search = SavedSearch.objects.get(id=search_id)
+        search = SavedSearch.objects.get(id=saved_search_id)
         search.delete()
         return JsonResponse(
-            {"status": "success", "message": f"Saved search id:{search_id} deleted."}
+            {
+                "status": "success",
+                "message": f"Saved search id:{saved_search_id} deleted.",
+            }
         )
     except User.DoesNotExist:
         raise HTTPException(status_code=404, detail="User not found")
