@@ -18,11 +18,12 @@ Dependencies:
 """
 
 # Standard Python Libraries
-from typing import List, Optional
+from re import A
+from typing import Any, List, Optional
 
 # Third-Party Libraries
 from django.shortcuts import render
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 
 # from .schemas import Cpe
@@ -36,6 +37,7 @@ from .api_methods.cpe import get_cpes_by_id
 from .api_methods.cve import get_cves_by_id, get_cves_by_name
 from .api_methods.domain import export_domains, get_domain_by_id, search_domains
 from .api_methods.organization import get_organizations, read_orgs
+from .api_methods.search import export, search_post
 from .api_methods.user import get_users
 from .api_methods.vulnerability import (
     get_vulnerability_by_id,
@@ -55,6 +57,7 @@ from .schema_models.domain import DomainFilters, DomainSearch
 from .schema_models.notification import Notification as NotificationSchema
 from .schema_models.organization import Organization as OrganizationSchema
 from .schema_models.role import Role as RoleSchema
+from .schema_models.search import SearchBody, SearchRequest, SearchResponse
 from .schema_models.user import User as UserSchema
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
 from .schema_models.vulnerability import VulnerabilitySearch
@@ -142,16 +145,6 @@ async def list_assessments():
         raise HTTPException(status_code=404, detail="No assessments found")
 
     return list(assessments)
-
-
-@api_router.post("/search")
-async def search():
-    pass
-
-
-@api_router.post("/search/export")
-async def export_search():
-    pass
 
 
 @api_router.get(
@@ -570,3 +563,32 @@ async def invoke_scheduler(current_user: User = Depends(get_current_active_user)
     """Manually invoke the scan scheduler."""
     response = await scan.invoke_scheduler(current_user)
     return response
+
+
+@api_router.post(
+    "/search",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=SearchResponse,
+    tags=["Search"],
+)
+async def search(request: SearchRequest):
+    try:
+        search_post(request)
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@api_router.post(
+    "/search/export", dependencies=[Depends(get_current_active_user)], tags=["Search"]
+)
+async def export_endpoint(request: Request):
+    try:
+        body = await request.json()
+        search_body = SearchBody(**body)  # Parse request body into SearchBody
+        result = export(search_body, request)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
