@@ -60,7 +60,6 @@ def search_domains(domain_search: DomainSearch, current_user):
             domains = filter_domains(domains, domain_search.filters)
         paginator = Paginator(domains, domain_search.pageSize)
 
-        print(domains)
         return paginator.get_page(domain_search.page)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
