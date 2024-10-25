@@ -39,7 +39,11 @@ from .api_methods.domain import export_domains, get_domain_by_id, search_domains
 from .api_methods.organization import get_organizations, read_orgs
 from .api_methods.search import export, search_post
 from .api_methods.user import get_users
-from .api_methods.vulnerability import get_vulnerability_by_id, update_vulnerability
+from .api_methods.vulnerability import (
+    get_vulnerability_by_id,
+    search_vulnerabilities,
+    update_vulnerability,
+)
 from .auth import get_current_active_user
 from .login_gov import callback, login
 from .models import Assessment, User
@@ -56,6 +60,7 @@ from .schema_models.role import Role as RoleSchema
 from .schema_models.search import SearchBody, SearchRequest, SearchResponse
 from .schema_models.user import User as UserSchema
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
+from .schema_models.vulnerability import VulnerabilitySearch
 
 # Define API router
 api_router = APIRouter()
@@ -227,10 +232,15 @@ async def call_get_domain_by_id(domain_id: str):
     return get_domain_by_id(domain_id)
 
 
-@api_router.post("/vulnerabilities/search")
-async def search_vulnerabilities():
+@api_router.post(
+    "/vulnerabilities/search",
+    # dependencies=[Depends(get_current_active_user)],
+    response_model=List[VulnerabilitySchema],
+    tags=["Vulnerabilities"],
+)
+async def call_search_vulnerabilities(vulnerability_search: VulnerabilitySearch):
     try:
-        pass
+        return search_vulnerabilities(vulnerability_search)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
