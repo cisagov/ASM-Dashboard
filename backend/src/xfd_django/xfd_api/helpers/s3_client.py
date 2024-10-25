@@ -62,8 +62,8 @@ async def export_to_csv(pages: Paginator, queryset, name, is_local: bool = True)
                     "ssl",
                     "censysCertificatesResults",
                     "trustymailResults",
-                    "discoveredById_id",
-                    "organizationId_id",
+                    "discoveredBy_id",
+                    "organization_id",
                 ]
             )
 
@@ -90,8 +90,8 @@ async def export_to_csv(pages: Paginator, queryset, name, is_local: bool = True)
                         obj.ssl,
                         obj.censysCertificatesResults,
                         obj.trustymailResults,
-                        obj.discoveredById_id,
-                        obj.organizationId_id,
+                        obj.discoveredBy_id,
+                        obj.organization_id,
                     ]
                 )
             # if not is_local:

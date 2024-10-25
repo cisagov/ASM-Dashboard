@@ -3,6 +3,7 @@
 
 # Standard Python Libraries
 import uuid
+from datetime import datetime, timezone
 
 # Third-Party Libraries
 from django.contrib.postgres.fields import ArrayField, JSONField
@@ -204,6 +205,8 @@ class Domain(models.Model):
     country = models.CharField(max_length=255, blank=True, null=True)
     asn = models.CharField(max_length=255, blank=True, null=True)
     cloudHosted = models.BooleanField(db_column="cloudHosted", default=False)
+    fromCidr = models.BooleanField(db_column="fromCidr", default=False)
+    isFceb = models.BooleanField(db_column="isFceb", default=False)
 
     ssl = models.JSONField(blank=True, null=True)
     censysCertificatesResults = models.JSONField(
@@ -234,6 +237,20 @@ class Domain(models.Model):
         self.reverseName = ".".join(reversed(self.name.split(".")))
         super().save(*args, **kwargs)
 
+
+class Log(models.Model):
+    """The Log model."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    payload = models.JSONField()
+    createdAt = models.DateTimeField(auto_now_add=True)
+    eventType = models.CharField(max_length=255, null=True, blank=True)
+    result = models.CharField(max_length=255)
+
+    class Meta:
+        """The Meta class for Log."""
+        managed = False
+        db_table = 'log'
 
 class Notification(models.Model):
     """The Notification model."""
@@ -701,33 +718,56 @@ class User(models.Model):
 class Vulnerability(models.Model):
     """The Vulnerability model."""
 
-    id = models.UUIDField(primary_key=True)
-    createdAt = models.DateTimeField(db_column="createdAt")
-    updatedAt = models.DateTimeField(db_column="updatedAt")
+    class SeverityChoices(models.TextChoices):
+        NONE = 'None'
+        LOW = 'Low'
+        MEDIUM = 'Medium'
+        HIGH = 'High'
+        CRITICAL = 'Critical'
+
+    class StateChoices(models.TextChoices):
+        OPEN = 'open'
+        CLOSED = 'closed'
+
+    class SubstateChoices(models.TextChoices):
+        UNCONFIRMED = 'unconfirmed'
+        EXPLOITABLE = 'exploitable'
+        FALSE_POSITIVE = 'false-positive'
+        ACCEPTED_RISK = 'accepted-risk'
+        REMEDIATED = 'remediated'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    createdAt = models.DateTimeField(auto_now_add=True, db_column="createdAt")
+    updatedAt = models.DateTimeField(auto_now=True, db_column="updatedAt")
     lastSeen = models.DateTimeField(db_column="lastSeen", blank=True, null=True)
     title = models.CharField()
     cve = models.TextField(blank=True, null=True)
     cwe = models.TextField(blank=True, null=True)
     cpe = models.TextField(blank=True, null=True)
     description = models.CharField()
-    references = models.JSONField()
+    references = models.JSONField(default=list)
     cvss = models.DecimalField(
         max_digits=65535, decimal_places=65535, blank=True, null=True
     )
-    severity = models.TextField(blank=True, null=True)
+    severity = models.CharField(
+        max_length=10,
+        choices=SeverityChoices.choices,
+        blank=True,
+        null=True
+    )
     needsPopulation = models.BooleanField(db_column="needsPopulation")
-    state = models.CharField()
-    substate = models.CharField()
+    state = models.CharField(max_length=10, choices=StateChoices.choices, default=StateChoices.OPEN)
+    substate = models.CharField(max_length=15, choices=SubstateChoices.choices, default=SubstateChoices.UNCONFIRMED)
     source = models.CharField()
     notes = models.CharField()
-    actions = models.JSONField()
-    structuredData = models.JSONField(db_column="structuredData")
-    isKev = models.BooleanField(db_column="isKev", blank=True, null=True)
-    kevResults = models.JSONField(db_column="kevResults", blank=True, null=True)
-    domainId = models.ForeignKey(
+    actions = models.JSONField(default=list)
+    structuredData = models.JSONField(db_column="structuredData", default=dict)
+    isKev = models.BooleanField(db_column="isKev", blank=True, null=True, default=False)
+    kevResults = models.JSONField(db_column="kevResults", blank=True, null=True, default=dict)
+    domain = models.ForeignKey(
         Domain, models.DO_NOTHING, db_column="domainId", blank=True, null=True
     )
-    serviceId = models.ForeignKey(
+    service = models.ForeignKey(
         Service, models.DO_NOTHING, db_column="serviceId", blank=True, null=True
     )
 
@@ -736,8 +776,40 @@ class Vulnerability(models.Model):
 
         managed = False
         db_table = "vulnerability"
+        indexes = [
+            models.Index(fields=["createdAt"]),
+            models.Index(fields=["updatedAt"]),
+        ]
         unique_together = (("domainId", "title"),)
 
+    def setState(self, substate, automatic, user=None):
+        """Set the state and update actions."""
+        self.substate = substate
+        self.state = 'open' if substate in ['unconfirmed', 'exploitable'] else 'closed'
+        self.actions.insert(0, {
+            "type": "state-change",
+            "state": self.state,
+            "substate": self.substate,
+            "automatic": automatic,
+            "userId": user.id if user else None,
+            "userName": user.fullName if user else None,
+            "date": datetime.now(timezone.utc)
+        })
+
+    def save(self, *args, **kwargs):
+        """Override save to set severity based on cvss."""
+        if self.cvss is not None:
+            if self.cvss == 0:
+                self.severity = self.SeverityChoices.NONE
+            elif self.cvss < 4:
+                self.severity = self.SeverityChoices.LOW
+            elif self.cvss < 7:
+                self.severity = self.SeverityChoices.MEDIUM
+            elif self.cvss < 9:
+                self.severity = self.SeverityChoices.HIGH
+            else:
+                self.severity = self.SeverityChoices.CRITICAL
+        super().save(*args, **kwargs)
 
 class Webpage(models.Model):
     """The Webpage model."""

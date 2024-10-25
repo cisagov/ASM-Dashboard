@@ -163,8 +163,8 @@ def get_scan(scan_id: str, current_user):
     # Get related organizations with all fields and remove unwanted fields
     related_organizations = list(scan.organizations.values())
     for org in related_organizations:
-        org.pop("parentId_id", None)
-        org.pop("createdById_id", None)
+        org.pop("parent_id", None)
+        org.pop("createdBy_id", None)
 
     # Serialize scan data
     scan_data = {
