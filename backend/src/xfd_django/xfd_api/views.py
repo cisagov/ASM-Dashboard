@@ -18,12 +18,15 @@ Dependencies:
 """
 
 # Standard Python Libraries
+import os
 from typing import List, Optional
 
 # Third-Party Libraries
 from django.shortcuts import render
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
+from fastapi.responses import RedirectResponse, Response
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
+import httpx
 from pydantic import UUID4
 
 # from .schemas import Cpe
@@ -31,7 +34,7 @@ from . import schema_models
 from .api_methods import api_key as api_key_methods
 from .api_methods import auth as auth_methods
 from .api_methods import notification as notification_methods
-from .api_methods import organization, scan, scan_tasks
+from .api_methods import organization, proxy, scan, scan_tasks
 from .api_methods.api_keys import get_api_keys
 from .api_methods.cpe import get_cpes_by_id
 from .api_methods.cve import get_cves_by_id, get_cves_by_name
@@ -71,15 +74,69 @@ async def healthcheck():
     return {"status": "ok2"}
 
 
-@api_router.get("/test-apikeys", tags=["Testing"])
-async def call_get_api_keys():
-    """
-    Get all API keys.
+######################
+# Proxy
+######################
 
-    Returns:
-        list: A list of all API keys.
-    """
-    return get_api_keys()
+
+# Matomo Proxy
+@api_router.api_route(
+    "/matomo/{path:path}",
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Analytics"],
+)
+async def matomo_proxy(
+    path: str, request: Request, current_user: User = Depends(get_current_active_user)
+):
+    """Proxy requests to the Matomo analytics instance."""
+    # Public paths -- directly allowed
+    allowed_paths = ["/matomo.php", "/matomo.js"]
+    if any(
+        [request.url.path.startswith(allowed_path) for allowed_path in allowed_paths]
+    ):
+        return await proxy.proxy_request(path, request, os.getenv("MATOMO_URL"))
+
+    # Redirects for specific font files
+    if request.url.path in [
+        "/plugins/Morpheus/fonts/matomo.woff2",
+        "/plugins/Morpheus/fonts/matomo.woff",
+        "/plugins/Morpheus/fonts/matomo.ttf",
+    ]:
+        return RedirectResponse(
+            url=f"https://cdn.jsdelivr.net/gh/matomo-org/matomo@3.14.1{request.url.path}"
+        )
+
+    # Ensure only global admin can access other paths
+    if current_user.userType != "globalAdmin":
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    # Handle the proxy request to Matomo
+    return await proxy.proxy_request(
+        request, os.getenv("MATOMO_URL", ""), path, cookie_name="MATOMO_SESSID"
+    )
+
+
+# P&E Proxy
+@api_router.api_route(
+    "/pe/{path:path}",
+    dependencies=[Depends(get_current_active_user)],
+    tags=["P&E Proxy"],
+)
+async def pe_proxy(
+    path: str, request: Request, current_user: User = Depends(get_current_active_user)
+):
+    """Proxy requests to the P&E Django application."""
+    # Ensure only Global Admin and Global View users can access
+    if current_user.userType not in ["globalView", "globalAdmin"]:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    # Handle the proxy request to the P&E Django application
+    return await proxy.proxy_request(request, os.getenv("PE_API_URL", ""), path)
+
+
+######################
+# Assessments
+######################
 
 
 # TODO: Uncomment checks for current_user once authentication is implemented

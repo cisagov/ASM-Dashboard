@@ -1,13 +1,17 @@
-from unittest.mock import patch
+# Standard Python Libraries
+from datetime import datetime
 import secrets
+from unittest.mock import patch
+
+# Third-Party Libraries
 from fastapi.testclient import TestClient
 import pytest
-from datetime import datetime
 from xfd_api.auth import create_jwt_token
-from xfd_api.models import User, Scan, Organization, UserType, OrganizationTag
+from xfd_api.models import Organization, OrganizationTag, Scan, User, UserType
 from xfd_django.asgi import app
 
 client = TestClient(app)
+
 
 # Test: list by globalAdmin should return all scans
 @pytest.mark.django_db(transaction=True)
@@ -22,7 +26,7 @@ def test_list_scans_by_global_admin():
     )
 
     name = f"test-{secrets.token_hex(4)}"
-    
+
     Scan.objects.create(
         name=name,
         arguments={},
@@ -51,7 +55,7 @@ def test_list_scans_by_global_admin():
         "/scans",
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert len(data["scans"]) >= 2
@@ -74,7 +78,7 @@ def test_create_scan_by_global_admin():
     name = "censys"
     arguments = '{"a": "b"}'
     frequency = 999999
-    
+
     response = client.post(
         "/scans",
         json={
@@ -85,7 +89,7 @@ def test_create_scan_by_global_admin():
             "organizations": [],
             "isUserModifiable": False,
             "isSingleScan": False,
-            "tags": []
+            "tags": [],
         },
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
@@ -99,6 +103,7 @@ def test_create_scan_by_global_admin():
     assert data["organizations"] == []
     assert data["tags"] == []
     assert data["createdBy"]["id"] == str(user.id)
+
 
 # Test: create a granular scan by globalAdmin should succeed
 @pytest.mark.django_db(transaction=True)
@@ -115,7 +120,7 @@ def test_create_granular_scan_by_global_admin():
     name = "censys"
     arguments = '{"a": "b"}'
     frequency = 999999
-    
+
     organization = Organization.objects.create(
         name=f"test-{secrets.token_hex(4)}",
         rootDomains=["test-" + secrets.token_hex(4)],
@@ -124,7 +129,7 @@ def test_create_granular_scan_by_global_admin():
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
-    
+
     response = client.post(
         "/scans",
         json={
@@ -135,7 +140,7 @@ def test_create_granular_scan_by_global_admin():
             "organizations": [str(organization.id)],
             "isUserModifiable": False,
             "isSingleScan": False,
-            "tags": []
+            "tags": [],
         },
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
@@ -170,13 +175,13 @@ def test_create_by_global_view_fails():
             "isGranular": False,
             "organizations": [],
             "isUserModifiable": False,
-            "isSingleScan": False
+            "isSingleScan": False,
         },
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
     assert response.status_code == 403
-    assert response.json() == {'detail': 'Unauthorized access.'}
+    assert response.json() == {"detail": "Unauthorized access."}
 
 
 # Test: update by globalAdmin should succeed
@@ -203,7 +208,7 @@ def test_update_by_global_admin_succeeds():
             "organizations": [],
             "isUserModifiable": False,
             "isSingleScan": False,
-            "tags": []
+            "tags": [],
         },
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
@@ -228,9 +233,13 @@ def test_update_non_granular_to_granular_by_global_admin():
     )
 
     scan = Scan.objects.create(
-        name="censys", arguments="{}", frequency=999999, isGranular=False, isSingleScan=False
+        name="censys",
+        arguments="{}",
+        frequency=999999,
+        isGranular=False,
+        isSingleScan=False,
     )
-    
+
     tag = OrganizationTag.objects.create(name=f"test-{secrets.token_hex(4)}")
     organization = Organization.objects.create(
         name=f"test-{secrets.token_hex(4)}",
@@ -252,7 +261,7 @@ def test_update_non_granular_to_granular_by_global_admin():
             "organizations": [str(organization.id)],
             "isSingleScan": False,
             "isUserModifiable": True,
-            "tags": [{"id": str(tag.id)}]
+            "tags": [{"id": str(tag.id)}],
         },
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
@@ -284,17 +293,13 @@ def test_update_by_global_view_fails():
 
     response = client.put(
         f"/scans/{scan.id}",
-        json={
-            "name": "findomain",
-            "arguments": "{}",
-            "frequency": 999991
-        },
+        json={"name": "findomain", "arguments": "{}", "frequency": 999991},
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
     print(response.json())
     assert response.status_code == 403
-    assert response.json() == {'detail': 'Unauthorized access.'}
+    assert response.json() == {"detail": "Unauthorized access."}
 
 
 # Test: delete by globalAdmin should succeed
@@ -339,7 +344,7 @@ def test_delete_by_global_view_fails():
     )
 
     assert response.status_code == 403
-    assert response.json() == {'detail': 'Unauthorized access.'}
+    assert response.json() == {"detail": "Unauthorized access."}
 
 
 # Test: get by globalView should succeed
@@ -386,7 +391,7 @@ def test_get_by_regular_user_fails():
     )
 
     assert response.status_code == 403
-    assert response.json() == {'detail': 'Unauthorized access.'}
+    assert response.json() == {"detail": "Unauthorized access."}
 
 
 # Test: scheduler invoke by globalAdmin should succeed
@@ -432,7 +437,7 @@ def test_scheduler_invoke_by_global_view_fails(mock_scheduler):
     )
 
     assert response.status_code == 403
-    assert response.json() == {'detail': 'Unauthorized access.'}
+    assert response.json() == {"detail": "Unauthorized access."}
     mock_scheduler.assert_not_called()
 
 
@@ -488,4 +493,4 @@ def test_run_scan_by_global_view_fails():
     )
 
     assert response.status_code == 403
-    assert response.json() == {'detail': 'Unauthorized access.'}
+    assert response.json() == {"detail": "Unauthorized access."}
