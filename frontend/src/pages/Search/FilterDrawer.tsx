@@ -4,30 +4,21 @@ import {
   Accordion as MuiAccordion,
   AccordionSummary as MuiAccordionSummary,
   IconButton,
-  Paper,
-  Divider,
-  Stack,
-  Toolbar,
-  Typography,
-  Box,
-  Button
+  Paper
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import {
-  classes,
-  StyledWrapper
-} from '../pages/Search/Styling/filterDrawerStyle';
+import { classes, StyledWrapper } from './Styling/filterDrawerStyle';
 import {
   Delete,
   ExpandMore,
   FiberManualRecordRounded
 } from '@mui/icons-material';
-import FilterAltIcon from '@mui/icons-material/FilterAlt';
+import { FaFilter } from 'react-icons/fa';
 import { SearchBar } from 'components';
 import { TaggedArrayInput, FacetFilter } from 'components';
-import { ContextType } from '../context/SearchProvider';
-import { SavedSearch } from '../types/saved-search';
-import { useAuthContext } from '../context';
+import { ContextType } from '../../context/SearchProvider';
+import { SavedSearch } from '../../types/saved-search';
+import { useAuthContext } from '../../context';
 import { useHistory, useLocation } from 'react-router-dom';
 import { withSearch } from '@elastic/react-search-ui';
 
@@ -37,6 +28,7 @@ interface Props {
   filters: ContextType['filters'];
   facets: ContextType['facets'];
   clearFilters: ContextType['clearFilters'];
+  updateSearchTerm: (term: string) => void;
   searchTerm: ContextType['searchTerm'];
   setSearchTerm: ContextType['setSearchTerm'];
 }
@@ -52,7 +44,7 @@ const FiltersApplied: React.FC = () => {
 const Accordion = MuiAccordion;
 const AccordionSummary = MuiAccordionSummary;
 
-export const DrawerInterior: React.FC<Props> = (props) => {
+export const FilterDrawer: React.FC<Props> = (props) => {
   const {
     filters,
     addFilter,
@@ -128,15 +120,6 @@ export const DrawerInterior: React.FC<Props> = (props) => {
 
   return (
     <StyledWrapper style={{ overflowY: 'auto' }}>
-      <Toolbar sx={{ justifyContent: 'center' }}>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Typography variant="h6" component="h3">
-            Advanced Filters
-          </Typography>
-          <FilterAltIcon />
-        </Stack>
-      </Toolbar>
-      <Divider />
       <div className={classes.header}>
         <SearchBar
           initialValue={searchTerm}
@@ -151,15 +134,17 @@ export const DrawerInterior: React.FC<Props> = (props) => {
           }}
         />
       </div>
-      {clearFilters && (
-        <Box display="flex" width="100%" justifyContent="center">
-          <Button onClick={clearFilters}>Clear All Filters</Button>
-        </Box>
-      )}
+      <div className={classes.header}>
+        <div className={classes.filter}>
+          <FaFilter /> <h3>Filter</h3>
+        </div>
+        {clearFilters && (
+          <div>
+            <button onClick={clearFilters}>Clear All Filters</button>
+          </div>
+        )}
+      </div>
       <Accordion
-        sx={{
-          marginTop: 1
-        }}
         elevation={0}
         square
         classes={{
@@ -405,7 +390,7 @@ export const DrawerInterior: React.FC<Props> = (props) => {
                       description: 'Name',
                       renderCell: (cellValues) => {
                         const applyFilter = () => {
-                          // if (clearFilters) clearFilters();
+                          if (clearFilters) clearFilters();
                           localStorage.setItem(
                             'savedSearch',
                             JSON.stringify(cellValues.row)
@@ -504,9 +489,9 @@ export const DrawerInterior: React.FC<Props> = (props) => {
   );
 };
 
-export const DrawerInteriorWithSearch = withSearch(
+export const FilterDrawerWithSearch = withSearch(
   ({ searchTerm, setSearchTerm }: ContextType) => ({
     searchTerm,
     setSearchTerm
   })
-)(DrawerInterior);
+)(FilterDrawer);

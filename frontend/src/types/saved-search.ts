@@ -1,4 +1,5 @@
 import { User } from './user';
+import { Vulnerability } from './vulnerability';
 
 export interface SavedSearch {
   id: string;
@@ -12,4 +13,6 @@ export interface SavedSearch {
   searchPath: string;
   sortField: string;
   sortDirection: string;
+  createVulnerabilities: boolean;
+  vulnerabilityTemplate: Partial<Vulnerability>;
 }

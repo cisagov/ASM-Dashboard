@@ -1,6 +1,5 @@
 import classes from './Scans.module.scss';
 import React, { useCallback, useRef, useState } from 'react';
-// TODO: Refactor to use Material-UI components
 import {
   Button,
   Modal,
@@ -23,19 +22,9 @@ import { formatDistanceToNow, parseISO } from 'date-fns';
 import { setFrequency } from 'pages/Scan/Scan';
 import { ScanForm, ScanFormValues } from 'components/ScanForm';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
-import {
-  Alert,
-  Button as MuiButton,
-  Box,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  IconButton,
-  Paper,
-  DialogTitle
-} from '@mui/material';
+import { Alert, Box, IconButton, Paper } from '@mui/material';
 //Needed for the CustomToolbar:
+// import { Button as MuiButton } from '@mui/material';
 // import CustomToolbar from 'components/DataGrid/CustomToolbar';
 // import { Add, Publish } from '@mui/icons-material';
 
@@ -71,7 +60,6 @@ const ScansView: React.FC = () => {
   const [scanSchema, setScanSchema] = useState<ScanSchema>({});
   const deleteModalRef = useRef<ModalRef>(null);
   const [errors, setErrors] = useState<Errors>({});
-  const [open, setOpen] = useState(false);
 
   const [values] = useState<ScanFormValues>({
     name: 'censys',
@@ -167,18 +155,6 @@ const ScansView: React.FC = () => {
     await invokeScheduler();
   };
 
-  const handleSubmit = () => {
-    runScan(selectedId);
-    setOpen(false);
-  };
-  const handleClose = () => {
-    setOpen(false);
-  };
-
-  const handleClick = () => {
-    setOpen(true);
-  };
-
   //Code for new table//
 
   React.useEffect(() => {
@@ -218,9 +194,7 @@ const ScansView: React.FC = () => {
             tabIndex={cellValues.tabIndex}
             color="primary"
             onClick={() => {
-              setSelectedId(cellValues.row.id);
-              setSelectedName(cellValues.row.name);
-              handleClick();
+              runScan(cellValues.row.id);
             }}
           >
             <FaPlayCircle />
@@ -292,34 +266,6 @@ const ScansView: React.FC = () => {
   return (
     <>
       <Box mb={3}>
-        <Dialog
-          open={open}
-          onClose={handleClose}
-          aria-labelledby="run-scan-dialog-title"
-          aria-describedby="run-scan-dialog-description"
-        >
-          <DialogTitle id="run-scan-dialog-title">Confirmation</DialogTitle>
-          <DialogContent>
-            <DialogContentText id="run-scan-dialog-description">
-              Are you sure you would like to run the {selectedName} scan?
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <MuiButton
-              onClick={handleClose}
-              aria-label="Cancel running the scan"
-            >
-              Cancel
-            </MuiButton>
-            <MuiButton
-              variant="contained"
-              onClick={handleSubmit}
-              aria-label="Confirm and run the scan"
-            >
-              Run
-            </MuiButton>
-          </DialogActions>
-        </Dialog>
         <Paper elevation={0}>
           {scans?.length === 0 ? (
             <Alert severity="info">No scans found</Alert>
@@ -373,6 +319,7 @@ const ScansView: React.FC = () => {
           setScans(scans.concat(...createdScans));
         }}
       />
+
       <Modal ref={deleteModalRef} id="deleteModal">
         <ModalHeading>Delete scan?</ModalHeading>
         <p>

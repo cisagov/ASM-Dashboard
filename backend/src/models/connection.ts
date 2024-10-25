@@ -21,7 +21,6 @@ import {
   User,
   Vulnerability,
   Webpage,
-  Log,
 
   //  Models for the Mini Data Lake database
   CertScan,
@@ -195,8 +194,7 @@ const connectDb = async (logging?: boolean) => {
       Service,
       User,
       Vulnerability,
-      Webpage,
-      Log
+      Webpage
     ],
     synchronize: false,
     name: 'default',

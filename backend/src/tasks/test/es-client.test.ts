@@ -19,7 +19,6 @@ beforeAll(async () => {
   connection = await connectToDatabase();
   domain = Domain.create({
     name: 'first_file_testdomain5',
-    isFceb: true,
     ip: '45.79.207.117'
   });
   webpage = Webpage.create({

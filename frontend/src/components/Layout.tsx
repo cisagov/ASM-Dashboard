@@ -8,7 +8,7 @@ import React, {
 import { styled } from '@mui/material/styles';
 import { useLocation } from 'react-router-dom';
 import { Box, Drawer, ScopedCssBaseline, useMediaQuery } from '@mui/material';
-import { GovBanner, Header } from 'components';
+import { Header, GovBanner } from 'components';
 import { useUserActivityTimeout } from 'hooks/useUserActivityTimeout';
 import { useAuthContext } from 'context/AuthContext';
 import UserInactiveModal from './UserInactivityModal/UserInactivityModal';
@@ -77,8 +77,6 @@ export const Layout: React.FC<PropsWithChildren<ContextType>> = ({
 
   const { regions } = useStaticsContext();
 
-  const [initialFilters, setInitialFilters] = useState<any[]>([]);
-
   const theme = useTheme();
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = usePersistentState(
     'isFilterDrawerOpen',
@@ -143,7 +141,6 @@ export const Layout: React.FC<PropsWithChildren<ContextType>> = ({
       filter.values.forEach((val) => {
         addFilter(filter.field, val, filter.type);
       });
-      setInitialFilters(initialFiltersForUser);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [regions, user]);
@@ -176,7 +173,6 @@ export const Layout: React.FC<PropsWithChildren<ContextType>> = ({
                   setIsFilterDrawerOpen={setIsFilterDrawerOpen}
                   isFilterDrawerOpen={isFilterDrawerOpen}
                   isMobile={isMobile}
-                  initialFilters={initialFilters}
                 />
               ) : (
                 <Drawer
@@ -193,8 +189,6 @@ export const Layout: React.FC<PropsWithChildren<ContextType>> = ({
                   isFilterDrawerOpen={isFilterDrawerOpen}
                   setIsFilterDrawerOpen={setIsFilterDrawerOpen}
                 />
-                <div className="main-content" id="main-content" tabIndex={-1} />
-
                 <Box
                   display="block"
                   position="relative"

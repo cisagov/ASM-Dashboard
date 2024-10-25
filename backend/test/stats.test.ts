@@ -69,7 +69,6 @@ describe('stats', () => {
       const name = 'test-' + Math.random();
       const domain = await Domain.create({
         name,
-        isFceb: true,
         organization
       }).save();
       await Vulnerability.create({
@@ -85,7 +84,6 @@ describe('stats', () => {
       }).save();
       await Domain.create({
         name: 'test-' + Math.random(),
-        isFceb: true,
         organization: organization2
       }).save();
       const response = await request(app)
@@ -128,7 +126,6 @@ describe('stats', () => {
       const name = 'test-' + Math.random();
       const domain = await Domain.create({
         name,
-        isFceb: true,
         organization
       }).save();
       await Vulnerability.create({
@@ -144,7 +141,6 @@ describe('stats', () => {
       }).save();
       const domain2 = await Domain.create({
         name: 'test-' + Math.random(),
-        isFceb: true,
         organization: organization2
       }).save();
       await Vulnerability.create({

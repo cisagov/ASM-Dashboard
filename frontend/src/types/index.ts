@@ -1,14 +1,21 @@
+import { SortingRule, Filters } from 'react-table';
 export * from './cpe';
 export * from './cve';
 export * from './domain';
-export * from './notification';
-export * from './organization';
-export * from './org-query';
-export * from './query';
-export * from './report';
-export * from './role';
-export * from './saved-search';
-export * from './scan-task';
+export * from './vulnerability';
 export * from './scan';
-export * from './stats';
+export * from './organization';
 export * from './user';
+export * from './role';
+export * from './scan-task';
+export * from './saved-search';
+export * from './stats';
+export * from './report';
+export * from './notification';
+
+export interface Query<T extends object> {
+  sort: SortingRule<T>[];
+  page: number;
+  filters: Filters<T>;
+  pageSize?: number;
+}

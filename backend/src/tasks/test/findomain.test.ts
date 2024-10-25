@@ -75,7 +75,6 @@ describe('findomain', () => {
     const domain = await Domain.create({
       organization,
       name: 'filedrop.cisa.gov',
-      isFceb: true,
       discoveredBy: scanOld,
       fromRootDomain: 'oldrootdomain.cisa.gov'
     }).save();

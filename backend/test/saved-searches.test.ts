@@ -45,7 +45,9 @@ describe('saved-search', () => {
           sortField: '',
           searchTerm: '',
           searchPath: '',
-          filters: []
+          filters: [],
+          createVulnerabilities: false,
+          vulnerabilityTemplate: {}
         })
         .expect(200);
       expect(response.body).toMatchSnapshot({
@@ -69,11 +71,14 @@ describe('saved-search', () => {
           sortField: '',
           searchTerm: '',
           searchPath: '',
-          filters: []
+          filters: [],
+          createVulnerabilities: false,
+          vulnerabilityTemplate: {}
         };
         const search = await SavedSearch.create(body).save();
         body.name = 'test-' + Math.random();
         body.searchTerm = '123';
+        body.createVulnerabilities = true;
         const response = await request(app)
           .put(`/saved-searches/${search.id}`)
           .set(
@@ -99,7 +104,9 @@ describe('saved-search', () => {
           sortField: '',
           searchTerm: '',
           searchPath: '',
-          filters: []
+          filters: [],
+          createVulnerabilities: false,
+          vulnerabilityTemplate: {}
         };
         const search = await SavedSearch.create({
           ...body,
@@ -107,6 +114,7 @@ describe('saved-search', () => {
         }).save();
         body.name = 'test-' + Math.random();
         body.searchTerm = '123';
+        body.createVulnerabilities = true;
         const response = await request(app)
           .put(`/saved-searches/${search.id}`)
           .set(
@@ -120,6 +128,9 @@ describe('saved-search', () => {
           .expect(200);
         expect(response.body.name).toEqual(body.name);
         expect(response.body.searchTerm).toEqual(body.searchTerm);
+        expect(response.body.createVulnerabilities).toEqual(
+          body.createVulnerabilities
+        );
       });
       it('update by standard user without access should fail', async () => {
         const user = await User.create({
@@ -142,6 +153,8 @@ describe('saved-search', () => {
           searchTerm: '',
           searchPath: '',
           filters: [],
+          createVulnerabilities: false,
+          vulnerabilityTemplate: {},
           createdBy: user
         };
         const search = await SavedSearch.create(body).save();
@@ -166,7 +179,9 @@ describe('saved-search', () => {
           sortField: '',
           searchTerm: '',
           searchPath: '',
-          filters: []
+          filters: [],
+          createVulnerabilities: false,
+          vulnerabilityTemplate: {}
         };
         const search = await SavedSearch.create(body).save();
         const response = await request(app)
@@ -191,7 +206,9 @@ describe('saved-search', () => {
           sortField: '',
           searchTerm: '',
           searchPath: '',
-          filters: []
+          filters: [],
+          createVulnerabilities: false,
+          vulnerabilityTemplate: {}
         }).save();
         const response = await request(app)
           .delete(`/saved-searches/${search.id}`)
@@ -218,6 +235,8 @@ describe('saved-search', () => {
           searchTerm: '',
           searchPath: '',
           filters: [],
+          createVulnerabilities: false,
+          vulnerabilityTemplate: {},
           createdBy: user
         }).save();
         const response = await request(app)
@@ -253,6 +272,8 @@ describe('saved-search', () => {
           searchTerm: '',
           searchPath: '',
           filters: [],
+          createVulnerabilities: false,
+          vulnerabilityTemplate: {},
           createdBy: user
         }).save();
         const response = await request(app)
@@ -288,6 +309,8 @@ describe('saved-search', () => {
           searchTerm: '',
           searchPath: '',
           filters: [],
+          createVulnerabilities: false,
+          vulnerabilityTemplate: {},
           createdBy: user
         }).save();
         const response = await request(app)
@@ -312,7 +335,9 @@ describe('saved-search', () => {
           sortField: '',
           searchTerm: '',
           searchPath: '',
-          filters: []
+          filters: [],
+          createVulnerabilities: false,
+          vulnerabilityTemplate: {}
         }).save();
         const response = await request(app)
           .get(`/saved-searches`)
@@ -346,6 +371,8 @@ describe('saved-search', () => {
           searchTerm: '',
           searchPath: '',
           filters: [],
+          createVulnerabilities: false,
+          vulnerabilityTemplate: {},
           createdBy: user
         }).save();
         // this org should not show up in the response
@@ -357,6 +384,8 @@ describe('saved-search', () => {
           searchTerm: '',
           searchPath: '',
           filters: [],
+          createVulnerabilities: false,
+          vulnerabilityTemplate: {},
           createdBy: user1
         }).save();
         const response = await request(app)
@@ -382,7 +411,9 @@ describe('saved-search', () => {
           sortField: '',
           searchTerm: '',
           searchPath: '',
-          filters: []
+          filters: [],
+          createVulnerabilities: false,
+          vulnerabilityTemplate: {}
         }).save();
         const response = await request(app)
           .get(`/saved-searches/${search.id}`)
@@ -409,6 +440,8 @@ describe('saved-search', () => {
           searchTerm: '',
           searchPath: '',
           filters: [],
+          createVulnerabilities: false,
+          vulnerabilityTemplate: {},
           createdBy: user
         }).save();
         const response = await request(app)
@@ -444,6 +477,8 @@ describe('saved-search', () => {
           searchTerm: '',
           searchPath: '',
           filters: [],
+          createVulnerabilities: false,
+          vulnerabilityTemplate: {},
           createdBy: user1
         }).save();
         const response = await request(app)

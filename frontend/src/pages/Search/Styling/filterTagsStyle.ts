@@ -8,7 +8,6 @@ export const classes = {
 
 export const Root = styled('div')(({ theme }) => ({
   [`& .${classes.chip}`]: {
-    marginTop: '0.5rem',
-    marginRight: '0.5rem'
+    margin: '0 0.5rem'
   }
 }));

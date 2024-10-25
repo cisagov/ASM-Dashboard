@@ -21,7 +21,6 @@ export interface UserToken {
     org: string;
     role: 'user' | 'admin';
   }[];
-  regionId: string | null;
   dateAcceptedTerms: Date | undefined;
   acceptedTermsVersion: string | undefined;
   lastLoggedIn: Date | undefined;
@@ -96,7 +95,6 @@ export const userTokenBody = (user): UserToken => ({
   email: user.email,
   userType: user.userType,
   dateAcceptedTerms: user.dateAcceptedTerms,
-  regionId: user.regionId,
   acceptedTermsVersion: user.acceptedTermsVersion,
   lastLoggedIn: user.lastLoggedIn,
   loginBlockedByMaintenance: user.loginBlockedByMaintenance,
@@ -312,25 +310,9 @@ export const matchesRegion = async (
   return regionId === (await getRegion(organizationId));
 };
 
-/** Checks if the authorizer's region is the same as the user's being modified  */
-export const matchesUserRegion = (
-  event: APIGatewayProxyEvent,
-  userRegionId?: string
-) => {
-  // Global admins can match with any region
-  if (isGlobalWriteAdmin(event)) return true;
-  if (!event.requestContext.authorizer || !userRegionId) return false;
-  return userRegionId === event.requestContext.authorizer.regionId;
-};
-
 /** Checks if the current user is allowed to access (modify) a user with id userId */
 export const canAccessUser = (event: APIGatewayProxyEvent, userId?: string) => {
-  return (
-    userId &&
-    (userId === getUserId(event) ||
-      isGlobalWriteAdmin(event) ||
-      isRegionalAdmin(event))
-  );
+  return userId && (userId === getUserId(event) || isGlobalWriteAdmin(event));
 };
 
 /** Checks if a user is an admin of the given organization */

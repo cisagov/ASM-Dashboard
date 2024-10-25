@@ -1,12 +1,12 @@
 import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { useAuthContext } from 'context';
+//Are we still using this?
+// import  {OrganizationTag} from 'types';
 import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
   Autocomplete,
-  Box,
-  Button,
   Checkbox,
   Divider,
   FormControlLabel,
@@ -17,13 +17,9 @@ import {
   Typography
 } from '@mui/material';
 import { ExpandMore } from '@mui/icons-material';
+import { debounce } from 'utils/debounce';
 import { useStaticsContext } from 'context/StaticsContext';
-import {
-  ORGANIZATION_EXCLUSIONS,
-  REGIONAL_USER_CAN_SEARCH_OTHER_REGIONS
-} from 'hooks/useUserTypeFilters';
-import { SearchBar } from './SearchBar';
-import { useHistory, useLocation } from 'react-router-dom';
+import { REGIONAL_USER_CAN_SEARCH_OTHER_REGIONS } from 'hooks/useUserTypeFilters';
 
 const GLOBAL_ADMIN = 3;
 const REGIONAL_ADMIN = 2;
@@ -42,7 +38,7 @@ export interface OrganizationShallow {
   rootDomains: string[];
 }
 
-interface RegionAndOrganizationFiltersProps {
+interface OrganizationSearchProps {
   addFilter: (
     name: string,
     value: any,
@@ -54,25 +50,21 @@ interface RegionAndOrganizationFiltersProps {
     filterType: 'all' | 'any' | 'none'
   ) => void;
   filters: any[];
-  setSearchTerm: (s: string, opts?: any) => void;
-  searchTerm: string;
 }
 
-export const RegionAndOrganizationFilters: React.FC<
-  RegionAndOrganizationFiltersProps
-> = ({
+export const OrganizationSearch: React.FC<OrganizationSearchProps> = ({
   addFilter,
   removeFilter,
-  filters,
-  searchTerm: domainSearchTerm,
-  setSearchTerm: setDomainSearchTerm
+  filters
 }) => {
   const { setShowMaps, user, apiPost } = useAuthContext();
 
   const { regions } = useStaticsContext();
+
+  //Are we still using this?
+  // const [tags, setTags] = useState<OrganizationTag[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [orgResults, setOrgResults] = useState<OrganizationShallow[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
 
   let userLevel = 0;
   if (user && user.isRegistered) {
@@ -99,18 +91,8 @@ export const RegionAndOrganizationFilters: React.FC<
           }
         });
         const orgs = results.body.hits.hits.map((hit) => hit._source);
-        // Filter out organizations that match the exclusions
-        const refinedOrgs = orgs.filter((org) => {
-          let exlude = false;
-          ORGANIZATION_EXCLUSIONS.forEach((exc) => {
-            if (org.name.toLowerCase().includes(exc)) {
-              exlude = true;
-            }
-          });
-          return !exlude;
-        });
         // Filter out organizations that are already in the filters
-        const filteredOrgs = refinedOrgs.filter(
+        const filteredOrgs = orgs.filter(
           (org) =>
             !filters.find(
               (filter) =>
@@ -120,30 +102,7 @@ export const RegionAndOrganizationFilters: React.FC<
                 )
             )
         );
-        // Sort filtered orgs by name
-        const sortedOrgs = filteredOrgs.sort((a, b) =>
-          a.name.localeCompare(b.name)
-        );
-
-        // Utility function to replce HTML encodings
-        const decodeHtml = (orgName: string): string => {
-          const encodings: { [key: string]: string } = {
-            '&amp;': '&',
-            '&lt;': '<',
-            '&gt;': '>',
-            '&quot;': '"',
-            '&#039;': "'"
-          };
-          return orgName.replace(/&amp;|&lt;|&gt;|&quot;|&#039;/g, (m) => {
-            return encodings[m];
-          });
-        };
-        // Decode HTML encodings in org names
-        sortedOrgs.forEach((org) => {
-          org.name = decodeHtml(org.name);
-        });
-
-        setOrgResults(sortedOrgs);
+        setOrgResults(filteredOrgs);
       } catch (e) {
         console.log(e);
       }
@@ -169,8 +128,13 @@ export const RegionAndOrganizationFilters: React.FC<
     }
   };
 
-  const handleTextChange = (v: string) => {
-    setSearchTerm(v);
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newSearchTerm = e.target.value;
+    setSearchTerm(newSearchTerm);
+  };
+
+  const handleChange = (v: string) => {
+    debounce(searchOrganizations(v, regionFilterValues ?? []) as any, 400);
   };
 
   useEffect(() => {
@@ -203,49 +167,10 @@ export const RegionAndOrganizationFilters: React.FC<
     },
     [regionFilterValues]
   );
-  const history = useHistory();
-  const location = useLocation();
-
-  const handleAddOrganization = (org: OrganizationShallow) => {
-    if (org) {
-      const exists = organizationsInFilters?.find((o) => o.id === org.id);
-      if (exists) {
-        removeFilter(ORGANIZATION_FILTER_KEY, org, 'any');
-      } else {
-        addFilter(ORGANIZATION_FILTER_KEY, org, 'any');
-      }
-      setSearchTerm('');
-      setIsOpen(false);
-      if (org.name === 'Election') {
-        setShowMaps(true);
-      } else {
-        setShowMaps(false);
-      }
-    } else {
-    }
-  };
 
   return (
     <>
       <Divider />
-      <Box padding={2}>
-        <SearchBar
-          initialValue={domainSearchTerm}
-          value={domainSearchTerm}
-          onChange={(value) => {
-            if (location.pathname !== '/inventory') {
-              history.push(`/inventory?q=${value}`);
-              setDomainSearchTerm(value, {
-                shouldClearFilters: false,
-                refresh: true
-              });
-            }
-            setDomainSearchTerm(value, {
-              shouldClearFilters: false
-            });
-          }}
-        />
-      </Box>
       <Accordion
         expanded={userLevel === STANDARD_USER ? true : undefined}
         defaultExpanded
@@ -293,72 +218,48 @@ export const RegionAndOrganizationFilters: React.FC<
           {/* Need to reconcile type issues caused by adding freeSolo prop */}
           {userLevel !== STANDARD_USER ? (
             <Autocomplete
-              onInputChange={(e, v) => {
-                if (e && e.type === 'change') {
-                  handleTextChange(v);
-                }
-              }}
-              inputValue={searchTerm}
+              onInputChange={(_, v) => handleChange(v)}
               // freeSolo
               disableClearable
-              open={isOpen}
-              onOpen={() => {
-                setIsOpen(true);
-              }}
               options={orgResults}
-              onChange={(e, v) => {
-                setTimeout(() => {
-                  handleAddOrganization(v);
-                }, 250);
-                return;
-              }}
               getOptionLabel={(option) => option.name}
-              ListboxProps={{
-                sx: {
-                  ':active': {
-                    bgcolor: 'transparent'
-                  }
-                }
-              }}
               renderOption={(params, option) => {
                 return (
-                  <li
-                    {...params}
-                    style={{ pointerEvents: 'none', padding: 0 }}
-                    key={option.id}
-                  >
-                    <Button
-                      sx={{
-                        pointerEvents: 'auto',
-                        height: '100%',
-                        width: '100%',
-                        display: 'flex',
-                        textAlign: 'left',
-                        justifyContent: 'start',
-                        fontWeight: 400,
-                        color: 'black',
-                        textTransform: 'none'
-                      }}
-                      id="search-org-button"
-                      onClick={() =>
-                        setTimeout(() => {
-                          handleAddOrganization(option);
-                        }, 250)
-                      }
-                    >
-                      {option.name}
-                    </Button>
+                  <li {...params} key={option.id}>
+                    {option.name}
                   </li>
                 );
               }}
               isOptionEqualToValue={(option, value) =>
                 option?.name === value?.name
               }
+              onChange={(event, value) => {
+                if (value) {
+                  const exists = organizationsInFilters?.find(
+                    (org) => org.id === value.id
+                  );
+                  if (exists) {
+                    // setSelectedOrgs(selectedOrgs.filter((org) => org.id !== value.id))
+                    removeFilter(ORGANIZATION_FILTER_KEY, value, 'any');
+                  } else {
+                    // setSelectedOrgs([...selectedOrgs, value])
+                    addFilter(ORGANIZATION_FILTER_KEY, value, 'any');
+                  }
+                  setSearchTerm('');
+                  if (value.name === 'Election') {
+                    setShowMaps(true);
+                  } else {
+                    setShowMaps(false);
+                  }
+                } else {
+                }
+              }}
               renderInput={(params) => (
                 <TextField
                   {...params}
                   label="Search Organizations"
-                  onBlur={() => setIsOpen(false)}
+                  value={searchTerm}
+                  onChange={handleTextChange}
                 />
               )}
             />

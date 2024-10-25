@@ -65,30 +65,14 @@ app.use(
   })
 );
 
-//Middleware to set Cache-Control headers
-app.use((req, res, next) => {
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  next();
-});
-
 app.use((req, res, next) => {
   res.setHeader('X-XSS-Protection', '0');
   next();
 });
 
-app.use(
-  express.static(path.join(__dirname, '../build'), {
-    setHeaders: (res, path) => {
-      if (path.endsWith('.js')) {
-        res.setHeader('Content-Type', 'application/javascript');
-      }
-    },
-    maxAge: 'no-cache, no-store, must-revalidate'
-  })
-);
+app.use(express.static(path.join(__dirname, '../build')));
 
 app.use((req, res) => {
-  res.setHeader('Content-Type', 'text/html');
   res.sendFile(path.join(__dirname, '../build/index.html'));
 });
 

@@ -16,8 +16,6 @@ Array [
   "country",
   "asn",
   "cloudHosted",
-  "fromCidr",
-  "isFceb",
   "ssl",
   "censysCertificatesResults",
   "trustymailResults",

@@ -117,7 +117,16 @@ export const RSCFooter: React.FC = () => {
           }
         }}
       >
-        {/* TODO: CRASM-738 Determine if the widget https://www.dhs.gov/ntas-widget removed here is needed. */}
+        <iframe
+          src="https://www.dhs.gov/ntas/"
+          name="National Terrorism Advisory System"
+          title="National Terrorism Advisory System"
+          width="170"
+          height="180"
+          scrolling="no"
+          frameBorder="0"
+          style={{ border: 0 }}
+        />
       </Box>
     </Box>
   );

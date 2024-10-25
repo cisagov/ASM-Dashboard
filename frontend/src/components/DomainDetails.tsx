@@ -24,8 +24,9 @@ import { useDomainApi } from 'hooks';
 import { DefinitionList } from './DefinitionList';
 // @ts-ignore:next-line
 import { differenceInCalendarDays, parseISO } from 'date-fns';
-import { Webpage } from 'types';
+import { Webpage } from 'types/webpage';
 import { useAuthContext } from 'context';
+import { Stack } from '@mui/system';
 
 const PREFIX = 'DomainDetails';
 
@@ -335,15 +336,21 @@ export const DomainDetails: React.FC<Props> = (props) => {
   const webpageTree = generateWebpageTree(webpages);
   const webpageList = generateWebpageList(webpageTree);
 
+  const backToResults = () => {
+    history.push('/inventory');
+  };
+
   return (
     <>
-      <Button
-        onClick={() => history.goBack()}
-        startIcon={<KeyboardBackspace />}
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="center"
+        onClick={backToResults}
       >
-        Back To Results
-      </Button>
-      {/* </Stack> */}
+        <KeyboardBackspace color="primary" />
+        <Button>Back To Results</Button>
+      </Stack>
 
       <StyledPaper classes={{ root: classes.root }}>
         <div className={classes.title}>

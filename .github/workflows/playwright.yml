@@ -2,6 +2,7 @@
 name: UI Testing
 on:
   deployment_status:
+  push:
 defaults:
   run:
     working-directory: ./playwright

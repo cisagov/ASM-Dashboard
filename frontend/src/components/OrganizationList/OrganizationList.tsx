@@ -113,7 +113,7 @@ export const OrganizationList: React.FC<{
 
   return (
     <>
-      <Paper elevation={2} sx={{ width: '100%', minHeight: '200px' }}>
+      <Paper elevation={2} sx={{ width: '100%' }}>
         <DataGrid
           rows={organizations}
           columns={orgCols}
@@ -121,10 +121,6 @@ export const OrganizationList: React.FC<{
           slotProps={{
             toolbar: { children: addOrgButton }
           }}
-          initialState={{
-            pagination: { paginationModel: { pageSize: 15 } }
-          }}
-          pageSizeOptions={[15, 30, 50, 100]}
         />
       </Paper>
       <OrganizationForm

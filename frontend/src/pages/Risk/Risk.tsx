@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import classes from './Risk.module.scss';
-import { Box, Card, CardContent, Grid, Paper, Typography } from '@mui/material';
+import { Card, CardContent, Grid, Paper, Typography } from '@mui/material';
 import VulnerabilityCard from './VulnerabilityCard';
 import TopVulnerablePorts from './TopVulnerablePorts';
 import TopVulnerableDomains from './TopVulnerableDomains';
@@ -18,15 +18,15 @@ import {
   Annotation
 } from 'react-simple-maps';
 import { scaleLinear } from 'd3-scale';
-import { Stats, Vulnerability } from 'types';
+import { Vulnerability } from 'types';
+import { Stats } from 'types/stats';
 import { UpdateStateForm } from 'components/Register';
 import {
   ORGANIZATION_FILTER_KEY,
   OrganizationShallow,
   REGION_FILTER_KEY
-} from 'components/RegionAndOrganizationFilters';
+} from 'components/OrganizationSearch';
 import { withSearch } from '@elastic/react-search-ui';
-import { FilterTags } from 'pages/Search/FilterTags';
 
 export interface Point {
   id: string;
@@ -54,12 +54,7 @@ let colorScale = scaleLinear<string>()
   .domain([0, 1])
   .range(['#c7e8ff', '#135787']);
 
-const Risk: React.FC<ContextType & {}> = ({
-  filters,
-  removeFilter,
-  searchTerm,
-  setSearchTerm
-}) => {
+const Risk: React.FC<ContextType & {}> = ({ filters }) => {
   const { showMaps, user, apiPost } = useAuthContext();
 
   const [stats, setStats] = useState<Stats | undefined>(undefined);
@@ -94,20 +89,6 @@ const Risk: React.FC<ContextType & {}> = ({
     };
   }, [filters]);
 
-  const filtersToDisplay = useMemo(() => {
-    if (searchTerm !== '') {
-      return [
-        ...filters,
-        {
-          field: 'query',
-          values: [searchTerm],
-          onClear: () => setSearchTerm('', { shouldClearFilters: false })
-        }
-      ];
-    }
-    return filters;
-  }, [filters, searchTerm, setSearchTerm]);
-
   const fetchStats = useCallback(
     async (orgId?: string) => {
       const { result } = await apiPost<ApiResponse>('/stats', {
@@ -121,8 +102,7 @@ const Risk: React.FC<ContextType & {}> = ({
         .range(['#c7e8ff', '#135787']);
       setStats(result);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [riskFilters]
+    [apiPost, riskFilters]
   );
 
   useEffect(() => {
@@ -284,12 +264,6 @@ const Risk: React.FC<ContextType & {}> = ({
       <Grid item sm={11} lg={10} xl={8} sx={{ maxWidth: '1500px' }}>
         <RiskRoot className={classes.root}>
           <div id="wrapper" className={contentWrapper}>
-            <Box sx={{ px: '1rem', pb: '2rem' }}>
-              <FilterTags
-                filters={filtersToDisplay}
-                removeFilter={removeFilter}
-              />
-            </Box>
             {stats && (
               <Grid container>
                 <Grid item xs={12} sm={12} md={12} lg={6} xl={6} mb={-4}>

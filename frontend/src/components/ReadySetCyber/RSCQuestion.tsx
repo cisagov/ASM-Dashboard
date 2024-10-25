@@ -174,7 +174,6 @@ export const RSCQuestion: React.FC<Props> = ({ categories }) => {
                             variant="contained"
                             href={resource.url}
                             target="_blank"
-                            rel="noopener noreferrer"
                             style={{
                               color: 'white',
                               backgroundColor: '#0078ae'

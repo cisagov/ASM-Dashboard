@@ -28,7 +28,7 @@ export const Subnav: React.FC<Props> = (props) => {
               className={classes.link}
               activeClassName={classes.active}
               target="_blank"
-              rel="noopener noreferrer"
+              rel="noreferrer"
             >
               {item.title}
             </NavLink>

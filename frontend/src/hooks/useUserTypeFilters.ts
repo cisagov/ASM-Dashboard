@@ -1,11 +1,9 @@
 import { AuthContextType } from 'context';
 import { GLOBAL_ADMIN, REGIONAL_ADMIN, STANDARD_USER } from './useUserLevel';
 import { GLOBAL_VIEW } from 'context/userStateUtils';
-import { OrganizationShallow } from 'components/RegionAndOrganizationFilters';
+import { OrganizationShallow } from 'components/OrganizationSearch';
 
 export const REGIONAL_USER_CAN_SEARCH_OTHER_REGIONS = false;
-
-export const ORGANIZATION_EXCLUSIONS = ['dhs region'];
 
 interface Filter {
   field: string;
@@ -28,24 +26,14 @@ export const useUserTypeFilters: UseUserTypeFilters = (
 
   const userOrgs: OrganizationShallow[] =
     userRoles.length > 0
-      ? userRoles
-          .filter((role) => {
-            let exclude = false;
-            ORGANIZATION_EXCLUSIONS.forEach((item) => {
-              if (role.organization.name.toLowerCase().includes(item)) {
-                exclude = true;
-              }
-            });
-            return !exclude;
-          })
-          .map((role) => {
-            return {
-              name: role?.organization?.name ?? '',
-              id: role?.organization?.id ?? '',
-              regionId: role?.organization?.regionId ?? '',
-              rootDomains: role?.organization?.rootDomains ?? []
-            };
-          })
+      ? userRoles.map((role) => {
+          return {
+            name: role?.organization?.name ?? '',
+            id: role?.organization?.id ?? '',
+            regionId: role?.organization?.regionId ?? '',
+            rootDomains: role?.organization?.rootDomains ?? []
+          };
+        })
       : [];
 
   const userRegions = user?.regionId ? [user?.regionId] : [];
@@ -75,7 +63,7 @@ export const useUserTypeFilters: UseUserTypeFilters = (
         },
         {
           field: 'organizationId',
-          values: [],
+          values: userOrgs,
           type: 'any'
         }
       ];

@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
+import { Filters, SortingRule } from 'react-table';
 import { Query } from 'types';
 import { useAuthContext } from 'context';
-import { Vulnerability as VulnerabilityType } from 'types';
+import { Vulnerability } from 'types';
 import { Subnav } from 'components';
 import {
   Alert,
@@ -15,19 +16,13 @@ import {
   Stack,
   Typography
 } from '@mui/material';
-import {
-  DataGrid,
-  GridColDef,
-  GridFilterItem,
-  GridRenderCellParams
-} from '@mui/x-data-grid';
+import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import CustomToolbar from 'components/DataGrid/CustomToolbar';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { getSeverityColor } from 'pages/Risk/utils';
 import { differenceInCalendarDays, parseISO } from 'date-fns';
 import { truncateString } from 'utils/dataTransformUtils';
-import { ORGANIZATION_EXCLUSIONS } from 'hooks/useUserTypeFilters';
 
 export interface ApiResponse {
   result: Vulnerability[];
@@ -45,29 +40,19 @@ export const stateMap: { [key: string]: string } = {
   remediated: 'Remediated'
 };
 
-export interface LooseVulnerabilityRow {
+export interface VulnerabilityRow {
   id: string;
   title: string;
   severity: string;
   kev: string;
-  domain: string | undefined;
-  domainId: string | undefined;
+  domain: string;
+  domainId: string;
   product: string;
   createdAt: string;
   state: string;
 }
 
-type Nullable<T> = {
-  [P in keyof T]: T[P] | null;
-};
-
-type VulnerabilityRow = Nullable<LooseVulnerabilityRow>;
-
-type Vulnerability = Nullable<VulnerabilityType>;
-
 interface LocationState {
-  domain: any;
-  severity: string;
   title: string;
 }
 
@@ -77,28 +62,28 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
   children?: React.ReactNode;
   groupBy?: string;
 }) => {
-  const { currentOrganization, apiPost, apiPut } = useAuthContext();
+  const { currentOrganization, apiPost, apiPut, showAllOrganizations } =
+    useAuthContext();
   const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
   const [totalResults, setTotalResults] = useState(0);
   const [loadingError, setLoadingError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // TO-DO
-  // Implement regional rollup for vulnerabilities view to allow for proper vunl drilldown from dashboard
   const updateVulnerability = useCallback(
     async (index: number, body: { [key: string]: string }) => {
+      setIsLoading(true);
       try {
-        const updatedVulns = await apiPut<Vulnerability>(
+        const res = await apiPut<Vulnerability>(
           '/vulnerabilities/' + vulnerabilities[index].id,
           {
             body: body
           }
         );
-        setVulnerabilities((prevState) =>
-          prevState.map((orgVulns, targetIndex) =>
-            targetIndex === index ? updatedVulns : orgVulns
-          )
-        );
+        const vulnCopy = [...vulnerabilities];
+        vulnCopy[index].state = res.state;
+        vulnCopy[index].substate = res.substate;
+        vulnCopy[index].actions = res.actions;
+        setVulnerabilities(vulnCopy);
       } catch (e) {
         console.error(e);
       }
@@ -109,12 +94,14 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
   const vulnerabilitiesSearch = useCallback(
     async ({
       filters,
+      sort,
       page,
       pageSize = PAGE_SIZE,
       doExport = false,
       groupBy = undefined
     }: {
-      filters: GridFilterItem[];
+      filters: Filters<Vulnerability>;
+      sort: SortingRule<Vulnerability>[];
       page: number;
       pageSize?: number;
       doExport?: boolean;
@@ -128,7 +115,7 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
           .reduce(
             (accum, next) => ({
               ...accum,
-              [next.field]: next.value
+              [next.id]: next.value
             }),
             {}
           );
@@ -144,14 +131,10 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
             tableFilters['substate'] = substate.toLowerCase().replace(' ', '-');
           delete tableFilters['state'];
         }
-        let userOrgIsExcluded = false;
-        ORGANIZATION_EXCLUSIONS.forEach((exc) => {
-          if (currentOrganization?.name.toLowerCase().includes(exc)) {
-            userOrgIsExcluded = true;
-          }
-        });
-        if (currentOrganization && !userOrgIsExcluded) {
-          tableFilters['organization'] = currentOrganization.id;
+        if (!showAllOrganizations && currentOrganization) {
+          if ('rootDomains' in currentOrganization)
+            tableFilters['organization'] = currentOrganization.id;
+          else tableFilters['tag'] = currentOrganization.id;
         }
         if (tableFilters['isKev']) {
           // Convert string to boolean filter.
@@ -162,6 +145,8 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
           {
             body: {
               page,
+              sort: sort[0]?.id ?? 'createdAt',
+              order: sort[0]?.desc ? 'DESC' : 'ASC',
               filters: tableFilters,
               pageSize,
               groupBy
@@ -174,7 +159,7 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
         return;
       }
     },
-    [apiPost, currentOrganization]
+    [apiPost, currentOrganization, showAllOrganizations]
   );
 
   const fetchVulnerabilities = useCallback(
@@ -182,6 +167,7 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
       try {
         const resp = await vulnerabilitiesSearch({
           filters: query.filters,
+          sort: query.sort,
           page: query.page,
           pageSize: query.pageSize ?? PAGE_SIZE,
           groupBy
@@ -211,88 +197,27 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
   const history = useHistory();
   const location = useLocation();
   const state = location.state as LocationState;
-  const [initialFilters, setInitialFilters] = useState<GridFilterItem[]>(
-    state?.title
-      ? [
-          {
-            field: 'title',
-            value: state.title,
-            operator: 'contains'
-          }
-        ]
-      : state?.domain
-      ? [
-          {
-            field: 'domain',
-            value: state.domain,
-            operator: 'contains'
-          }
-        ]
-      : state?.severity
-      ? [
-          {
-            field: 'severity',
-            value: state.severity,
-            operator: 'contains'
-          }
-        ]
-      : []
+  const [initialFilters, setInitialFilters] = useState<Filters<Vulnerability>>(
+    state?.title ? [{ id: 'title', value: state.title }] : []
   );
-  const [filters, setFilters] = useState(initialFilters);
+  const [filters, setFilters] = useState<Filters<Vulnerability>>([]);
 
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
     pageSize: PAGE_SIZE,
     pageCount: 0,
-    filters: filters
+    sort: [],
+    filters: initialFilters ? initialFilters : filters
   });
 
-  const [filterModel, setFilterModel] = useState({
-    items: filters.map((filter) => ({
-      id: filter.id,
-      field: filter.field,
-      value: filter.value,
-      operator: filter.operator
-    }))
-  });
-  // Row scoped menu state management for vulnerability status updates
-  interface MenuState {
-    [key: string]: {
-      anchorEl: HTMLElement | null;
-      open: boolean;
-    };
-  }
-
-  const [menuState, setMenuState] = useState<MenuState>({});
-
-  const handleMenuClick = (
-    event: React.MouseEvent<HTMLButtonElement>,
-    rowId: any
-  ) => {
-    setMenuState((prev) => ({
-      ...prev,
-      [rowId]: {
-        anchorEl: event.currentTarget,
-        open: true
-      }
-    }));
-  };
-
-  const handleClose = (rowId: any) => {
-    setMenuState((prev) => ({
-      ...prev,
-      [rowId]: {
-        ...prev[rowId],
-        open: false
-      }
-    }));
-  };
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const resetVulnerabilities = useCallback(() => {
     setInitialFilters([]);
     fetchVulnerabilities({
       page: 1,
       pageSize: PAGE_SIZE,
+      sort: [],
       filters: []
     });
   }, [fetchVulnerabilities]);
@@ -302,6 +227,7 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
     fetchVulnerabilities({
       page: 1,
       pageSize: PAGE_SIZE,
+      sort: [],
       filters: initialFilters
     });
   }, [fetchVulnerabilities, initialFilters]);
@@ -311,22 +237,13 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
     title: vuln.title,
     severity: vuln.severity ?? 'N/A',
     kev: vuln.isKev ? 'Yes' : 'No',
-    domain: vuln?.domain?.name,
-    domainId: vuln?.domain?.id,
-    product: vuln.cpe
-      ? vuln.cpe
-      : vuln.service &&
-        vuln.service.products &&
-        vuln.service.products.length > 0 &&
-        vuln.service.products[0].cpe
-      ? vuln.service.products[0].cpe || 'N/A'
-      : 'N/A',
-    createdAt: vuln?.createdAt
-      ? `${differenceInCalendarDays(
-          Date.now(),
-          parseISO(vuln?.createdAt)
-        )} days`
-      : '',
+    domain: vuln.domain.name,
+    domainId: vuln.domain.id,
+    product: vuln.cpe ?? 'N/A',
+    createdAt: `${differenceInCalendarDays(
+      Date.now(),
+      parseISO(vuln.createdAt)
+    )} days`,
     state: vuln.state + (vuln.substate ? ` (${vuln.substate})` : '')
   }));
 
@@ -449,8 +366,17 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
       minWidth: 100,
       flex: 1,
       renderCell: (cellValues: GridRenderCellParams) => {
-        const handleUpdate = (id: string, substate: string) => {
-          const index = vulnerabilities.findIndex((v) => v.id === id);
+        const open = Boolean(anchorEl);
+        const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+          setAnchorEl(event.currentTarget);
+        };
+        const handleClose = () => {
+          setAnchorEl(null);
+        };
+        const handleUpdate = (substate: string) => {
+          const index = vulnerabilities.findIndex(
+            (vuln) => vuln.id === cellValues.row.id
+          );
           updateVulnerability(index, {
             substate: substate
           });
@@ -459,39 +385,32 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
         return (
           <div>
             <Button
-              id={`basic-button-${cellValues.row.id}`}
+              id="basic-button"
               style={{ textDecorationLine: 'underline' }}
-              aria-controls={
-                menuState[cellValues.row.id]?.open
-                  ? `basic-menu-${cellValues.row.id}`
-                  : undefined
-              }
+              aria-controls={open ? 'basic-menu' : undefined}
               aria-haspopup="true"
-              aria-expanded={
-                menuState[cellValues.row.id]?.open ? 'true' : undefined
-              }
+              aria-expanded={open ? 'true' : undefined}
               tabIndex={cellValues.tabIndex}
               endIcon={<ExpandMoreIcon />}
-              onClick={(event) => handleMenuClick(event, cellValues.row.id)}
+              onClick={handleClick}
             >
               {cellValues.row.state}
             </Button>
             <Menu
-              id={`basic-menu-${cellValues.row.id}`}
-              anchorEl={menuState[cellValues.row.id]?.anchorEl}
-              open={menuState[cellValues.row.id]?.open}
-              onClose={() => handleClose(cellValues.row.id)}
+              id="basic-menu"
+              anchorEl={anchorEl}
+              open={open}
+              onClose={handleClose}
               MenuListProps={{
-                'aria-labelledby': `basic-button-${cellValues.row.id}`
+                'aria-labelledby': 'basic-button'
               }}
             >
               {Object.keys(stateMap).map((substate) => (
                 <MenuItem
-                  key={`${cellValues.row.id}-${substate}`}
-                  id={`menu-item-${cellValues.row.id}-${substate}`}
+                  key={substate}
                   onClick={() => {
-                    handleUpdate(cellValues.row.id, substate);
-                    handleClose(cellValues.row.id);
+                    handleUpdate(substate);
+                    handleClose();
                   }}
                 >
                   {substate === 'unconfirmed' || substate === 'exploitable'
@@ -536,7 +455,20 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
           { title: 'All Vulnerabilities', path: '/inventory/vulnerabilities' }
         ]}
       ></Subnav>
-      <Box mb={3} mt={5} display="flex" justifyContent="center">
+      <br></br>
+      {initialFilters.length > 0 && (
+        <Box mt={3} display="flex" justifyContent="center">
+          <Paper elevation={2} sx={{ width: '90%', px: 1 }}>
+            <Typography>
+              Displaying {state.title} vulnerabilities.{' '}
+              <Button onClick={resetVulnerabilities}>
+                Reset Vulnerabilities
+              </Button>
+            </Typography>
+          </Paper>
+        </Box>
+      )}
+      <Box mb={3} mt={3} display="flex" justifyContent="center">
         {isLoading ? (
           <Paper elevation={2}>
             <Alert severity="info">Loading Vulnerabilities..</Alert>
@@ -556,7 +488,7 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
             </Button>
           </Stack>
         ) : isLoading === false && loadingError === false ? (
-          <Paper elevation={2} sx={{ width: '90%', minHeight: '200px' }}>
+          <Paper elevation={2} sx={{ width: '90%' }}>
             <DataGrid
               rows={vulRows}
               rowCount={totalResults}
@@ -568,26 +500,21 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
                 fetchVulnerabilities({
                   page: model.page + 1,
                   pageSize: model.pageSize,
+                  sort: paginationModel.sort,
                   filters: paginationModel.filters
                 });
               }}
               filterMode="server"
-              filterModel={filterModel}
               onFilterModelChange={(model) => {
                 const filters = model.items.map((item) => ({
-                  id: item.id,
-                  field: item.field,
-                  value: item.value,
-                  operator: item.operator
+                  id: item.field,
+                  value: item.value
                 }));
                 setFilters(filters);
-                setFilterModel((prevFilterModel) => ({
-                  ...prevFilterModel,
-                  items: filters
-                }));
                 fetchVulnerabilities({
                   page: paginationModel.page + 1,
                   pageSize: paginationModel.pageSize,
+                  sort: paginationModel.sort,
                   filters: filters
                 });
               }}

@@ -13,20 +13,6 @@ declare module '@mui/material/styles' {
   interface PaletteOptions {
     disabled?: PaletteOptions['primary'];
   }
-
-  interface BreakpointOverrides {
-    mds: true;
-  }
-  interface BreakpointsOptions {
-    values: {
-      xs: number;
-      sm: number;
-      mds: number;
-      md: number;
-      lg: number;
-      xl: number;
-    };
-  }
 }
 
 const theme = createTheme({
@@ -49,7 +35,6 @@ const theme = createTheme({
     values: {
       xs: 0,
       sm: 600,
-      mds: 750,
       md: 960,
       lg: 1330,
       xl: 1920

@@ -83,7 +83,6 @@ describe('dnstwist', () => {
     const domain = await Domain.create({
       name,
       ip: '0.0.0.0',
-      isFceb: true,
       organization
     }).save();
     const vulns = await Vulnerability.find({
@@ -97,7 +96,6 @@ describe('dnstwist', () => {
     const domain = await Domain.create({
       name,
       ip: '0.0.0.0',
-      isFceb: true,
       organization
     }).save();
 
@@ -147,7 +145,6 @@ describe('dnstwist', () => {
     const root_domain = await Domain.create({
       name,
       ip: '0.0.0.0',
-      isFceb: true,
       organization
     }).save();
 
@@ -155,7 +152,6 @@ describe('dnstwist', () => {
     const sub_domain = await Domain.create({
       name: sub_name,
       ip: '10.20.30.40',
-      isFceb: true,
       organization
     }).save();
 
@@ -202,7 +198,6 @@ describe('dnstwist', () => {
     const domain = await Domain.create({
       name,
       ip: '0.0.0.0',
-      isFceb: true,
       organization
     }).save();
     //represents the result of an older dnstwist run
@@ -266,7 +261,6 @@ describe('dnstwist', () => {
     const domain = await Domain.create({
       name,
       ip: '0.0.0.0',
-      isFceb: true,
       organization
     }).save();
     await Vulnerability.create({

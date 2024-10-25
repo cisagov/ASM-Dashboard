@@ -4,7 +4,7 @@ import { withSearch } from '@elastic/react-search-ui';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import { DrawerInterior } from './DrawerInterior';
-import { RegionAndOrganizationFilters } from './RegionAndOrganizationFilters';
+import { OrganizationSearch } from './OrganizationSearch';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import { matchPath } from 'utils/matchPath';
 import { useLocation } from 'react-router-dom';
@@ -18,7 +18,6 @@ export const FilterDrawer: FC<
     isFilterDrawerOpen: boolean;
     isMobile: boolean;
     setIsFilterDrawerOpen: (isOpen: boolean) => void;
-    initialFilters: any[];
   }
 > = (props) => {
   const {
@@ -31,8 +30,7 @@ export const FilterDrawer: FC<
     clearFilters,
     searchTerm,
     setSearchTerm,
-    filters,
-    initialFilters
+    filters
   } = props;
   const { pathname } = useLocation();
 
@@ -46,12 +44,10 @@ export const FilterDrawer: FC<
           <FilterAltIcon />
         </Stack>
       </Toolbar>
-      <RegionAndOrganizationFilters
+      <OrganizationSearch
         addFilter={addFilter}
         removeFilter={removeFilter}
         filters={filters}
-        setSearchTerm={setSearchTerm}
-        searchTerm={searchTerm}
       />
       {matchPath(
         ['/inventory', '/inventory/domains', '/inventory/vulnerabilities'],
@@ -65,7 +61,6 @@ export const FilterDrawer: FC<
           clearFilters={filters.length > 0 ? () => clearFilters([]) : undefined}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
-          initialFilters={initialFilters}
         />
       ) : (
         <></>

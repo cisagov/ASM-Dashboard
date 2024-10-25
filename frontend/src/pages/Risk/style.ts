@@ -62,7 +62,7 @@ export const RiskRoot = styled('div')(({ theme }) => ({
     '& h3': {
       textAlign: 'center'
     },
-    overflow: 'auto'
+    overflow: 'hidden'
   },
   [`& .${classesRisk.chartSmall}`]: {
     height: '85%'

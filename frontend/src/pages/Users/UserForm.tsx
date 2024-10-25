@@ -118,7 +118,7 @@ export const UserForm: React.FC<UserFormProps> = ({
   };
 
   const validateForm = (values: UserFormValues) => {
-    const nameRegex = /^[A-Za-z\s-']+$/;
+    const nameRegex = /^[A-Za-z\s]+$/;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const newFormErrors = {
       firstName:
@@ -134,7 +134,7 @@ export const UserForm: React.FC<UserFormProps> = ({
   };
 
   const validateField = (name: string, value: string) => {
-    const nameRegex = /^[A-Za-z\s-']+$/;
+    const nameRegex = /^[A-Za-z\s]+$/;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     switch (name) {
       case 'firstName':
@@ -442,13 +442,11 @@ export const UserForm: React.FC<UserFormProps> = ({
                   user?.userType !== 'globalAdmin'
                 }
               >
-                {organizationsInRegion
-                  .sort((a, b) => a.name.localeCompare(b.name))
-                  .map((organization) => (
-                    <MenuItem key={organization.id} value={organization.id}>
-                      {organization.name}
-                    </MenuItem>
-                  ))}
+                {organizationsInRegion.map((organization) => (
+                  <MenuItem key={organization.id} value={organization.id}>
+                    {organization.name}
+                  </MenuItem>
+                ))}
               </Select>
               {values.orgId === '' && (
                 <Typography pl={2} variant="caption" color="error.main">

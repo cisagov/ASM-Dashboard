@@ -32,8 +32,7 @@ import {
   isRegionalAdmin,
   isRegionalAdminForOrganization,
   getOrgMemberships,
-  isGlobalViewAdmin,
-  matchesUserRegion
+  isGlobalViewAdmin
 } from './auth';
 import { In } from 'typeorm';
 import { plainToClass } from 'class-transformer';
@@ -981,8 +980,6 @@ export const addUserV2 = wrapHandler(async (event) => {
   }
   // Get User from the database
   const user = await User.findOneOrFail(userId);
-
-  if (!matchesUserRegion(event, user.regionId)) return Unauthorized;
 
   const newRoleData = {
     user: user,
