@@ -19,16 +19,14 @@ Dependencies:
 
 # Standard Python Libraries
 import os
-from typing import List, Optional
+from re import A
+from typing import Any, List, Optional
 
 # Third-Party Libraries
 from django.shortcuts import render
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse, Response
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
-from re import A
-from typing import Any, List, Optional
-
 from pydantic import UUID
 
 # from .schemas import Cpe
@@ -324,7 +322,6 @@ async def call_update_vulnerability(vuln_id, data: VulnerabilitySchema):
 # ========================================
 #   Auth Endpoints
 # ========================================
-
 
 
 # Okta Callback
@@ -836,9 +833,11 @@ async def list_organizations_v2(
     """Retrieve a list of all organizations (version 2)."""
     return organization.list_organizations_v2(state, regionId, current_user)
 
+
 # ========================================
 #   Search Endpoints
 # ========================================
+
 
 @api_router.post(
     "/search",
