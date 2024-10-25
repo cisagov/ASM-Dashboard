@@ -37,7 +37,11 @@ from .api_methods.cve import get_cves_by_id, get_cves_by_name
 from .api_methods.domain import export_domains, get_domain_by_id, search_domains
 from .api_methods.organization import get_organizations, read_orgs
 from .api_methods.user import accept_terms, delete_user, get_users, update_user
-from .api_methods.vulnerability import get_vulnerability_by_id, update_vulnerability
+from .api_methods.vulnerability import (
+    get_vulnerability_by_id,
+    search_vulnerabilities,
+    update_vulnerability,
+)
 from .auth import get_current_active_user
 from .login_gov import callback, login
 from .models import Assessment, User
@@ -53,6 +57,7 @@ from .schema_models.organization import Organization as OrganizationSchema
 from .schema_models.role import Role as RoleSchema
 from .schema_models.user import User as UserSchema
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
+from .schema_models.vulnerability import VulnerabilitySearch
 
 # Define API router
 api_router = APIRouter()
@@ -112,6 +117,7 @@ async def call_read_orgs():
 async def list_assessments():
     """
     Lists all assessments for the logged-in user.
+
     Args:
         current_user (User): The current authenticated user.
 
@@ -233,10 +239,15 @@ async def call_get_domain_by_id(domain_id: str):
     return get_domain_by_id(domain_id)
 
 
-@api_router.post("/vulnerabilities/search")
-async def search_vulnerabilities():
+@api_router.post(
+    "/vulnerabilities/search",
+    # dependencies=[Depends(get_current_active_user)],
+    response_model=List[VulnerabilitySchema],
+    tags=["Vulnerabilities"],
+)
+async def call_search_vulnerabilities(vulnerability_search: VulnerabilitySearch):
     try:
-        pass
+        return search_vulnerabilities(vulnerability_search)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -317,56 +328,23 @@ async def callback_route(request: Request):
 
 
 # GET Current User
-@api_router.post("/users/acceptTerms", tags=["Users"])
-async def call_accept_terms(
-    request: Request, current_user: User = Depends(get_current_active_user)
-):
-    """
-    Accept the latest terms of service.
-    Args:
-        version (str): The version of the terms of service.
-
-    Returns:
-        User: The updated user.
-    """
-    return accept_terms(request)
-
-
-# TODO: Add authentication and  permissions
-@api_router.delete("/users/{userId}", tags=["Users"])
-async def call_delete_user(userId, request: Request):
-    """
-    Delete a user by ID.
-    Args:
-        userId : The ID of the user to delete.
-        request : The HTTP request containing authorization.
-
-    Raises:
-        HTTPException: If the user is not authorized or the user is not found.
-
-    Returns:
-        JSONResponse: The result of the deletion.
-    """
-    request.path_params["user_id"] = userId
-    return delete_user(request)
-
-
-@api_router.get("/users/me", tags=["Users"])
+@api_router.get("/users/me", tags=["users"])
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
 
 
 @api_router.get(
-    "/users",
+    "/users/{regionId}",
     response_model=List[UserSchema],
     # dependencies=[Depends(get_current_active_user)],
-    tags=["Users"],
+    tags=["User"],
 )
-async def call_get_users(request: Request):
+async def call_get_users(regionId):
     """
     Call get_users()
+
     Args:
-        request : The HTTP request containing query parameters.
+        regionId: Region IDs to filter users by.
 
     Raises:
         HTTPException: If the user is not authorized or no users are found.
@@ -374,25 +352,7 @@ async def call_get_users(request: Request):
     Returns:
         List[User]: A list of users matching the filter criteria.
     """
-    return get_users(request)
-
-
-@api_router.post("/users/{userId}", tags=["Users"])
-async def call_update_user(userId, request: Request):
-    """
-    Update a user by ID.
-    Args:
-        userId : The ID of the user to update.
-        request : The HTTP request containing authorization and target for update.
-
-    Raises:
-        HTTPException: If the user is not authorized or the user is not found.
-
-    Returns:
-        JSONResponse: The result of the update.
-    """
-    request.path_params["user_id"] = userId
-    return update_user(request)
+    return get_users(regionId)
 
 
 ######################
