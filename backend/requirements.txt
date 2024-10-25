@@ -1,8 +1,9 @@
+aiohttp
 boto3
 cryptography==38.0.0
 django
 docker
-elasticsearch
+elasticsearch==7.9.0
 fastapi==0.111.0
 mangum==0.17.0
 minio

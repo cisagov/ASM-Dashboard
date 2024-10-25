@@ -15,27 +15,13 @@ from xfd_api.auth import (
     get_tag_organizations,
     is_global_view_admin,
 )
-from xfd_api.helpers.elastic_search import build_request
+from xfd_api.helpers.elastic_search import build_elasticsearch_query, es
+
+from ..schema_models.search import SearchBody
 
 
-class Filter(BaseModel):
-    field: str
-    values: List[str]
-    type: str
-
-
-class SearchBody(BaseModel):
-    current: int
-    results_per_page: int
-    search_term: str
-    sort_direction: str
-    sort_field: str
-    filters: List[Filter]
-    organization_ids: Optional[List[UUID]] = None
-    organization_id: Optional[UUID] = None
-    tag_id: Optional[UUID] = None
-
-
+# TODO: Determine if new search method works with indexes, if so:
+# remove the commented out original search methods
 def get_options(search_body: SearchBody, event) -> Dict[str, Any]:
     """Determine options for filtering based on organization ID or tag ID."""
     if search_body.organization_id and (
@@ -64,13 +50,11 @@ def fetch_all_results(
 ) -> List[Dict[str, Any]]:
     """Fetch all search results from Elasticsearch."""
     client = Elasticsearch()
-    RESULTS_PER_PAGE = 1000
     results = []
     current = 1
     while True:
-        request = build_request(
-            {**filters, "current": current, "resultsPerPage": RESULTS_PER_PAGE}, options
-        )
+        # Define the request as an empty dictionary for now
+        request: Dict[str, Any] = {}
         current += 1
         try:
             search_results = client.search(index="domains", body=request)
@@ -83,10 +67,63 @@ def fetch_all_results(
     return results
 
 
+def search(search_body: SearchBody, event) -> Dict[str, Any]:
+    """Perform a search on Elasticsearch and return results."""
+    request: Dict[str, Any] = {}
+
+    client = Elasticsearch()
+    try:
+        search_results = client.search(index="domains", body=request)
+    except Exception as e:
+        print(f"Elasticsearch search error: {e}")
+        raise HTTPException(status_code=500, detail="Elasticsearch query failed")
+
+    return search_results["hits"]
+
+
+def search_post(request_input):
+    """Handle Elastic Search request
+
+    Args:
+        request_input (request object): Post request object
+    """
+    es_query = build_elasticsearch_query(request_input)
+
+    # Perform search in Elasticsearch TODO: Confirm index name and format
+    response = es.search(index="domains-5", body=es_query)
+
+    # Format response to match the required structure
+    result = {
+        "took": response["took"],
+        "timed_out": response["timed_out"],
+        "_shards": response["_shards"],
+        "hits": {
+            "total": response["hits"]["total"],
+            "max_score": response["hits"].get("max_score", None),
+            "hits": [
+                {
+                    "_index": hit["_index"],
+                    "_type": hit["_type"],
+                    "_id": hit["_id"],
+                    "_score": hit["_score"],
+                    "_source": hit["_source"],
+                    "sort": hit.get("sort", []),
+                    "inner_hits": hit.get("inner_hits", {}),
+                }
+                for hit in response["hits"]["hits"]
+            ],
+        },
+    }
+
+    return result
+
+
 def export(search_body: SearchBody, event) -> Dict[str, Any]:
     """Export the search results into a CSV and upload to S3."""
     options = get_options(search_body, event)
+    print(f"Export Options: {options}")
     results = fetch_all_results(search_body.dict(), options)
+    print(f"Export results: {results}")
 
     # Process results for CSV
     for res in results:
@@ -119,9 +156,10 @@ def export(search_body: SearchBody, event) -> Dict[str, Any]:
     writer.writeheader()
     writer.writerows(results)
 
-    # Save to S3 # TODO: Replace with helper logic
+    # TODO: Replace with helper s3 logic
+    # Save to S3
     # s3 = boto3.client("s3")
-    # bucket_name = "your-bucket-name"
+    # bucket_name = "export-bucket-name"
     # csv_key = "domains.csv"
     # s3.put_object(Bucket=bucket_name, Key=csv_key, Body=csv_buffer.getvalue())
 
@@ -131,19 +169,5 @@ def export(search_body: SearchBody, event) -> Dict[str, Any]:
     # )
 
     # return {"url": url}
+    # TODO: Modify return once s3 logic is confirmed.
     return {"data": results}
-
-
-def search(search_body: SearchBody, event) -> Dict[str, Any]:
-    """Perform a search on Elasticsearch and return results."""
-    options = get_options(search_body, event)
-    request = build_request(search_body.dict(), options)
-
-    client = Elasticsearch()
-    try:
-        search_results = client.search(index="domains", body=request)
-    except Exception as e:
-        print(f"Elasticsearch search error: {e}")
-        raise HTTPException(status_code=500, detail="Elasticsearch query failed")
-
-    return search_results["hits"]

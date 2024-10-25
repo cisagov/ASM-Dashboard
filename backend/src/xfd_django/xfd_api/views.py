@@ -18,11 +18,12 @@ Dependencies:
 """
 
 # Standard Python Libraries
-from typing import List, Optional
+from re import A
+from typing import Any, List, Optional
 
 # Third-Party Libraries
 from django.shortcuts import render
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 
 # from .schemas import Cpe
@@ -36,7 +37,7 @@ from .api_methods.cpe import get_cpes_by_id
 from .api_methods.cve import get_cves_by_id, get_cves_by_name
 from .api_methods.domain import export_domains, get_domain_by_id, search_domains
 from .api_methods.organization import get_organizations, read_orgs
-from .api_methods.search import SearchBody, export, search
+from .api_methods.search import export, search_post
 from .api_methods.user import get_users
 from .api_methods.vulnerability import get_vulnerability_by_id, update_vulnerability
 from .auth import get_current_active_user
@@ -52,6 +53,7 @@ from .schema_models.domain import DomainFilters, DomainSearch
 from .schema_models.notification import Notification as NotificationSchema
 from .schema_models.organization import Organization as OrganizationSchema
 from .schema_models.role import Role as RoleSchema
+from .schema_models.search import SearchBody, SearchRequest, SearchResponse
 from .schema_models.user import User as UserSchema
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
 
@@ -553,28 +555,25 @@ async def invoke_scheduler(current_user: User = Depends(get_current_active_user)
     return response
 
 
-@api_router.post("/search")
-async def search_endpoint(request: Request, body: SearchBody):
+@api_router.post(
+    "/search",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=SearchResponse,
+    tags=["Search"],
+)
+async def search(request: SearchRequest):
     try:
-        # Example of parsing UUIDs correctly
-        organization_id = body.organization_id
-        tag_id = body.tag_id
-
-        # Search logic
-        # Using the parsed and validated UUIDs in the search
-        results = {
-            "current": body.current,
-            "organization_id": str(organization_id) if organization_id else None,
-            "tag_id": str(tag_id) if tag_id else None,
-        }
-
-        return results
+        search_post(request)
 
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
-@api_router.post("/search/export")
+@api_router.post(
+    "/search/export", dependencies=[Depends(get_current_active_user)], tags=["Search"]
+)
 async def export_endpoint(request: Request):
     try:
         body = await request.json()
