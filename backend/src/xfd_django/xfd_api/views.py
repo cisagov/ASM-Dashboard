@@ -117,7 +117,6 @@ async def call_read_orgs():
 async def list_assessments():
     """
     Lists all assessments for the logged-in user.
-
     Args:
         current_user (User): The current authenticated user.
 
@@ -328,23 +327,55 @@ async def callback_route(request: Request):
 
 
 # GET Current User
-@api_router.get("/users/me", tags=["users"])
+@api_router.post("/users/acceptTerms", tags=["Users"])
+async def call_accept_terms(request: Request):
+    """
+    Accept the latest terms of service.
+
+    Args:
+        request : The HTTP request containing the user and the terms version.
+
+    Returns:
+        User: The updated user.
+    """
+
+    return accept_terms(request)
+
+
+# TODO: Add authentication and  permissions
+@api_router.delete("/users/{userId}", tags=["Users"])
+async def call_delete_user(request: Request):
+    """
+    Delete a user by ID.
+
+    Args:
+        userId : The ID of the user to delete.
+
+    Raises:
+        HTTPException: If the user is not authorized or the user is not found.
+
+    Returns:
+        JSONResponse: The result of the deletion.
+    """
+    return delete_user(request)
+
+
+@api_router.get("/users/me", tags=["Users"])
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
 
 
 @api_router.get(
-    "/users/{regionId}",
+    "/users",
     response_model=List[UserSchema],
     # dependencies=[Depends(get_current_active_user)],
-    tags=["User"],
+    tags=["Users"],
 )
-async def call_get_users(regionId):
+async def call_get_users(request: Request):
     """
     Call get_users()
-
     Args:
-        regionId: Region IDs to filter users by.
+        request : The HTTP request containing query parameters.
 
     Raises:
         HTTPException: If the user is not authorized or no users are found.
@@ -352,7 +383,26 @@ async def call_get_users(regionId):
     Returns:
         List[User]: A list of users matching the filter criteria.
     """
-    return get_users(regionId)
+    return get_users(request)
+
+
+@api_router.get("/v2/users")
+@api_router.post("/users/{userId}", tags=["Users"])
+async def call_update_user(userId, request: Request):
+    """
+    Update a user by ID.
+    Args:
+        userId : The ID of the user to update.
+        request : The HTTP request containing authorization and target for update.
+
+    Raises:
+        HTTPException: If the user is not authorized or the user is not found.
+
+    Returns:
+        JSONResponse: The result of the update.
+    """
+    request.path_params["user_id"] = userId
+    return update_user(request)
 
 
 ######################

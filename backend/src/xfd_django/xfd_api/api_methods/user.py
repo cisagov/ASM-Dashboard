@@ -17,6 +17,7 @@ from ..auth import (
     is_regional_admin,
 )
 from ..models import User
+from ..schema_models.user import NewUser as NewUserSchema
 from ..schema_models.user import UpdateUser as UpdateUserSchema
 from ..schema_models.user import User as UserSchema
 
@@ -142,34 +143,90 @@ async def update_user(request: Request):
         User: The updated user.
     """
     try:
-        # Check if the current user can access the user to be updated
         current_user = request.state.user
         target_user_id = request.path_params["user_id"]
         if not can_access_user(current_user, target_user_id):
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        # Validate the user ID
         if not target_user_id or not User.objects.filter(id=target_user_id).exists():
             raise HTTPException(status_code=404, detail="User not found")
 
-        # Parse and validate the request body
         body = await request.json()
-        update_data = UpdateUserSchema(**body)
+        update_data = NewUserSchema(**body)
 
-        # Check if the current user can set the userType
         if not is_global_write_admin(current_user) and update_data.userType:
             raise HTTPException(status_code=401, detail="Unauthorized to set userType")
 
-        # Retrieve the user to be updated
         user = User.objects.get(id=target_user_id)
         user.firstName = update_data.firstName or user.firstName
         user.lastName = update_data.lastName or user.lastName
         user.fullName = f"{user.firstName} {user.lastName}"
         user.userType = update_data.userType or user.userType
+        user.state = update_data.state or user.state
+        user.regionId = update_data.regionId or user.regionId
+        user.email = update_data.email or user.email
+        user.organization = update_data.organization or user.organization
+        user.organizationAdmin = (
+            update_data.organizationAdmin
+            if update_data.organizationAdmin is not None
+            else user.organizationAdmin
+        )
 
-        # Save the updated user
         user.save()
 
-        return user
+        return UserSchema.model_validate(user)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def update_user_v2(request: Request):
+    """
+    Update a particular user.
+    Args:
+        request: The HTTP request containing the update data.
+
+    Raises:
+        HTTPException: If the user is not authorized or the user is not found.
+
+    Returns:
+        User: The updated user.
+    """
+    try:
+        current_user = request.state.user
+        target_user_id = request.path_params["user_id"]
+        if not can_access_user(current_user, target_user_id):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        if not target_user_id or not User.objects.filter(id=target_user_id).exists():
+            raise HTTPException(status_code=404, detail="User not found")
+
+        body = await request.json()
+        update_data = UpdateUserSchema(**body)
+
+        if not is_global_write_admin(current_user) and update_data.userType:
+            raise HTTPException(status_code=401, detail="Unauthorized to set userType")
+
+        user = User.objects.get(id=target_user_id)
+        user.firstName = update_data.firstName or user.firstName
+        user.lastName = update_data.lastName or user.lastName
+        user.fullName = f"{user.firstName} {user.lastName}"
+        user.userType = update_data.userType or user.userType
+        user.state = update_data.state or user.state
+        user.regionId = update_data.regionId or user.regionId
+        user.invitePending = (
+            update_data.invitePending
+            if update_data.invitePending is not None
+            else user.invitePending
+        )
+        user.loginBlockedByMaintenance = (
+            update_data.loginBlockedByMaintenance
+            if update_data.loginBlockedByMaintenance is not None
+            else user.loginBlockedByMaintenance
+        )
+        user.organization = update_data.organization or user.organization
+
+        user.save()
+
+        return UserSchema.model_validate(user)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

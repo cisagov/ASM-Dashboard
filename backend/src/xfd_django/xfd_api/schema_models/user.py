@@ -2,6 +2,7 @@
 
 # Standard Python Libraries
 from datetime import datetime
+from enum import Enum
 from typing import List, Optional
 from uuid import UUID
 
@@ -10,6 +11,14 @@ from pydantic import BaseModel
 
 from .api_key import ApiKey
 from .role import Role
+
+
+class UserType(Enum):
+    GLOBAL_ADMIN = "globalAdmin"
+    GLOBAL_VIEW = "globalView"
+    REGIONAL_ADMIN = "regionalAdmin"
+    READY_SET_CYBER = "readySetCyber"
+    STANDARD = "standard"
 
 
 class User(BaseModel):
@@ -29,7 +38,7 @@ class User(BaseModel):
     dateAcceptedTerms: Optional[datetime]
     acceptedTermsVersion: Optional[str]
     lastLoggedIn: Optional[datetime]
-    userType: str
+    userType: UserType
     regionId: Optional[str]
     state: Optional[str]
     oktaId: Optional[str]
@@ -60,9 +69,26 @@ class User(BaseModel):
         from_attributes = True
 
 
-class UpdateUser(BaseModel):
+# TODO: Confirm that userType is set during user creation
+class NewUser(BaseModel):
+    email: str
     firstName: str
     lastName: str
-    email: str
-    userType: str
+    organization: Optional[str]
+    organizationAdmin: Optional[bool]
+    regionId: Optional[str]
     state: Optional[str]
+    userType: UserType
+
+
+class UpdateUser(BaseModel):
+    firstName: Optional[str]
+    fullName: Optional[str]
+    invitePending: Optional[bool]
+    lastName: Optional[str]
+    loginBlockedByMaintenance: Optional[bool]
+    organization: Optional[str]
+    regionId: Optional[str]
+    role: Optional[str]
+    state: Optional[str]
+    userType: Optional[UserType]
