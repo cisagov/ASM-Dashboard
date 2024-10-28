@@ -12,6 +12,7 @@ import {
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import MenuIcon from '@mui/icons-material/Menu';
+import { Flex } from '@aws-amplify/ui-react';
 
 interface MenuItemType {
   title: string;
@@ -79,7 +80,7 @@ export const UserMenu: React.FC<Props> = (props) => {
         >
           <MenuItem>{formattedUserType}</MenuItem>
         </Box>
-        <Divider />
+        <Divider sx={{ display: { xs: 'flex', sm: 'flex', md: 'none' } }} />
         {navItems.map((item, index) => (
           <MenuItem
             sx={{
