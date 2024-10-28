@@ -12,7 +12,6 @@ import {
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import MenuIcon from '@mui/icons-material/Menu';
-import { Flex } from '@aws-amplify/ui-react';
 
 interface MenuItemType {
   title: string;
