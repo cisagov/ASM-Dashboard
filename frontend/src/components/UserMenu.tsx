@@ -1,10 +1,17 @@
 import React from 'react';
-import { useHistory } from 'react-router-dom';
-import { Box, Button, Divider, Menu, MenuItem } from '@mui/material';
+import { NavLink, useHistory } from 'react-router-dom';
+import { useUserLevel } from 'hooks/useUserLevel';
+import {
+  Box,
+  Button,
+  Divider,
+  IconButton,
+  Menu,
+  MenuItem
+} from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import { useAuthContext } from 'context';
-import { useUserLevel } from 'hooks/useUserLevel';
+import MenuIcon from '@mui/icons-material/Menu';
 
 interface MenuItemType {
   title: string;
@@ -27,8 +34,7 @@ interface Props {
 }
 
 export const UserMenu: React.FC<Props> = (props) => {
-  const { userMenuItems } = props;
-  const { user } = useAuthContext();
+  const { userMenuItems, navItems } = props;
   const history = useHistory();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -39,20 +45,7 @@ export const UserMenu: React.FC<Props> = (props) => {
   const handleClose = () => {
     setAnchorEl(null);
   };
-  const handleNavigate = (path: string) => {
-    handleClose();
-    history.push(path);
-  };
-  // const filteredMenuItems = userMenuItems.filter((item) => {
-  //   const userType = user?.userType;
-  //   const userAccessLevel = item.users ?? 0;
-  //   return (
-  //     userType === 'globalAdmin' ||
-  //     ((userType === 'regionalAdmin' || userType === 'globalView') &&
-  //       userAccessLevel <= 2) ||
-  //     userAccessLevel <= 1
-  //   );
-  // });
+
   return (
     <Box ml={2}>
       <Button
@@ -66,34 +59,52 @@ export const UserMenu: React.FC<Props> = (props) => {
       >
         My Account
       </Button>
-      <Button
+      <IconButton
         sx={{
           display: { xs: 'flex', sm: 'flex', md: 'none' },
           color: 'white'
         }}
-        startIcon={<AccountCircleIcon />}
         onClick={handleClick}
-      />
+      >
+        <MenuIcon />
+      </IconButton>
       <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
-        <Box sx={{ display: { xs: 'block', sm: 'block', md: 'none' } }}>
+        <Box
+          sx={{ display: { xs: 'block', sm: 'block', md: 'none' } }}
+          textTransform="uppercase"
+        >
           <MenuItem sx={{ justifyContent: 'center' }}>
             {formattedUserType}
           </MenuItem>
           <Divider />
         </Box>
-        {props.navItems.map((item, index) => (
-          <>
-            <MenuItem
-              sx={{ display: { xs: 'block', sm: 'block', md: 'none' } }}
-              key={index}
-              onClick={() => handleNavigate(item.path)}
-            >
-              {item.title}
-            </MenuItem>
-          </>
+        {navItems.map((item, index) => (
+          <MenuItem
+            sx={{
+              display: { xs: 'flex', sm: 'flex', md: 'none' }
+            }}
+            key={index}
+            component={NavLink}
+            to={item.path}
+            selected={item.path === history.location.pathname}
+          >
+            {item.title}
+          </MenuItem>
         ))}
         {userMenuItems.map((item, index) => (
-          <MenuItem key={index} onClick={() => handleNavigate(item.path)}>
+          <MenuItem
+            key={index}
+            component={NavLink}
+            to={item.onClick ? '#' : item.path}
+            selected={
+              !item.onClick ? item.path === history.location.pathname : false
+            }
+            onClick={() => {
+              if (item.onClick) {
+                item.onClick();
+              }
+            }}
+          >
             {item.title}
           </MenuItem>
         ))}
