@@ -8,8 +8,10 @@ import csv
 
 # Third-Party Libraries
 from django.core.paginator import Paginator
+from django.db.models import Q
 from fastapi import HTTPException
 
+from ..auth import get_org_memberships, is_global_view_admin
 from ..helpers.filter_helpers import filter_domains, sort_direction
 from ..models import Domain
 from ..schema_models.domain import DomainFilters, DomainSearch
@@ -30,7 +32,7 @@ def get_domain_by_id(domain_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def search_domains(domain_search: DomainSearch):
+def search_domains(domain_search: DomainSearch, current_user):
     """
     List domains by search filter
     Arguments:
@@ -42,6 +44,17 @@ def search_domains(domain_search: DomainSearch):
         domains = Domain.objects.all().order_by(
             sort_direction(domain_search.sort, domain_search.order)
         )
+
+        # Apply global filters based on user permissions
+        if not is_global_view_admin(current_user):
+            orgs = get_org_memberships(current_user)
+            if not orgs:
+                # No organization memberships, return empty result
+                return [], 0
+            domains = domains.filter(organization__id__in=orgs)
+
+        # Add a filter to restrict based on FCEB and CIDR criteria
+        domains = domains.filter(Q(isFceb=True) | Q(isFceb=False, fromCidr=True))
 
         if domain_search.filters:
             domains = filter_domains(domains, domain_search.filters)

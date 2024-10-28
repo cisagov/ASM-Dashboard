@@ -306,4 +306,12 @@ SCAN_SCHEMA = {
         memory="8192",
         description="Pull in xpanse vulnerability data from PEs Vulnerability database",
     ),
+    "flagFloatingIps": ScanSchema(
+        type="fargate",
+        isPassive=True,
+        global_scan=True,
+        cpu="2048",
+        memory="16384",
+        description="Loops through all domains and determines if their associated IP can be found in a report Cidr block.",
+    ),
 }

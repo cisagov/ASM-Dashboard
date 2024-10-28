@@ -40,7 +40,7 @@ def filter_domains(domains: QuerySet, domain_filters: DomainFilters):
     try:
         if domain_filters.port:
             services_by_port = Service.objects.filter(port=domain_filters.port).values(
-                "domainId"
+                "domain"
             )
             if not services_by_port.exists():
                 raise Http404("No Domains found with the provided port")
@@ -48,7 +48,7 @@ def filter_domains(domains: QuerySet, domain_filters: DomainFilters):
 
         if domain_filters.service:
             service_by_id = Service.objects.filter(id=domain_filters.service).values(
-                "domainId"
+                "domain"
             )
             if not service_by_id.exists():
                 raise Http404("No Domains found with the provided service")
@@ -70,7 +70,7 @@ def filter_domains(domains: QuerySet, domain_filters: DomainFilters):
 
         if domain_filters.organization:
             domains_by_org = Domain.objects.filter(
-                organizationId_id=domain_filters.organization
+                organization_id=domain_filters.organization
             ).values("id")
             if not domains_by_org.exists():
                 raise Http404("No Domains found with the provided organization")
@@ -82,12 +82,12 @@ def filter_domains(domains: QuerySet, domain_filters: DomainFilters):
             ).values("id")
             if not organization_by_name.exists():
                 raise Http404("No Domains found with the provided organization name")
-            domains = domains.filter(organizationId_id__in=organization_by_name)
+            domains = domains.filter(organization_id__in=organization_by_name)
 
         if domain_filters.vulnerabilities:
             vulnerabilities_by_id = Vulnerability.objects.filter(
                 id=domain_filters.vulnerabilities
-            ).values("domainId")
+            ).values("domain")
             if not vulnerabilities_by_id.exists():
                 raise Http404("No Domains found with the provided vulnerability")
             domains = domains.filter(id__in=vulnerabilities_by_id)
@@ -128,7 +128,7 @@ def filter_vulnerabilities(
 
         if vulnerability_filters.domain:
             vulnerabilities_by_domain = Vulnerability.objects.values("id").filter(
-                domainId=vulnerability_filters.domain
+                domain=vulnerability_filters.domain
             )
             if not vulnerabilities_by_domain.exists():
                 raise Http404("No Vulnerabilities found with the provided domain")
@@ -163,7 +163,7 @@ def filter_vulnerabilities(
         if vulnerability_filters.organization:
             domains = Domain.objects.all()
             domains_by_organization = Domain.objects.values("id").filter(
-                organizationId_id=vulnerability_filters.organization
+                organization_id=vulnerability_filters.organization
             )
             if not domains_by_organization.exists():
                 raise Http404(

@@ -488,3 +488,18 @@ def get_org_memberships(current_user) -> list[str]:
     if not roles:
         return []
     return [role.organization.id for role in roles if role.organization]
+
+
+def matches_user_region(current_user, user_region_id: str) -> bool:
+    """Checks if the current user's region matches the user's region being modified."""
+
+    # Check if the current user is a global admin (can match any region)
+    if is_global_write_admin(current_user):
+        return True
+
+    # Ensure the user has a region associated with them
+    if not current_user.region_id or not user_region_id:
+        return False
+
+    # Compare the region IDs
+    return user_region_id == current_user.region_id

@@ -1,41 +1,19 @@
-"""
-This module defines the API endpoints for the FastAPI application.
-
-It includes endpoints for:
-- Healthcheck
-- Retrieving all API keys
-- Retrieving all organizations
-
-Endpoints:
-    - healthcheck: Returns the health status of the application.
-    - get_api_keys: Retrieves all API keys.
-    - read_orgs: Retrieves all organizations.
-
-Dependencies:
-    - fastapi
-    - .auth
-    - .models
-"""
-
+"""This module defines the API endpoints for the FastAPI application."""
 # Standard Python Libraries
 import os
-from re import A
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 from uuid import UUID
 
 # Third-Party Libraries
 from django.shortcuts import render
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
-from fastapi.responses import RedirectResponse, Response
-from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
+from fastapi.responses import RedirectResponse
 
 # from .schemas import Cpe
-from . import schema_models
 from .api_methods import api_key as api_key_methods
 from .api_methods import auth as auth_methods
 from .api_methods import notification as notification_methods
 from .api_methods import organization, proxy, scan, scan_tasks
-from .api_methods.api_keys import get_api_keys
 from .api_methods.cpe import get_cpes_by_id
 from .api_methods.cve import get_cves_by_id, get_cves_by_name
 from .api_methods.domain import export_domains, get_domain_by_id, search_domains
@@ -55,12 +33,11 @@ from .api_methods.vulnerability import (
 )
 from .auth import get_current_active_user
 from .login_gov import callback, login
-from .models import Assessment, SavedSearch, User
+from .models import Assessment, User
 from .schema_models import organization as OrganizationSchema
 from .schema_models import scan as scanSchema
 from .schema_models import scan_tasks as scanTaskSchema
 from .schema_models.api_key import ApiKey as ApiKeySchema
-from .schema_models.assessment import Assessment as AssessmentSchema
 from .schema_models.cpe import Cpe as CpeSchema
 from .schema_models.cve import Cve as CveSchema
 from .schema_models.domain import Domain as DomainSchema
@@ -86,7 +63,7 @@ async def healthcheck():
     Returns:
         dict: A dictionary containing the health status of the application.
     """
-    return {"status": "ok2"}
+    return {"status": "ok"}
 
 
 # ========================================
@@ -237,20 +214,22 @@ async def call_get_cves_by_name(cve_name):
 
 @api_router.post(
     "/domain/search",
-    # dependencies=[Depends(get_current_active_user)],
+    dependencies=[Depends(get_current_active_user)],
     response_model=List[DomainSchema],
     tags=["Domains"],
 )
-async def call_search_domains(domain_search: DomainSearch):
+async def call_search_domains(
+    domain_search: DomainSearch, current_user: User = Depends(get_current_active_user)
+):
     try:
-        return search_domains(domain_search)
+        return search_domains(domain_search, current_user)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @api_router.post(
     "/domain/export",
-    # dependencies=[Depends(get_current_active_user)],
+    dependencies=[Depends(get_current_active_user)],
     tags=["Domains"],
 )
 async def call_export_domains(domain_search: DomainSearch):
@@ -262,7 +241,7 @@ async def call_export_domains(domain_search: DomainSearch):
 
 @api_router.get(
     "/domain/{domain_id}",
-    # dependencies=[Depends(get_current_active_user)],
+    dependencies=[Depends(get_current_active_user)],
     response_model=DomainSchema,
     tags=["Get domain by id"],
 )
@@ -277,13 +256,16 @@ async def call_get_domain_by_id(domain_id: str):
 
 @api_router.post(
     "/vulnerabilities/search",
-    # dependencies=[Depends(get_current_active_user)],
+    dependencies=[Depends(get_current_active_user)],
     response_model=List[VulnerabilitySchema],
     tags=["Vulnerabilities"],
 )
-async def call_search_vulnerabilities(vulnerability_search: VulnerabilitySearch):
+async def call_search_vulnerabilities(
+    vulnerability_search: VulnerabilitySearch,
+    current_user: User = Depends(get_current_active_user),
+):
     try:
-        return search_vulnerabilities(vulnerability_search)
+        return search_vulnerabilities(vulnerability_search, current_user)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
