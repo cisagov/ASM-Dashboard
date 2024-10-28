@@ -70,14 +70,16 @@ export const UserMenu: React.FC<Props> = (props) => {
       </IconButton>
       <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
         <Box
-          sx={{ display: { xs: 'block', sm: 'block', md: 'none' } }}
+          sx={{
+            display: { xs: 'flex', sm: 'flex', md: 'none' },
+            justifyContent: 'center'
+          }}
           textTransform="uppercase"
+          width="auto"
         >
-          <MenuItem sx={{ justifyContent: 'center' }}>
-            {formattedUserType}
-          </MenuItem>
-          <Divider />
+          <MenuItem>{formattedUserType}</MenuItem>
         </Box>
+        <Divider />
         {navItems.map((item, index) => (
           <MenuItem
             sx={{
