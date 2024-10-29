@@ -25,7 +25,15 @@ from .api_methods.saved_search import (
     update_saved_search,
 )
 from .api_methods.search import export, search_post
-from .api_methods.user import accept_terms, delete_user, get_users, update_user
+from .api_methods.user import (
+    accept_terms,
+    delete_user,
+    get_users,
+    get_users_by_region_id,
+    get_users_by_state,
+    get_users_v2,
+    update_user,
+)
 from .api_methods.vulnerability import (
     get_vulnerability_by_id,
     search_vulnerabilities,
@@ -403,6 +411,50 @@ async def call_get_users(request: Request):
         List[User]: A list of users matching the filter criteria.
     """
     return get_users(request)
+
+
+@api_router.get(
+    "/users/regionId/{regionId}",
+    response_model=List[UserSchema],
+    # dependencies=[Depends(get_current_active_user)],
+    tags=["Users"],
+)
+async def call_get_users_by_region_id(request: Request):
+    """
+    Call get_users_by_region_id()
+    Args:
+        request : The HTTP request containing query parameters.
+
+    Raises:
+        HTTPException: If the user is not authorized or no users are found.
+
+    Returns:
+        List[User]: A list of users matching the filter criteria.
+    """
+    request.path_params["region_id"] = request.path_params["regionId"]
+    return get_users_by_region_id(request)
+
+
+@api_router.get(
+    "/users/state/{state}",
+    response_model=List[UserSchema],
+    # dependencies=[Depends(get_current_active_user)],
+    tags=["Users"],
+)
+async def call_get_users_by_state(request: Request):
+    """
+    Call get_users_by_state()
+    Args:
+        request : The HTTP request containing query parameters.
+
+    Raises:
+        HTTPException: If the user is not authorized or no users are found.
+
+    Returns:
+        List[User]: A list of users matching the filter criteria.
+    """
+    request.path_params["state"] = request.path_params["state"]
+    return get_users_by_state(request)
 
 
 @api_router.get("/v2/users")

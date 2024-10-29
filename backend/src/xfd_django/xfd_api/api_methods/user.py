@@ -101,6 +101,78 @@ def get_users(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+async def get_users_by_region_id(request: Request):
+    """
+    List users with specific regionId.
+    Args:
+        request : The HTTP request containing the regionId.
+
+    Returns:
+        JSONResponse: The list of users with the specified regionId.
+    """
+    try:
+        current_user = request.state.user
+        if not is_regional_admin(current_user):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        region_id = request.path_params.get("regionId")
+        if not region_id:
+            raise HTTPException(
+                status_code=400, detail="Missing regionId in path parameters"
+            )
+
+        users = User.objects.filter(regionId=region_id).prefetch_related(
+            "roles", "roles.organization"
+        )
+        if users:
+            return JSONResponse(
+                status_code=200,
+                content=[UserSchema.model_validate(user) for user in users],
+            )
+        else:
+            raise HTTPException(
+                status_code=404, detail="No users found for the specified regionId"
+            )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def get_users_by_state(request: Request):
+    """
+    List users with specific state.
+    Args:
+        request : The HTTP request containing the state.
+
+    Returns:
+        JSONResponse: The list of users with the specified state.
+    """
+    try:
+        current_user = request.state.user
+        if not is_regional_admin(current_user):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        state = request.path_params.get("state")
+        if not state:
+            raise HTTPException(
+                status_code=400, detail="Missing state in path parameters"
+            )
+
+        users = User.objects.filter(state=state).prefetch_related(
+            "roles", "roles.organization"
+        )
+        if users:
+            return JSONResponse(
+                status_code=200,
+                content=[UserSchema.model_validate(user) for user in users],
+            )
+        else:
+            raise HTTPException(
+                status_code=404, detail="No users found for the specified state"
+            )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 def get_users_v2(request: Request):
     """
     Retrieve a list of users based on optional filter parameters.
