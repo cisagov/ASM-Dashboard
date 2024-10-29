@@ -106,7 +106,7 @@ services:
       - 9200:9200
       - 9300:9300
     logging:
-      driver: none
+      driver: json-file
 
   # kib:
   #   image: docker.elastic.co/kibana/kibana:7.9.0
