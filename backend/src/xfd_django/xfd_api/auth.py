@@ -504,8 +504,8 @@ def matches_user_region(current_user, user_region_id: str) -> bool:
         return True
 
     # Ensure the user has a region associated with them
-    if not current_user.region_id or not user_region_id:
+    if not current_user.regionId or not user_region_id:
         return False
 
     # Compare the region IDs
-    return user_region_id == current_user.region_id
+    return user_region_id == current_user.regionId
