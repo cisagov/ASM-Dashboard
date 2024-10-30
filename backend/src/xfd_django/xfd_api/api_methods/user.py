@@ -5,20 +5,17 @@ User API.
 # Standard Python Libraries
 from datetime import datetime
 import os
-from typing import List, Optional, Tuple
+from typing import List
 import uuid
 
 # Third-Party Libraries
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.paginator import Paginator
-from django.db.models import Q
 from django.forms import model_to_dict
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from ..auth import (
     can_access_user,
-    get_org_memberships,
     is_global_view_admin,
     is_global_write_admin,
     is_org_admin,
@@ -30,7 +27,6 @@ from ..helpers.email import (
     send_registration_approved_email,
     send_registration_denied_email,
 )
-from ..helpers.filter_helpers import sort_direction
 from ..helpers.regionStateMap import REGION_STATE_MAP
 from ..models import Organization, Role, User
 from ..schema_models.user import NewUser as NewUserSchema
@@ -317,3 +313,172 @@ async def update_user_v2(request: Request):
         return UserSchema.model_validate(user)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def user_register_approve(user_id, current_user):
+    """Approve a registered user."""
+    if not is_valid_uuid(user_id):
+        raise HTTPException(status_code=404, detail="Invalid user ID.")
+
+    try:
+        # Retrieve the user by ID
+        user = User.objects.get(id=user_id)
+    except ObjectDoesNotExist:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    # Ensure authorizer's region matches the user's region
+    if not matches_user_region(current_user, user.regionId):
+        raise HTTPException(status_code=403, detail="Unauthorized region access.")
+
+    # Send email notification
+    try:
+        send_registration_approved_email(
+            user.email,
+            subject="CyHy Dashboard Registration Approved",
+            first_name=user.firstName,
+            last_name=user.lastName,
+            template="crossfeed_approval_notification.html",
+        )
+
+    except HTTPException as http_exc:
+        raise http_exc
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+
+    return {"statusCode": 200, "body": "User registration approved."}
+
+
+def deny_user_registration(user_id: str, current_user: User):
+    """Deny a user's registration by user ID."""
+    try:
+        # Validate UUID format for the user_id
+        if not is_valid_uuid(user_id):
+            raise HTTPException(status_code=404, detail="User not found.")
+
+        # Retrieve the user object
+        user = User.objects.filter(id=user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+
+        # Ensure authorizer's region matches the user's region
+        if not matches_user_region(current_user, user.regionId):
+            raise HTTPException(status_code=403, detail="Unauthorized region access.")
+
+        # Send registration denial email to the user
+        send_registration_denied_email(
+            user.email,
+            subject="CyHy Dashboard Registration Denied",
+            first_name=user.firstName,
+            last_name=user.lastName,
+            template="crossfeed_denial_notification.html",
+        )
+
+        return {"statusCode": 200, "body": "User registration denied."}
+
+    except HTTPException as http_exc:
+        raise http_exc
+    except ObjectDoesNotExist:
+        raise HTTPException(status_code=404, detail="User not found.")
+    except Exception as e:
+        print(f"Error denying registration: {e}")
+        raise HTTPException(
+            status_code=500, detail="Error processing registration denial."
+        )
+
+
+def invite(new_user_data, current_user):
+    """Invite a user."""
+
+    try:
+        # Validate permissions
+        if new_user_data.organization:
+            if not is_org_admin(current_user, new_user_data.organization):
+                raise HTTPException(status_code=403, detail="Unauthorized access.")
+        else:
+            if not is_global_write_admin(current_user):
+                raise HTTPException(status_code=403, detail="Unauthorized access.")
+
+        # Non-global admins cannot set userType
+        if not is_global_write_admin(current_user) and new_user_data.userType:
+            raise HTTPException(status_code=403, detail="Unauthorized access.")
+
+        # Lowercase the email for consistency
+        new_user_data.email = new_user_data.email.lower()
+
+        # Map state to region ID if state is provided
+        if new_user_data.state:
+            new_user_data.regionId = REGION_STATE_MAP.get(new_user_data.state)
+
+        # Check if the user already exists
+        user = User.objects.filter(email=new_user_data.email).first()
+        organization = (
+            Organization.objects.filter(id=new_user_data.organization).first()
+            if new_user_data.organization
+            else None
+        )
+
+        if not user:
+            # Create a new user if they do not exist
+            user = User.objects.create(
+                invitePending=True,
+                **new_user_data.dict(
+                    exclude_unset=True,
+                    exclude={"organizationAdmin", "organization", "userType"},
+                ),
+            )
+            if not os.getenv("IS_LOCAL"):
+                send_invite_email(user.email, organization)
+        elif not user.firstName and not user.lastName:
+            # Update first and last name if the user exists but has no name set
+            user.firstName = new_user_data.firstName
+            user.lastName = new_user_data.lastName
+            user.save()
+
+        # Always update userType if specified
+        if new_user_data.userType:
+            user.userType = new_user_data.userType
+            user.save()
+
+        # Assign role if an organization is specified
+        if organization:
+            Role.objects.update_or_create(
+                user=user,
+                organization=organization,
+                defaults={
+                    "approved": True,
+                    "createdBy": current_user,
+                    "approvedBy": current_user,
+                    "role": "admin" if new_user_data.organizationAdmin else "user",
+                },
+            )
+        # Return the updated user with relevant details
+        return {
+            "id": str(user.id),
+            "firstName": user.firstName,
+            "lastName": user.lastName,
+            "email": user.email,
+            "userType": user.userType,
+            "roles": [
+                {
+                    "id": str(role.id),
+                    "role": role.role,
+                    "approved": role.approved,
+                    "organization": {
+                        "id": str(role.organization.id),
+                        "name": role.organization.name,
+                    }
+                    if role.organization
+                    else {},
+                }
+                for role in user.roles.select_related("organization").all()
+            ],
+            "invitePending": user.invitePending,
+        }
+
+    except HTTPException as http_exc:
+        raise http_exc
+
+    except Exception as e:
+        print(f"Error inviting user: {e}")
+        raise HTTPException(status_code=500, detail="Error inviting user.")

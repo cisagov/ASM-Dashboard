@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from .api_methods import api_key as api_key_methods
 from .api_methods import auth as auth_methods
 from .api_methods import notification as notification_methods
-from .api_methods import organization, proxy, scan, scan_tasks
+from .api_methods import organization, proxy, scan, scan_tasks, user
 from .api_methods.cpe import get_cpes_by_id
 from .api_methods.cve import get_cves_by_id, get_cves_by_name
 from .api_methods.domain import export_domains, get_domain_by_id, search_domains
@@ -54,7 +54,7 @@ from .schema_models.notification import Notification as NotificationSchema
 from .schema_models.role import Role as RoleSchema
 from .schema_models.saved_search import SavedSearch as SavedSearchSchema
 from .schema_models.search import SearchBody, SearchRequest, SearchResponse
-from .schema_models.user import UpdateUser
+from .schema_models.user import NewUser, NewUserResponseModel, RegisterUserResponse
 from .schema_models.user import User as UserSchema
 from .schema_models.user import UserResponse
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
@@ -508,6 +508,45 @@ async def call_update_user(
         JSONResponse: The result of the update.
     """
     return update_user(userId, body, current_user)
+
+
+@api_router.put(
+    "/users/{user_id}/register/approve",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=RegisterUserResponse,
+    tags=["Users"],
+)
+async def register_approve(
+    user_id: str, current_user: User = Depends(get_current_active_user)
+):
+    """Approve a registered user."""
+    return user.user_register_approve(user_id, current_user)
+
+
+@api_router.put(
+    "/users/{user_id}/register/deny",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=RegisterUserResponse,
+    tags=["Users"],
+)
+async def register_deny(
+    user_id: str, current_user: User = Depends(get_current_active_user)
+):
+    """Deny a registered user."""
+    return user.deny_user_registration(user_id, current_user)
+
+
+@api_router.post(
+    "/users",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=NewUserResponseModel,
+    tags=["Users"],
+)
+async def invite_user(
+    new_user: NewUser, current_user: User = Depends(get_current_active_user)
+):
+    """Invite a user."""
+    return user.invite(new_user, current_user)
 
 
 # ========================================
