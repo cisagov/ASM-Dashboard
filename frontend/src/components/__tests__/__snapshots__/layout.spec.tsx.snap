@@ -297,7 +297,7 @@ exports[`Layout component matches snapshot 1`] = `
                     class="MuiStack-root css-niqf4j-MuiStack-root"
                   >
                     <a
-                      aria-label="CyHy Dashboard 0.3.11"
+                      aria-label="CyHy Dashboard version 0.3.11"
                       class="MuiTypography-root MuiTypography-inherit MuiLink-root MuiLink-underlineAlways css-smdm7r-MuiTypography-root-MuiLink-root"
                       href="/"
                     >
