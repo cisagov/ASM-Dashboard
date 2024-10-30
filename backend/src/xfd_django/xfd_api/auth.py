@@ -22,10 +22,10 @@ import requests
 from .models import ApiKey, OrganizationTag, User
 
 # JWT_ALGORITHM = "RS256"
-JWT_SECRET = os.getenv("JWT_SECRET")
+JWT_SECRET = settings.JWT_SECRET
 SECRET_KEY = settings.SECRET_KEY
-JWT_ALGORITHM = "HS256"
-JWT_TIMEOUT_HOURS = 4
+JWT_ALGORITHM = settings.JWT_ALGORITHM
+JWT_TIMEOUT_HOURS = settings.JWT_TIMEOUT_HOURS
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False)

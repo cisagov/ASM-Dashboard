@@ -560,3 +560,584 @@ async def invoke_scheduler(current_user: User = Depends(get_current_active_user)
     """Manually invoke the scan scheduler."""
     response = await scan.invoke_scheduler(current_user)
     return response
+
+@api_router.get(
+    "/services/",
+    tags=["Retrieve Stats"],
+)
+async def get_services(
+        user_id: str = Query(..., description="Current user ID to filter services"),
+        redis_client=Depends(get_redis_client)
+):
+    """Retrieve services from Elasticache filtered by user."""
+    try:
+        # Get service IDs associated with the user's organizations
+        user_service_ids = get_user_service_ids(user_id)
+
+        if not user_service_ids:
+            raise HTTPException(status_code=404,
+                                detail="No services found for the user.")
+
+        services_data = []
+
+        # Fetch data from Redis for each service ID
+        for service_id in user_service_ids:
+            service_data = await redis_client.get(service_id)
+            if service_data:
+                try:
+                    # Attempt to parse the service_data as JSON
+                    parsed_data = json.loads(service_data)
+                    services_data.append({
+                        "id": service_id,
+                        "value": parsed_data
+                    })
+                except json.JSONDecodeError:
+                    # If not JSON, assume it's an integer-like string and convert
+                    services_data.append({
+                        "id": service_id,
+                        "value": int(service_data)
+                    })
+
+        if not services_data:
+            raise HTTPException(status_code=404,
+                                detail="No service data found in cache.")
+
+        return services_data
+
+    except aioredis.RedisError as redis_error:
+        raise HTTPException(status_code=500,
+                            detail=f"Redis error: {redis_error}")
+
+    except Exception as e:
+        raise HTTPException(status_code=500,
+                            detail=f"An unexpected error occurred: {e}")
+
+@api_router.get(
+    "/ports/",
+    response_model=List[schemas.Ports],  # Expecting a list of Stats objects
+    tags=["Retrieve Stats"],
+)
+async def get_Ports(user_id: str = Query(..., description="Current user ID to filter services"),
+                    redis_client=Depends(get_redis_client)):
+    """Retrieve Stats from Elasticache."""
+    try:
+        # Get ports associated with the user's organizations
+        user_ports = get_user_ports(user_id)
+
+        if not user_ports:
+            raise HTTPException(status_code=404,
+                                detail="No ports found for the user.")
+
+        # Retrieve the ports stats JSON data from Redis
+        ports_json = await redis_client.get('ports_stats')
+
+        if not ports_json:
+            raise HTTPException(status_code=404,
+                                detail="No ports data found in cache.")
+
+        # Deserialize JSON data
+        all_ports_data = json.loads(ports_json)
+
+        # Filter the ports data to include only the user's ports
+        ports_data = [port_stat for port_stat in all_ports_data if
+                      port_stat['port'] in user_ports]
+
+        if not ports_data:
+            raise HTTPException(status_code=404,
+                                detail="No port data found for the user in cache.")
+
+        return ports_data
+
+    except aioredis.RedisError as redis_error:
+        raise HTTPException(status_code=500,
+                            detail=f"Redis error: {redis_error}")
+
+    except Exception as e:
+        raise HTTPException(status_code=500,
+                            detail=f"An unexpected error occurred: {e}")
+
+@api_router.get(
+    "/num-vulnerabilities/",
+    response_model=List[schemas.VulnerabilityStat],  # Expecting a list of Stats objects
+    tags=["Retrieve Stats"],
+)
+async def get_NumVulnerabilities(
+        user_id: str = Query(...,
+                             description="Current user ID to filter vulnerabilities"),
+        redis_client: aioredis.Redis = Depends(get_redis_client)
+):
+    """
+    Retrieve number of vulnerabilities stats from ElastiCache (Redis) filtered by user.
+    """
+    try:
+        # Step 1: Retrieve the list of domain names associated with the user
+        user_domains = await get_user_domains(user_id)
+        # print(user_domains)
+
+
+        if not user_domains:
+            raise HTTPException(status_code=404,
+                                detail="No domains found for the user.")
+
+        # Step 2: Retrieve all vulnerability stats data from Redis
+        vulnerabilities_stats = await redis_client.hgetall(
+            'num_vulnerabilities_stats')
+
+        if not vulnerabilities_stats:
+            raise HTTPException(status_code=404,
+                                detail="No vulnerabilities stats data found in cache.")
+
+        # Step 3: Filter the vulnerabilities stats based on user's domains
+        filtered_data = []
+        for composite_id, value in vulnerabilities_stats.items():
+            try:
+                domain, severity = composite_id.split('|', 1)
+            except ValueError:
+                # If the composite_id doesn't contain '|', skip this entry
+                continue
+
+            if domain in user_domains:
+                filtered_data.append({
+                    "id": composite_id,
+                    "value": int(value)
+                })
+
+        if not filtered_data:
+            raise HTTPException(status_code=404,
+                                detail="No vulnerability data found for the user in cache.")
+
+        return filtered_data
+
+    except aioredis.RedisError as redis_error:
+        raise HTTPException(status_code=500,
+                            detail=f"Redis error: {redis_error}")
+
+    except HTTPException as http_exc:
+        raise http_exc  # Already handled, re-raise
+
+    except Exception as e:
+        raise HTTPException(status_code=500,
+                            detail=f"An unexpected error occurred: {e}")
+
+
+@api_router.get(
+    "/latest-vulnerabilities/",
+    response_model=List[schemas.LatestVulnerabilitySchema],
+    tags=["Retrieve Stats"],
+)
+async def get_latest_vulnerabilities(
+        organization: str = Query(None, description="Filter by organization ID"),
+        tag: str = Query(None, description="Filter by tag"),
+        current_user: User = Depends(get_current_active_user),
+        redis_client: aioredis.Redis = Depends(get_redis_client)
+):
+    try:
+        # Step 1: Retrieve data from Redis
+        vulnerabilities_json = await redis_client.get('latest_vulnerabilities')
+
+        if vulnerabilities_json is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Data not found in cache.")
+
+        # Deserialize JSON data
+        if isinstance(vulnerabilities_json, bytes):
+            vulnerabilities_json = vulnerabilities_json.decode('utf-8')
+        vulnerabilities_data = json.loads(vulnerabilities_json)
+
+        # Validate data format
+        if not isinstance(vulnerabilities_data, list):
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Unexpected data format.")
+
+        # Get user's organization IDs
+        user_org_ids = await get_user_organization_ids(current_user)
+        if not user_org_ids:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User does not belong to any organizations."
+            )
+
+        # Check if user is a global admin
+        is_admin = await is_global_view_admin(current_user)
+
+        # Determine accessible organizations
+        if is_admin:
+            accessible_org_ids = None  # None implies access to all organizations
+        else:
+            accessible_org_ids = set(user_org_ids)
+
+        # Apply filters
+        if organization:
+            if accessible_org_ids is not None and organization not in accessible_org_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="User does not have access to the specified organization."
+                )
+            accessible_org_ids = {organization}
+        elif tag:
+            tag_org_ids = await get_tag_organization_ids(tag)
+            if accessible_org_ids is not None:
+                accessible_org_ids = accessible_org_ids.intersection(tag_org_ids)
+            else:
+                accessible_org_ids = set(tag_org_ids)
+            if not accessible_org_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="No accessible organizations found for the specified tag."
+                )
+
+        # Filter vulnerabilities based on accessible organizations
+        if accessible_org_ids is not None:
+            filtered_vulnerabilities = [
+                vuln for vuln in vulnerabilities_data
+                if vuln.get('organizationId') in accessible_org_ids
+            ]
+        else:
+            filtered_vulnerabilities = vulnerabilities_data
+
+        return filtered_vulnerabilities
+
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to parse JSON data from cache.")
+    except aioredis.RedisError as redis_err:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Redis error: {redis_err}")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@api_router.get(
+    "/most-common-vulnerabilities/",
+    response_model=List[schemas.MostCommonVulnerabilitySchema],
+    tags=["Retrieve Stats"],
+)
+async def get_most_common_vulnerabilities(
+    organization: str = Query(None, description="Filter by organization ID"),
+    tag: str = Query(None, description="Filter by tag"),
+    current_user: User = Depends(get_current_active_user),
+    redis_client: aioredis.Redis = Depends(get_redis_client),
+):
+    try:
+        # Retrieve data from Redis
+        vulnerabilities_json = await redis_client.get('most_common_vulnerabilities')
+
+        if vulnerabilities_json is None:
+            raise HTTPException(status_code=404, detail="Data not found in cache.")
+
+        # Deserialize JSON data
+        if isinstance(vulnerabilities_json, bytes):
+            vulnerabilities_json = vulnerabilities_json.decode('utf-8')
+        vulnerabilities_data = json.loads(vulnerabilities_json)
+
+        # Validate data format
+        if not isinstance(vulnerabilities_data, list):
+            raise HTTPException(status_code=500, detail="Unexpected data format.")
+
+        # Get user's organization IDs
+        user_org_ids = await get_user_organization_ids(current_user)
+        print(user_org_ids)
+        if not user_org_ids:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User does not belong to any organizations."
+            )
+
+        # Check if user is a global admin
+        is_admin = await is_global_view_admin(current_user)
+
+        # Determine accessible organizations
+        if is_admin:
+            accessible_org_ids = None  # None implies access to all organizations
+        else:
+            accessible_org_ids = set(user_org_ids)
+
+        # Apply filters
+        if organization:
+            if accessible_org_ids is not None and organization not in accessible_org_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="User does not have access to the specified organization."
+                )
+            accessible_org_ids = {organization}
+        elif tag:
+            tag_org_ids = await get_tag_organization_ids(tag)
+            if accessible_org_ids is not None:
+                accessible_org_ids = accessible_org_ids.intersection(tag_org_ids)
+            else:
+                accessible_org_ids = set(tag_org_ids)
+            if not accessible_org_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="No accessible organizations found for the specified tag."
+                )
+
+        # Filter vulnerabilities based on accessible organizations
+        if accessible_org_ids is not None:
+            filtered_vulnerabilities = [
+                vuln for vuln in vulnerabilities_data
+                if vuln.get('organizationId') in accessible_org_ids
+            ]
+        else:
+            filtered_vulnerabilities = vulnerabilities_data
+
+        return filtered_vulnerabilities
+
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="Failed to parse JSON data from cache.")
+    except aioredis.RedisError as redis_err:
+        raise HTTPException(status_code=500, detail=f"Redis error: {redis_err}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get(
+    "/severity-counts/",
+    response_model=List[schemas.SeverityCountSchema],
+    tags=["Retrieve Stats"],
+)
+async def get_severity_counts(
+    organization: str = Query(None, description="Filter by organization ID"),
+    tag: str = Query(None, description="Filter by tag"),
+    current_user: User = Depends(get_current_active_user),
+    redis_client: aioredis.Redis = Depends(get_redis_client),
+):
+    """
+    Retrieves the count of open vulnerabilities grouped by severity from Redis.
+    """
+    try:
+        # Retrieve data from Redis
+        vulnerabilities_json = await redis_client.get('vulnerabilities_data')
+
+        if vulnerabilities_json is None:
+            raise HTTPException(status_code=404, detail="Data not found in cache.")
+
+        # Deserialize JSON data
+        vulnerabilities_data = json.loads(vulnerabilities_json)
+
+        # Get user's organization IDs
+        user_org_ids = await get_user_organization_ids(current_user)
+        if not user_org_ids:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User does not belong to any organizations."
+            )
+
+        # Check if user is a global admin
+        is_admin = await is_global_view_admin(current_user)
+
+        # Determine accessible organizations
+        if is_admin:
+            accessible_org_ids = None  # None implies access to all organizations
+        else:
+            accessible_org_ids = set(user_org_ids)
+
+        # Apply filters
+        if organization:
+            if accessible_org_ids is not None and organization not in accessible_org_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="User does not have access to the specified organization."
+                )
+            accessible_org_ids = {organization}
+        elif tag:
+            tag_org_ids = await get_tag_organization_ids(tag)
+            if accessible_org_ids is not None:
+                accessible_org_ids = accessible_org_ids.intersection(tag_org_ids)
+            else:
+                accessible_org_ids = set(tag_org_ids)
+            if not accessible_org_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="No accessible organizations found for the specified tag."
+                )
+
+        # Filter vulnerabilities based on accessible organizations
+        if accessible_org_ids is not None:
+            filtered_vulnerabilities = [
+                vuln for vuln in vulnerabilities_data
+                if vuln.get('organizationId') in accessible_org_ids
+            ]
+        else:
+            filtered_vulnerabilities = vulnerabilities_data
+
+        # Aggregate counts by severity
+        severity_counts = {}
+        for vuln in filtered_vulnerabilities:
+            severity = vuln.get('severity')
+            if severity not in severity_counts:
+                severity_counts[severity] = 0
+            severity_counts[severity] += 1
+
+        # Transform to list of dictionaries
+        severity_data = [
+            {'id': severity, 'value': count, 'label': severity}
+            for severity, count in severity_counts.items()
+        ]
+
+        return severity_data
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# @api_router.get(
+#     "/total-domains/",
+#     response_model=schemas.TotalDomainsResponse,
+#     tags=["Retrieve Stats"],
+# )
+# async def get_total_domains():
+#     try:
+#         total = Domain.objects.count()
+#         return TotalDomainsResponse(value=total)
+#     except Exception as e:
+#         logger.error(f"Error getting total domains: {e}")
+#         raise HTTPException(status_code=500, detail="Internal server error.")
+
+@api_router.get(
+    "/domains/total/",
+    response_model=schemas.TotalDomainsResponse,
+    tags=["Retrieve Stats"],
+)
+async def get_total_domains(
+    organization: str = Query(None, description="Filter by organization ID"),
+    tag: str = Query(None, description="Filter by tag"),
+    current_user: User = Depends(get_current_active_user),
+):
+    try:
+        # Base QuerySet
+        queryset = Domain.objects.all()
+
+        # Apply filtering logic at the endpoint
+        # Check if the user is a global admin
+        is_admin = await is_global_view_admin(current_user)
+
+        # Get user's accessible organizations
+        if not is_admin:
+            user_org_ids = await get_user_organization_ids(current_user)
+            if not user_org_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="User does not belong to any organizations."
+                )
+            queryset = queryset.filter(organizationId__id__in=user_org_ids)
+        else:
+            user_org_ids = None  # Admin has access to all organizations
+
+        # Apply organization filter
+        if organization:
+            if user_org_ids is not None and organization not in user_org_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="User does not have access to the specified organization."
+                )
+            queryset = queryset.filter(organizationId__id=organization)
+
+        # Apply tag filter
+        if tag:
+            tag_org_ids = await get_tag_organization_ids(tag)
+            if user_org_ids is not None:
+                accessible_org_ids = set(user_org_ids).intersection(tag_org_ids)
+                if not accessible_org_ids:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="No accessible organizations found for the specified tag."
+                    )
+                queryset = queryset.filter(organizationId__id__in=accessible_org_ids)
+            else:
+                queryset = queryset.filter(organizationId__id__in=tag_org_ids)
+
+        # Get total count
+        total_domains = await sync_to_async(queryset.count)()
+
+        # Return the count in the expected schema
+        return {"value": total_domains}
+
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@api_router.get(
+    "/by-org/",
+    response_model=List[schemas.ByOrgItem],
+    tags=["Vulnerabilities"],
+)
+async def get_by_org(
+    organization: str = Query(None, description="Filter by organization ID"),
+    tag: str = Query(None, description="Filter by tag"),
+    current_user: User = Depends(get_current_active_user),
+    redis_client: aioredis.Redis = Depends(get_redis_client),
+):
+    """
+    Retrieves the count of open vulnerabilities grouped by organization from Redis.
+    """
+    try:
+        # Retrieve data from Redis
+        json_data = await redis_client.get('vulnerabilities_by_org')
+
+        if json_data is None:
+            raise HTTPException(status_code=404, detail="Data not found in cache.")
+
+        vulnerabilities_data = json.loads(json_data)
+
+        # Get user's organization IDs
+        user_org_ids = await get_user_organization_ids(current_user)
+        if not user_org_ids:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User does not belong to any organizations."
+            )
+
+        # Check if user is a global admin
+        is_admin = await is_global_view_admin(current_user)
+
+        # Determine accessible organizations
+        if is_admin:
+            accessible_org_ids = None
+        else:
+            accessible_org_ids = set(user_org_ids)
+
+        # Apply filters
+        if organization:
+            if accessible_org_ids is not None and organization not in accessible_org_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="User does not have access to the specified organization."
+                )
+            accessible_org_ids = {organization}
+        elif tag:
+            tag_org_ids = await get_tag_organization_ids(tag)
+            if accessible_org_ids is not None:
+                accessible_org_ids = accessible_org_ids.intersection(tag_org_ids)
+            else:
+                accessible_org_ids = set(tag_org_ids)
+            if not accessible_org_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="No accessible organizations found for the specified tag."
+                )
+
+        # Filter vulnerabilities
+        if accessible_org_ids is not None:
+            filtered_vulnerabilities = [
+                vuln for vuln in vulnerabilities_data
+                if vuln['orgId'] in accessible_org_ids
+            ]
+        else:
+            filtered_vulnerabilities = vulnerabilities_data
+
+        # Aggregate counts by organization
+        org_counts = {}
+        for vuln in filtered_vulnerabilities:
+            org_id = vuln['orgId']
+            org_name = vuln['orgName']
+            if org_id not in org_counts:
+                org_counts[org_id] = {
+                    'id': org_name,
+                    'orgId': org_id,
+                    'value': 0,
+                    'label': org_name,
+                }
+            org_counts[org_id]['value'] += 1
+
+        # Convert to list and sort
+        results = sorted(org_counts.values(), key=lambda x: x['value'], reverse=True)
+
+        return results
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

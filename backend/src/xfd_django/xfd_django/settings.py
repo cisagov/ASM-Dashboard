@@ -33,6 +33,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # TODO: GET THAT LATER
 SECRET_KEY = "django-insecure-255j80npx26z%x0@-7p@(qs9(yvtuuln#xuhxt_x$bbevvxnm!"
 
+#JWT Secret Key
+JWT_SECRET = os.getenv('JWT_SECRET')
+JWT_ALGORITHM = os.getenv('JWT_ALGORITHM')
+JWT_TIMEOUT_HOURS = os.getenv('JWT_TIMEOUT_HOURS')
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
