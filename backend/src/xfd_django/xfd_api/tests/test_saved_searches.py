@@ -5,11 +5,12 @@ import secrets
 # Third-Party Libraries
 from fastapi.testclient import TestClient
 import pytest
-from xfd_api.models import User, SavedSearch, UserType
-from xfd_django.asgi import app
 from xfd_api.auth import create_jwt_token
+from xfd_api.models import SavedSearch, User, UserType
+from xfd_django.asgi import app
 
 client = TestClient(app)
+
 
 @pytest.mark.django_db
 def test_create_saved_search_by_user():
@@ -31,7 +32,7 @@ def test_create_saved_search_by_user():
             "sortField": "",
             "searchTerm": "",
             "searchPath": "",
-            "filters": []
+            "filters": [],
         },
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
@@ -39,6 +40,7 @@ def test_create_saved_search_by_user():
     data = response.json()
     assert data["name"] == name
     assert data["createdById"] == str(user.id)
+
 
 @pytest.mark.django_db
 def test_update_saved_search_by_global_admin_fails():
@@ -49,7 +51,7 @@ def test_update_saved_search_by_global_admin_fails():
         "sortField": "",
         "searchTerm": "",
         "searchPath": "",
-        "filters": []
+        "filters": [],
     }
     search = SavedSearch.objects.create(**body)
     body["name"] = f"test-{secrets.token_hex(4)}"
@@ -60,6 +62,7 @@ def test_update_saved_search_by_global_admin_fails():
         headers={"Authorization": "Bearer " + create_jwt_token(UserType.GLOBAL_ADMIN)},
     )
     assert response.status_code == 404
+
 
 @pytest.mark.django_db
 def test_update_saved_search_by_standard_user_with_access():
@@ -78,7 +81,7 @@ def test_update_saved_search_by_standard_user_with_access():
         "sortField": "",
         "searchTerm": "",
         "searchPath": "",
-        "filters": []
+        "filters": [],
     }
     search = SavedSearch.objects.create(**body, createdById=user)
     body["name"] = f"test-{secrets.token_hex(4)}"
@@ -92,6 +95,7 @@ def test_update_saved_search_by_standard_user_with_access():
     data = response.json()
     assert data["name"] == body["name"]
     assert data["searchTerm"] == body["searchTerm"]
+
 
 @pytest.mark.django_db
 def test_update_saved_search_by_standard_user_without_access_fails():
@@ -119,7 +123,7 @@ def test_update_saved_search_by_standard_user_without_access_fails():
         "searchTerm": "",
         "searchPath": "",
         "filters": [],
-        "createdById": user
+        "createdById": user,
     }
     search = SavedSearch.objects.create(**body)
     response = client.put(
@@ -128,6 +132,7 @@ def test_update_saved_search_by_standard_user_without_access_fails():
         headers={"Authorization": "Bearer " + create_jwt_token(user1)},
     )
     assert response.status_code == 404
+
 
 @pytest.mark.django_db
 def test_delete_saved_search_by_global_admin_fails():
@@ -138,13 +143,14 @@ def test_delete_saved_search_by_global_admin_fails():
         sortField="",
         searchTerm="",
         searchPath="",
-        filters=[]
+        filters=[],
     )
     response = client.delete(
         f"/saved-searches/{search.id}",
         headers={"Authorization": "Bearer " + create_jwt_token(UserType.GLOBAL_ADMIN)},
     )
     assert response.status_code == 404
+
 
 @pytest.mark.django_db
 def test_delete_saved_search_by_user_with_access():
@@ -164,7 +170,7 @@ def test_delete_saved_search_by_user_with_access():
         searchTerm="",
         searchPath="",
         filters=[],
-        createdById=user
+        createdById=user,
     )
     response = client.delete(
         f"/saved-searches/{search.id}",
@@ -172,6 +178,7 @@ def test_delete_saved_search_by_user_with_access():
     )
     assert response.status_code == 200
     assert response.json()["status"] == "success"
+
 
 @pytest.mark.django_db
 def test_delete_saved_search_by_user_without_access_fails():
@@ -199,13 +206,14 @@ def test_delete_saved_search_by_user_without_access_fails():
         searchTerm="",
         searchPath="",
         filters=[],
-        createdById=user
+        createdById=user,
     )
     response = client.delete(
         f"/saved-searches/{search.id}",
         headers={"Authorization": "Bearer " + create_jwt_token(user1)},
     )
     assert response.status_code == 404
+
 
 @pytest.mark.django_db
 def test_list_saved_searches_by_global_view_returns_none():
@@ -216,7 +224,7 @@ def test_list_saved_searches_by_global_view_returns_none():
         sortField="",
         searchTerm="",
         searchPath="",
-        filters=[]
+        filters=[],
     )
     response = client.get(
         "/saved-searches",
@@ -224,6 +232,7 @@ def test_list_saved_searches_by_global_view_returns_none():
     )
     assert response.status_code == 200
     assert response.json()["count"] == 0
+
 
 @pytest.mark.django_db
 def test_list_saved_searches_by_user_only_gets_their_search():
@@ -251,7 +260,7 @@ def test_list_saved_searches_by_user_only_gets_their_search():
         searchTerm="",
         searchPath="",
         filters=[],
-        createdById=user
+        createdById=user,
     )
     search2 = SavedSearch.objects.create(
         name=f"test-{secrets.token_hex(4)}",
@@ -261,7 +270,7 @@ def test_list_saved_searches_by_user_only_gets_their_search():
         searchTerm="",
         searchPath="",
         filters=[],
-        createdById=user1
+        createdById=user1,
     )
     response = client.get(
         "/saved-searches",
@@ -270,6 +279,7 @@ def test_list_saved_searches_by_user_only_gets_their_search():
     assert response.status_code == 200
     assert response.json()["count"] == 1
     assert response.json()["result"][0]["id"] == str(search.id)
+
 
 @pytest.mark.django_db
 def test_get_saved_search_by_global_view_fails():
@@ -280,13 +290,14 @@ def test_get_saved_search_by_global_view_fails():
         sortField="",
         searchTerm="",
         searchPath="",
-        filters=[]
+        filters=[],
     )
     response = client.get(
         f"/saved-searches/{search.id}",
         headers={"Authorization": "Bearer " + create_jwt_token(UserType.GLOBAL_VIEW)},
     )
     assert response.status_code == 404
+
 
 @pytest.mark.django_db
 def test_get_saved_search_by_user_passes():
@@ -306,7 +317,7 @@ def test_get_saved_search_by_user_passes():
         searchTerm="",
         searchPath="",
         filters=[],
-        createdById=user
+        createdById=user,
     )
     response = client.get(
         f"/saved-searches/{search.id}",
@@ -314,6 +325,7 @@ def test_get_saved_search_by_user_passes():
     )
     assert response.status_code == 200
     assert response.json()["name"] == search.name
+
 
 @pytest.mark.django_db
 def test_get_saved_search_by_different_user_fails():
@@ -341,7 +353,7 @@ def test_get_saved_search_by_different_user_fails():
         searchTerm="",
         searchPath="",
         filters=[],
-        createdById=user1
+        createdById=user1,
     )
     response = client.get(
         f"/saved-searches/{search.id}",
