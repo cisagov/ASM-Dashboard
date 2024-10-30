@@ -4,18 +4,24 @@ User API.
 """
 # Standard Python Libraries
 from datetime import datetime
-from typing import List, Optional
+import inspect
+from typing import List, Optional, Tuple
 
 # Third-Party Libraries
+from django.core.paginator import Paginator
+from django.db.models import Q
+from django.forms import model_to_dict
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from ..auth import (
     can_access_user,
+    get_org_memberships,
     is_global_view_admin,
     is_global_write_admin,
     is_regional_admin,
 )
+from ..helpers.filter_helpers import sort_direction
 from ..models import User
 from ..schema_models.user import NewUser as NewUserSchema
 from ..schema_models.user import UpdateUser as UpdateUserSchema
@@ -53,7 +59,7 @@ async def accept_terms(request: Request):
 
 
 #  TODO: Add user context and permissions
-def delete_user(request: Request):
+def delete_user(current_user, target_user_id):
     """
     Delete a user by ID.
     Args:
@@ -68,7 +74,6 @@ def delete_user(request: Request):
 
     try:
         # current_user = request.state.user
-        target_user_id = request.path_params["user_id"]
         target_user = User.objects.get(id=target_user_id)
         result = target_user.delete()
         return JSONResponse(status_code=200, content={"result": result})
@@ -77,7 +82,7 @@ def delete_user(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def get_users(request: Request):
+def get_users(current_user):
     """
     Retrieve a list of all users.
     Args:
@@ -90,8 +95,7 @@ def get_users(request: Request):
         List[User]: A list of all users.
     """
     try:
-        current_user = request.state.user
-        if not (is_global_view_admin(current_user) or is_regional_admin(current_user)):
+        if not (is_global_view_admin(current_user)):
             raise HTTPException(status_code=401, detail="Unauthorized")
 
         users = User.objects.all().prefetch_related("roles", "roles.organization")
@@ -101,7 +105,7 @@ def get_users(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def get_users_by_region_id(request: Request):
+async def get_users_by_region_id(current_user, region_id):
     """
     List users with specific regionId.
     Args:
@@ -111,11 +115,9 @@ async def get_users_by_region_id(request: Request):
         JSONResponse: The list of users with the specified regionId.
     """
     try:
-        current_user = request.state.user
         if not is_regional_admin(current_user):
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        region_id = request.path_params.get("regionId")
         if not region_id:
             raise HTTPException(
                 status_code=400, detail="Missing regionId in path parameters"
@@ -137,7 +139,7 @@ async def get_users_by_region_id(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def get_users_by_state(request: Request):
+async def get_users_by_state(state, current_user):
     """
     List users with specific state.
     Args:
@@ -147,11 +149,9 @@ async def get_users_by_state(request: Request):
         JSONResponse: The list of users with the specified state.
     """
     try:
-        current_user = request.state.user
         if not is_regional_admin(current_user):
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        state = request.path_params.get("state")
         if not state:
             raise HTTPException(
                 status_code=400, detail="Missing state in path parameters"
@@ -173,7 +173,7 @@ async def get_users_by_state(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def get_users_v2(request: Request):
+def get_users_v2(state, regionId, invitePending, current_user):
     """
     Retrieve a list of users based on optional filter parameters.
     Args:
@@ -186,23 +186,22 @@ def get_users_v2(request: Request):
         List[User]: A list of users matching the filter criteria.
     """
     try:
-        query_params = request.query_params
         filters = {}
 
-        if "state" in query_params:
-            filters["state"] = query_params["state"]
-        if "regionId" in query_params:
-            filters["regionId"] = query_params["regionId"]
-        if "invitePending" in query_params:
-            filters["invitePending"] = query_params["invitePending"]
+        if state:
+            filters["state"] = state
+        if regionId:
+            filters["regionId"] = regionId
+        if invitePending:
+            filters["invitePending"] = invitePending
 
         users = User.objects.filter(**filters).prefetch_related("roles")
-        return [UserSchema.model_validate(user) for user in users]
+        return [model_to_dict(user) for user in users]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def update_user(request: Request):
+async def update_user(target_user_id, body, current_user):
     """
     Update a particular user.
     Args:
@@ -215,15 +214,12 @@ async def update_user(request: Request):
         User: The updated user.
     """
     try:
-        current_user = request.state.user
-        target_user_id = request.path_params["user_id"]
         if not can_access_user(current_user, target_user_id):
             raise HTTPException(status_code=401, detail="Unauthorized")
 
         if not target_user_id or not User.objects.filter(id=target_user_id).exists():
             raise HTTPException(status_code=404, detail="User not found")
 
-        body = await request.json()
         update_data = NewUserSchema(**body)
 
         if not is_global_write_admin(current_user) and update_data.userType:

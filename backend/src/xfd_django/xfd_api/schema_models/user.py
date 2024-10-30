@@ -3,11 +3,11 @@
 # Standard Python Libraries
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import List, Literal, Optional
 from uuid import UUID
 
 # Third-Party Libraries
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .api_key import ApiKey
 from .role import Role
@@ -29,6 +29,28 @@ class User(BaseModel):
     loginGovId: Optional[str]
     createdAt: datetime
     updatedAt: datetime
+    firstName: str
+    lastName: str
+    fullName: str
+    email: str
+    invitePending: bool
+    loginBlockedByMaintenance: bool
+    dateAcceptedTerms: Optional[datetime]
+    acceptedTermsVersion: Optional[str]
+    lastLoggedIn: Optional[datetime]
+    userType: UserType
+    regionId: Optional[str]
+    state: Optional[str]
+    oktaId: Optional[str]
+    roles: Optional[List[Role]] = []
+    apiKeys: Optional[List[ApiKey]] = []
+
+
+class UserResponse(BaseModel):
+    """User response schema."""
+
+    cognitoId: Optional[str]
+    loginGovId: Optional[str]
     firstName: str
     lastName: str
     fullName: str

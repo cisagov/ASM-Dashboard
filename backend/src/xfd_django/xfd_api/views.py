@@ -7,7 +7,7 @@ from uuid import UUID
 # Third-Party Libraries
 from django.shortcuts import render
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 # from .schemas import Cpe
 from .api_methods import api_key as api_key_methods
@@ -54,7 +54,9 @@ from .schema_models.notification import Notification as NotificationSchema
 from .schema_models.role import Role as RoleSchema
 from .schema_models.saved_search import SavedSearch as SavedSearchSchema
 from .schema_models.search import SearchBody, SearchRequest, SearchResponse
+from .schema_models.user import UpdateUser
 from .schema_models.user import User as UserSchema
+from .schema_models.user import UserResponse
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
 from .schema_models.vulnerability import VulnerabilitySearch
 
@@ -290,7 +292,7 @@ async def export_vulnerabilities():
     "/vulnerabilities/{vulnerabilityId}",
     # dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
-    tags="Get vulnerability by id",
+    tags=["Vulnerabilities"],
 )
 async def call_get_vulnerability_by_id(vuln_id):
     """
@@ -305,7 +307,7 @@ async def call_get_vulnerability_by_id(vuln_id):
     "/vulnerabilities/{vulnerabilityId}",
     # dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
-    tags="Update vulnerability",
+    tags=["Vulnerabilities"],
 )
 async def call_update_vulnerability(vuln_id, data: VulnerabilitySchema):
     """
@@ -370,8 +372,12 @@ async def call_accept_terms(request: Request):
 
 
 # TODO: Add authentication and  permissions
-@api_router.delete("/users/{userId}", tags=["Users"])
-async def call_delete_user(request: Request):
+@api_router.delete(
+    "/users/{userId}", dependencies=[Depends(get_current_active_user)], tags=["Users"]
+)
+async def call_delete_user(
+    userId, current_user: User = Depends(get_current_active_user)
+):
     """
     Delete a user by ID.
 
@@ -384,7 +390,7 @@ async def call_delete_user(request: Request):
     Returns:
         JSONResponse: The result of the deletion.
     """
-    return delete_user(request)
+    return delete_user(current_user, userId)
 
 
 @api_router.get("/users/me", tags=["Users"])
@@ -395,10 +401,10 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 @api_router.get(
     "/users",
     response_model=List[UserSchema],
-    # dependencies=[Depends(get_current_active_user)],
+    dependencies=[Depends(get_current_active_user)],
     tags=["Users"],
 )
-async def call_get_users(request: Request):
+async def call_get_users(current_user: User = Depends(get_current_active_user)):
     """
     Call get_users()
     Args:
@@ -410,16 +416,18 @@ async def call_get_users(request: Request):
     Returns:
         List[User]: A list of users matching the filter criteria.
     """
-    return get_users(request)
+    return get_users(current_user)
 
 
 @api_router.get(
     "/users/regionId/{regionId}",
     response_model=List[UserSchema],
-    # dependencies=[Depends(get_current_active_user)],
+    dependencies=[Depends(get_current_active_user)],
     tags=["Users"],
 )
-async def call_get_users_by_region_id(request: Request):
+async def call_get_users_by_region_id(
+    regionId, current_user: User = Depends(get_current_active_user)
+):
     """
     Call get_users_by_region_id()
     Args:
@@ -431,17 +439,18 @@ async def call_get_users_by_region_id(request: Request):
     Returns:
         List[User]: A list of users matching the filter criteria.
     """
-    request.path_params["region_id"] = request.path_params["regionId"]
-    return get_users_by_region_id(request)
+    return get_users_by_region_id(regionId, current_user)
 
 
 @api_router.get(
     "/users/state/{state}",
     response_model=List[UserSchema],
-    # dependencies=[Depends(get_current_active_user)],
+    dependencies=[Depends(get_current_active_user)],
     tags=["Users"],
 )
-async def call_get_users_by_state(request: Request):
+async def call_get_users_by_state(
+    state, current_user: User = Depends(get_current_active_user)
+):
     """
     Call get_users_by_state()
     Args:
@@ -453,13 +462,39 @@ async def call_get_users_by_state(request: Request):
     Returns:
         List[User]: A list of users matching the filter criteria.
     """
-    request.path_params["state"] = request.path_params["state"]
-    return get_users_by_state(request)
+    return get_users_by_state(state, current_user)
 
 
-@api_router.get("/v2/users")
+@api_router.get(
+    "/v2/users",
+    response_model=List[UserResponse],
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Users"],
+)
+async def call_get_users_v2(
+    state: Optional[str] = Query(None),
+    regionId: Optional[str] = Query(None),
+    invitePending: Optional[bool] = Query(None),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Call get_users_v2()
+    Args:
+        request : The HTTP request containing query parameters.
+
+    Raises:
+        HTTPException: If the user is not authorized or no users are found.
+
+    Returns:
+        List[User]: A list of users matching the filter criteria.
+    """
+    return get_users_v2(state, regionId, invitePending, current_user)
+
+
 @api_router.post("/users/{userId}", tags=["Users"])
-async def call_update_user(userId, request: Request):
+async def call_update_user(
+    userId, body, current_user: User = Depends(get_current_active_user)
+):
     """
     Update a user by ID.
     Args:
@@ -472,8 +507,7 @@ async def call_update_user(userId, request: Request):
     Returns:
         JSONResponse: The result of the update.
     """
-    request.path_params["user_id"] = userId
-    return update_user(request)
+    return update_user(userId, body, current_user)
 
 
 # ========================================
