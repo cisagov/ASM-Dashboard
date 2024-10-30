@@ -430,6 +430,12 @@ variable "cloudwatch_bucket_name" {
   default     = "cisa-crossfeed-staging-cloudwatch"
 }
 
+variable "crossfeed-lz-sync_name" {
+  type        = string
+  description = "The name of the S3 bucket for Crossfeed LZ sync"
+  default     = "crossfeed-lz-sync"
+}
+
 variable "cloudwatch_log_group_name" {
   description = "cloudwatch_log_group_name"
   type        = string
@@ -676,7 +682,7 @@ variable "ssm_dmz_api_key" {
 }
 
 variable "ssm_mdl_sync_endpoint" {
-  description = "ssm_mdl_sync_endpoint" 
+  description = "ssm_mdl_sync_endpoint"
   type        = string
   default     = "/crossfeed/staging/MDL_SYNC_ENDPOINT"
 }
