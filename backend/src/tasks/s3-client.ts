@@ -15,6 +15,7 @@ class S3Client {
       isLocal ??
       (process.env.IS_OFFLINE || process.env.IS_LOCAL ? true : false);
     if (this.isLocal) {
+      console.log('Using local minio client for S3 uploads');
       this.s3 = new S3({
         endpoint: 'http://minio:9000',
         accessKeyId: 'aws_access_key',

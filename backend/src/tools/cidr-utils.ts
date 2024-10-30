@@ -11,43 +11,51 @@ export const getCidrInfo = (cidr: string): CidrInfo | null => {
   if (cidr === '') return null;
   try {
     const [ip, subnet] = cidr.split('/');
-    const prefixLength = parseInt(subnet, 10);
+    if (ip && subnet) {
+      const prefixLength = parseInt(subnet, 10);
 
-    // Validate the IP address
-    if (!Address4.isValid(ip) || prefixLength > 32) {
-      throw new Error('Invalid CIDR notation');
-    }
+      // Validate the IP address
+      if (!Address4.isValid(ip) || prefixLength > 32) {
+        throw new Error('Invalid CIDR notation');
+      }
 
-    // Special handling for /32 CIDR blocks
-    if (prefixLength === 32) {
-      return {
-        network: ip,
-        startIp: ip,
-        endIp: ip
+      // Special handling for /32 CIDR blocks
+      if (prefixLength === 32) {
+        return {
+          network: ip,
+          startIp: ip,
+          endIp: ip
+        };
+      }
+
+      const address = new Address4(ip);
+
+      // Calculate the number of hosts in the subnet using BigInt
+      const hostBits = 32 - prefixLength;
+      const numHosts = BigInt(Math.pow(2, hostBits));
+
+      // Convert IP to BigInt
+      const baseInt = BigInt(address.bigInteger().toString());
+
+      // Calculate the start IP (network address) as a BigInt
+      const startIpInt = baseInt & (BigInt(-1) << BigInt(hostBits));
+      const startIp = Address4.fromBigInteger(startIpInt.toString()).address;
+
+      // Calculate the end IP by adding numHosts - 1 to startIpInt
+      const endIpInt = startIpInt + (numHosts - BigInt(1));
+      const endIp = Address4.fromBigInteger(endIpInt.toString()).address;
+
+      const cidrInfo = {
+        network: `${ip}/${subnet}`,
+        startIp,
+        endIp
       };
+      return cidrInfo;
     }
-
-    const address = new Address4(ip);
-
-    // Calculate the number of hosts in the subnet using BigInt
-    const hostBits = 32 - prefixLength;
-    const numHosts = BigInt(Math.pow(2, hostBits));
-
-    // Convert IP to BigInt
-    const baseInt = BigInt(address.bigInteger().toString());
-
-    // Calculate the start IP (network address) as a BigInt
-    const startIpInt = baseInt & (BigInt(-1) << BigInt(hostBits));
-    const startIp = Address4.fromBigInteger(startIpInt.toString()).address;
-
-    // Calculate the end IP by adding numHosts - 1 to startIpInt
-    const endIpInt = startIpInt + (numHosts - BigInt(1));
-    const endIp = Address4.fromBigInteger(endIpInt.toString()).address;
-
     const cidrInfo = {
-      network: `${ip}/${subnet}`,
-      startIp,
-      endIp
+      network: ip,
+      startIp: ip,
+      endIp: ip
     };
     return cidrInfo;
   } catch (error) {
@@ -97,6 +105,7 @@ const generateRandomCIDR = (): string => {
   const randomOctet = () => Math.floor(Math.random() * 256);
   const subnet = Math.floor(Math.random() * 32);
   return `${randomOctet()}.${randomOctet()}.${randomOctet()}.${randomOctet()}/${subnet}`;
+  // return `${randomOctet()}.${randomOctet()}.${randomOctet()}.${randomOctet()}`;
 };
 
 // Generate a unique CIDR

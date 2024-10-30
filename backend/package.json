@@ -105,6 +105,7 @@
   },
   "scripts": {
     "build-worker": "sh ./tools/build-worker.sh",
+    "mdl-datagen": "ts-node src/tools/generators.ts",
     "codegen": "ts-node src/tools/generate-types.ts",
     "control-queue": "docker compose exec -T backend npx ts-node src/tools/consumeControlQueue.ts",
     "deploy-worker-prod": "./tools/deploy-worker.sh crossfeed-prod-worker",

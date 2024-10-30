@@ -807,7 +807,7 @@ if (process.env.IS_LOCAL) {
   authenticatedRoute.post('/sync', handlerToExpress(sync.ingest));
 }
 
-authenticatedRoute.post('/sync', handlerToExpress(sync.ingest));
+// authenticatedRoute.post('/sync', handlerToExpress(sync.ingest));
 
 //Authenticated Registration Routes
 authenticatedRoute.put(

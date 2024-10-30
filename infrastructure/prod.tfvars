@@ -104,3 +104,4 @@ ssm_redshift_user                    = "/crossfeed/prod/REDSHIFT_USER"
 ssm_redshift_password                = "/crossfeed/prod/REDSHIFT_PASSWORD"
 create_elasticache_cluster           = false
 ssm_dmz_api_key                      = "/crossfeed/prod/DMZ_API_KEY"
+ssm_mdl_sync_endpoint                = "/crossfeed/prod/MDL_SYNC_ENDPOINT"

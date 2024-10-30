@@ -1,4 +1,4 @@
 import { generateRecords, writeRecordsToFile } from './cidr-utils';
 
-const records = generateRecords(14000);
-writeRecordsToFile(records, 'testData.ts');
+const records = generateRecords(9000);
+writeRecordsToFile(records, 'dmzLzSyncTestData.ts');

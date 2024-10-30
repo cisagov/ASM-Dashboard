@@ -23,7 +23,6 @@ import saveTicket from './helpers/saveTicket';
 import saveTicketEvent from './helpers/saveTicketEvent';
 import { plainToClass } from 'class-transformer';
 import savePortScan from './helpers/savePortScan';
-import { TEST_DATA } from './REMOVE_ME';
 import axios from 'axios';
 import { createChecksum, jsonToCSV } from '../tools/csv-utils';
 
@@ -50,17 +49,16 @@ const client = new Client({
 });
 
 export const handler = async (commandOptions: CommandOptions) => {
-  console.log('HERE', process.env.DMZ_API_KEY);
   // Connect to Redshift and select requests table
 
   let requestArray;
   try {
-    // await client.connect();
+    await client.connect();
     const startTime = Date.now();
     const query = 'SELECT * FROM vmtableau.requests;';
     // const query = 'SELECT * FROM organization;';
-    // const result = await client.query(query);
-    const result = { rows: TEST_DATA };
+    const result = await client.query(query);
+    // const result = { rows: TEST_DATA };
     const endTime = Date.now();
     const durationMs = endTime - startTime;
     const durationSeconds = Math.round(durationMs / 1000);
@@ -204,13 +202,13 @@ export const handler = async (commandOptions: CommandOptions) => {
         });
 
         //Save and link Orgs Location and Networks
-        // const org_id = await saveOrganizationToMdl(
-        //   orgObj,
-        //   networkList,
-        //   location
-        // );
+        const org_id = await saveOrganizationToMdl(
+          orgObj,
+          networkList,
+          location
+        );
         // add the acronym: org_id pair to the dictionary so we can reference it later
-        // org_id_dict[request._id] = org_id;
+        org_id_dict[request._id] = org_id;
       }
 
       // For any org that has child organnizations, link them here.
@@ -312,7 +310,7 @@ export const handler = async (commandOptions: CommandOptions) => {
     const checksum = createChecksum(csvRows);
     await axios.request({
       method: 'POST',
-      url: 'http://host.docker.internal:3000/sync',
+      url: process.env.MDL_SYNC_ENDPOINT,
       headers: {
         'Content-Type': 'text/csv',
         Authorization: process.env.DMZ_API_KEY,

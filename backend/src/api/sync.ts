@@ -119,13 +119,13 @@ export const ingest = wrapHandler(async (event) => {
   if (originalChecksum === newChecksum) {
     // Checksums match, upload the file to S3
     let uploadKey: string = '';
-    const s3Client = new S3Client(false);
+    const s3Client = new S3Client();
     if (csvData) {
       try {
         const { key } = await s3Client.saveCSV(
           csvData,
           '',
-          'crossfeed-lz-sync'
+          process.env.IS_LOCAL ? 'crossfeed-local-exports' : 'crossfeed-lz-sync'
         );
         uploadKey = key;
         console.log('Uploaded CSV data to S3');
@@ -133,7 +133,10 @@ export const ingest = wrapHandler(async (event) => {
         console.error(`Error occurred pushing data to S3: ${error}`);
       }
       try {
-        const data = await s3Client.getObject(uploadKey, 'crossfeed-lz-sync');
+        const data = await s3Client.getObject(
+          uploadKey,
+          process.env.IS_LOCAL ? 'crossfeed-local-exports' : 'crossfeed-lz-sync'
+        );
         const fileContents = (await data?.promise())?.Body?.toString('utf-8');
         if (fileContents) {
           const parsed = parse<ShapedOrg>(fileContents, {

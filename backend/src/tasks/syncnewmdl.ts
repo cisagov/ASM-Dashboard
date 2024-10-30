@@ -5404,5 +5404,13 @@ export const handler: Handler = async (event) => {
   }
 
   console.log('Finished creating local Mini Data Lake');
+  try {
+    await client.query(
+      'CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;'
+    );
+    console.log('Added UUID Extension for UUID Generation');
+  } catch (error) {
+    console.log('Error adding UUID Extension for UUID Generation');
+  }
   client.end();
 };

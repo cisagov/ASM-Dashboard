@@ -153,7 +153,8 @@ async function startLocalContainers(
           `PE_API_URL=${process.env.PE_API_URL}`,
           `PE_API_KEY=${process.env.PE_API_KEY}`,
           `CF_API_KEY=${process.env.CF_API_KEY}`,
-          `DMZ_API_KEY=${process.env.DMZ_API_KEY}`
+          `DMZ_API_KEY=${process.env.DMZ_API_KEY}`,
+          `MDL_SYNC_ENDPOINT=${process.env.MDL_SYNC_ENDPOINT}`
         ]
       } as any);
       await container.start();

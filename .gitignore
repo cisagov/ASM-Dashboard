@@ -25,6 +25,7 @@ frontend/.pnp.js
 backend/coverage
 docs/coverage
 frontend/coverage
+backend/dmzLzSyncTestData.ts
 
 # production
 frontend/build
