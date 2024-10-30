@@ -23,6 +23,9 @@ import saveTicket from './helpers/saveTicket';
 import saveTicketEvent from './helpers/saveTicketEvent';
 import { plainToClass } from 'class-transformer';
 import savePortScan from './helpers/savePortScan';
+import { TEST_DATA } from './REMOVE_ME';
+import axios from 'axios';
+import { createChecksum, jsonToCSV } from '../tools/csv-utils';
 
 /** Removes a value for a given key from the dictionary and then returns it. */
 function getValueAndDelete<T>(
@@ -37,7 +40,7 @@ function getValueAndDelete<T>(
     return undefined;
   }
 }
-
+// Redshift Connection
 const client = new Client({
   user: process.env.REDSHIFT_USER,
   host: process.env.REDSHIFT_HOST,
@@ -47,13 +50,17 @@ const client = new Client({
 });
 
 export const handler = async (commandOptions: CommandOptions) => {
+  console.log('HERE', process.env.DMZ_API_KEY);
   // Connect to Redshift and select requests table
+
   let requestArray;
   try {
-    await client.connect();
+    // await client.connect();
     const startTime = Date.now();
     const query = 'SELECT * FROM vmtableau.requests;';
-    const result = await client.query(query);
+    // const query = 'SELECT * FROM organization;';
+    // const result = await client.query(query);
+    const result = { rows: TEST_DATA };
     const endTime = Date.now();
     const durationMs = endTime - startTime;
     const durationSeconds = Math.round(durationMs / 1000);
@@ -197,13 +204,13 @@ export const handler = async (commandOptions: CommandOptions) => {
         });
 
         //Save and link Orgs Location and Networks
-        const org_id = await saveOrganizationToMdl(
-          orgObj,
-          networkList,
-          location
-        );
+        // const org_id = await saveOrganizationToMdl(
+        //   orgObj,
+        //   networkList,
+        //   location
+        // );
         // add the acronym: org_id pair to the dictionary so we can reference it later
-        org_id_dict[request._id] = org_id;
+        // org_id_dict[request._id] = org_id;
       }
 
       // For any org that has child organnizations, link them here.
@@ -263,6 +270,58 @@ export const handler = async (commandOptions: CommandOptions) => {
   } catch (error) {
     console.error('Error reading requests:', error);
     throw error;
+  }
+
+  try {
+    // Data is oddly shaped and need to flatten some fields out for easier traversal
+    const shaped = requestArray.map(
+      ({
+        _id,
+        agency,
+        networks,
+        report_types,
+        scan_types,
+        stakeholder,
+        retired,
+        period_start,
+        enrolled
+      }) => {
+        return {
+          _id,
+          networks,
+          report_types: report_types,
+          scan_types: scan_types,
+          stakeholder,
+          retired,
+          period_start,
+          enrolled,
+          acronym: _id,
+          country: agency?.location?.country,
+          country_name: agency?.location?.country_name,
+          state: agency?.location?.state,
+          state_name: agency?.location?.state_name,
+          state_fips: agency?.location?.state_fips,
+          county: agency?.location?.county,
+          county_fips: agency?.location?.county_fips,
+          agency_type: agency?.type,
+          name: agency?.name
+        };
+      }
+    );
+    const csvRows = jsonToCSV(shaped);
+    const checksum = createChecksum(csvRows);
+    await axios.request({
+      method: 'POST',
+      url: 'http://host.docker.internal:3000/sync',
+      headers: {
+        'Content-Type': 'text/csv',
+        Authorization: process.env.DMZ_API_KEY,
+        'x-checksum': checksum
+      },
+      data: csvRows
+    });
+  } catch (error) {
+    console.log(`Error sending Redshift data to DMZ /sync - ${error}`);
   }
 
   // Connect to Redshift and select vuln_scans table

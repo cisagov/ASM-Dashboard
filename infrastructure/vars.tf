@@ -668,3 +668,9 @@ variable "create_elasticache_cluster" {
   type        = bool
   default     = false
 }
+
+variable "ssm_dmz_api_key" {
+  description = "ssm_dmz_api_key"
+  type        = string
+  default     = "/crossfeed/staging/DMZ_API_KEY"
+}

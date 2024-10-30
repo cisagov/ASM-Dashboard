@@ -99,7 +99,8 @@ resource "aws_iam_role_policy" "worker_task_execution_role_policy" {
           "${data.aws_ssm_parameter.ssm_redshift_host.arn}",
           "${data.aws_ssm_parameter.ssm_redshift_database.arn}",
           "${data.aws_ssm_parameter.ssm_redshift_user.arn}",
-          "${data.aws_ssm_parameter.ssm_redshift_password.arn}"
+          "${data.aws_ssm_parameter.ssm_redshift_password.arn}",
+          "${data.aws_ssm_parameter.ssm_dmz_api_key.arn}"
         ]
     }
   ]
@@ -341,7 +342,11 @@ resource "aws_ecs_task_definition" "worker" {
       {
         "name": "REDSHIFT_PASSWORD",
         "valueFrom": "${data.aws_ssm_parameter.ssm_redshift_password.arn}"
-      }
+      },
+      {
+        "name": "DMZ_API_KEY",
+        "valueFrom": "${data.aws_ssm_parameter.ssm_dmz_api_key.arn}"
+      },
     ]
   }
 ]
@@ -421,6 +426,8 @@ data "aws_ssm_parameter" "ssm_redshift_database" { name = var.ssm_redshift_datab
 data "aws_ssm_parameter" "ssm_redshift_user" { name = var.ssm_redshift_user }
 
 data "aws_ssm_parameter" "ssm_redshift_password" { name = var.ssm_redshift_password }
+
+data "aws_ssm_parameter" "ssm_dmz_api_key" { name = var.ssm_dmz_api_key }
 
 
 resource "aws_s3_bucket" "export_bucket" {

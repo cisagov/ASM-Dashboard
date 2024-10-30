@@ -233,7 +233,7 @@ export const export_ = wrapHandler(async (event) => {
     res.products = Object.values(products).join(', ');
     return res;
   });
-  const url = await client.saveCSV(
+  const { url } = await client.saveCSV(
     Papa.unparse({
       fields: [
         'name',

@@ -115,6 +115,7 @@
     "scan-exec": "docker compose exec -T backend npx ts-node src/tools/run-scanExecution.ts",
     "syncdb": "docker compose exec -T backend npx ts-node src/tools/run-syncdb.ts",
     "syncmdl": "docker compose exec -T backend npx ts-node src/tools/run-syncmdl.ts",
+    "syncnewmdl": "docker compose exec -T backend npx ts-node src/tools/run-syncnewmdl.ts",
     "test": "jest --detectOpenHandles",
     "test-python": "pytest"
   },

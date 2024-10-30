@@ -106,3 +106,4 @@ ssm_redshift_database                = "/crossfeed/staging/REDSHIFT_DATABASE"
 ssm_redshift_user                    = "/crossfeed/staging/REDSHIFT_USER"
 ssm_redshift_password                = "/crossfeed/staging/REDSHIFT_PASSWORD"
 create_elasticache_cluster           = true
+ssm_dmz_api_key                      = "/crossfeed/staging/DMZ_API_KEY"

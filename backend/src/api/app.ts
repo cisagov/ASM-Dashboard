@@ -10,6 +10,7 @@ import * as cves from './cves';
 import * as domains from './domains';
 import * as notifications from './notifications';
 import * as search from './search';
+import * as sync from './sync';
 import * as vulnerabilities from './vulnerabilities';
 import * as organizations from './organizations';
 import * as scans from './scans';
@@ -30,6 +31,7 @@ import { Request, Response, NextFunction } from 'express';
 import fetch from 'node-fetch';
 import * as searchOrganizations from './organizationSearch';
 import { Logger, RecordMessage } from '../tools/logger';
+import { parse } from 'papaparse';
 
 const sanitizer = require('sanitizer');
 
@@ -52,7 +54,10 @@ const handlerToExpress =
         pathParameters: req.params,
         query: req.query,
         requestContext: req.requestContext,
-        body: JSON.stringify(req.body || '{}'),
+        body:
+          typeof req.body !== 'string'
+            ? JSON.stringify(req.body || '{}')
+            : req.body,
         headers: req.headers,
         path: req.originalUrl
       },
@@ -88,6 +93,39 @@ app.use(
     limit: 5000
   })
 ); // limit 1000 requests per 15 minutes
+
+app.use((req, res, next) => {
+  // Middleware to parse CSV data
+  if (req.headers['content-type'] === 'text/csv') {
+    let data = '';
+
+    req.on('data', (chunk) => {
+      data += chunk;
+    });
+    req.on('end', () => {
+      const parsedData = parse(data, {
+        header: true,
+        skipEmptyLines: true
+      });
+
+      if (parsedData.errors.length > 0) {
+        return res
+          .status(400)
+          .json({ message: 'CSV Parsing Error', errors: parsedData.errors });
+      }
+      // We don't need to parse the data, just validate it
+      // CSV Parsing will happen in the handler
+      req.body = data;
+      next();
+    });
+
+    req.on('error', () => {
+      res.status(500).json({ message: 'Error reading CSV data' });
+    });
+  } else {
+    next();
+  }
+});
 
 app.use(express.json({ strict: false }));
 
@@ -755,6 +793,15 @@ authenticatedRoute.post(
   '/reports/list',
   handlerToExpress(reports.list_reports)
 );
+
+if (process.env.IS_LOCAL) {
+  console.log('Unauthenticated local route');
+  app.post('/sync', handlerToExpress(sync.ingest));
+} else {
+  authenticatedRoute.post('/sync', handlerToExpress(sync.ingest));
+}
+
+authenticatedRoute.post('/sync', handlerToExpress(sync.ingest));
 
 //Authenticated Registration Routes
 authenticatedRoute.put(

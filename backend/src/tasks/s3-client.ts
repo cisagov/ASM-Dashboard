@@ -17,6 +17,8 @@ class S3Client {
     if (this.isLocal) {
       this.s3 = new S3({
         endpoint: 'http://minio:9000',
+        accessKeyId: 'aws_access_key',
+        secretAccessKey: 'aws_secret_key',
         s3ForcePathStyle: true
       });
     } else {
@@ -35,18 +37,22 @@ class S3Client {
    * temporary URL that can be used to access it.
    * @param data Data to be saved as a CSV
    */
-  async saveCSV(body: string, name: string = '') {
+  async saveCSV(
+    body: string,
+    name: string = '',
+    bucket: string = 'crossfeed-local-exports'
+  ) {
     try {
       const Key = `${Math.random()}/${name}-${new Date().toISOString()}.csv`;
       const params = {
-        Bucket: process.env.EXPORT_BUCKET_NAME!,
+        Bucket: bucket ?? process.env.EXPORT_BUCKET_NAME,
         Key,
         Body: body,
         ContentType: 'text/csv'
       };
       await this.s3.putObject(params).promise();
       const url = await this.s3.getSignedUrlPromise('getObject', {
-        Bucket: process.env.EXPORT_BUCKET_NAME!,
+        Bucket: bucket,
         Key,
         Expires: 60 * 5 // 5 minutes
       });
@@ -54,12 +60,22 @@ class S3Client {
       // Do this so exports are accessible when running locally.
       if (this.isLocal) {
         console.log(url.replace('minio:9000', 'localhost:9000'));
-        return url.replace('minio:9000', 'localhost:9000');
+        return { url: url.replace('minio:9000', 'localhost:9000'), key: Key };
       }
-      return url;
+      return { url, key: Key };
     } catch (e) {
       console.error(e);
       throw e;
+    }
+  }
+
+  async getObject(key, bucket) {
+    try {
+      const object = await this.s3.getObject({ Key: key, Bucket: bucket });
+      return object;
+    } catch (error) {
+      console.log(`Error occured fetching object from S3://${bucket}`);
+      return null;
     }
   }
 
