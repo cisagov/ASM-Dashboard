@@ -6,6 +6,10 @@ on:
     paths:
       - .github/labels.yml
       - .github/workflows/sync-labels.yml
+<<<<<<< HEAD
+=======
+  workflow_dispatch:
+>>>>>>> f517db7930c879e0b365c3a7795d722894fea581
 
 permissions:
   contents: read
@@ -13,8 +17,16 @@ permissions:
 jobs:
   diagnostics:
     name: Run diagnostics
+    # This job does not need any permissions
+    permissions: {}
     runs-on: ubuntu-latest
     steps:
+      # Note that a duplicate of this step must be added at the top of
+      # each job.
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+        with:
+          # Uses the organization variable unless overridden
+          config: ${{ vars.ACTIONS_PERMISSIONS_CONFIG }}
       # Note that a duplicate of this step must be added at the top of
       # each job.
       - id: harden-runner
@@ -38,6 +50,10 @@ jobs:
       issues: write
     runs-on: ubuntu-latest
     steps:
+      - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+        with:
+          # Uses the organization variable unless overridden
+          config: ${{ vars.ACTIONS_PERMISSIONS_CONFIG }}
       - id: harden-runner
         name: Harden the runner
         uses: step-security/harden-runner@v2
