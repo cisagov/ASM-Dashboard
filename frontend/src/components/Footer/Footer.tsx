@@ -10,6 +10,7 @@ export const CrossfeedFooter: React.FC = (props) => {
   const FooterRoot = FooterStyles.FooterRoot;
   const footerClasses = FooterStyles.footerClasses;
   const versionNumber = process.env.REACT_APP_VERSION_NUMBER;
+  console.log('versionNumber', versionNumber);
 
   return (
     <FooterRoot>
