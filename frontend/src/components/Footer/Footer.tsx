@@ -17,11 +17,11 @@ export const CrossfeedFooter: React.FC = (props) => {
         <Grid className={footerClasses.footerContainer} container>
           <Grid className={footerClasses.footerLogo} item xs={12} sm={3}>
             <Stack direction="row" spacing={1}>
-              <Link href="/">
+              <Link href="/" aria-label={`CyHy Dashboard ${versionNumber}`}>
                 <img src={logo} alt="CyHy Dashboard Icon Navigate Home" />
               </Link>
               {user && (
-                <Typography variant="caption" color="white">
+                <Typography variant="caption" color="white" tabIndex={0}>
                   v. {versionNumber}
                 </Typography>
               )}
