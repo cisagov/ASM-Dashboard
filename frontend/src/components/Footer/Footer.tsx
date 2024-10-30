@@ -20,9 +20,11 @@ export const CrossfeedFooter: React.FC = (props) => {
               <Link href="/">
                 <img src={logo} alt="CyHy Dashboard Icon Navigate Home" />
               </Link>
-              <Typography variant="caption" color="white">
-                v. {versionNumber}
-              </Typography>
+              {user && (
+                <Typography variant="caption" color="white">
+                  v. {versionNumber}
+                </Typography>
+              )}
             </Stack>
           </Grid>
           {user && (
