@@ -4,10 +4,12 @@ User API.
 """
 # Standard Python Libraries
 from datetime import datetime
-import inspect
+import os
 from typing import List, Optional, Tuple
+import uuid
 
 # Third-Party Libraries
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.forms import model_to_dict
@@ -19,13 +21,30 @@ from ..auth import (
     get_org_memberships,
     is_global_view_admin,
     is_global_write_admin,
+    is_org_admin,
     is_regional_admin,
+    matches_user_region,
+)
+from ..helpers.email import (
+    send_invite_email,
+    send_registration_approved_email,
+    send_registration_denied_email,
 )
 from ..helpers.filter_helpers import sort_direction
-from ..models import User
+from ..helpers.regionStateMap import REGION_STATE_MAP
+from ..models import Organization, Role, User
 from ..schema_models.user import NewUser as NewUserSchema
 from ..schema_models.user import UpdateUser as UpdateUserSchema
 from ..schema_models.user import User as UserSchema
+
+
+def is_valid_uuid(val: str) -> bool:
+    """Check if the given string is a valid UUID."""
+    try:
+        uuid_obj = uuid.UUID(val, version=4)
+    except ValueError:
+        return False
+    return str(uuid_obj) == val
 
 
 async def accept_terms(request: Request):

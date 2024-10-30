@@ -91,19 +91,50 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 
-# TODO: Confirm that userType is set during user creation
+class UserRoleOrg(BaseModel):
+    """User role organization schema."""
+
+    id: str
+    name: str
+
+
+class UserRole(BaseModel):
+    """User role schema."""
+
+    id: str
+    role: str
+    approved: bool
+    organization: Optional[UserRoleOrg] = None
+
+
 class NewUser(BaseModel):
+    """New user schema."""
+
     email: str
     firstName: str
     lastName: str
-    organization: Optional[str]
-    organizationAdmin: Optional[bool]
-    regionId: Optional[str]
-    state: Optional[str]
+    organization: Optional[str] = None
+    organizationAdmin: Optional[bool] = None
+    regionId: Optional[str] = None
+    state: Optional[str] = None
+    userType: Optional[UserType] = None
+
+
+class NewUserResponseModel(BaseModel):
+    """New user response schema."""
+
+    id: str
+    firstName: str
+    lastName: str
+    email: str
+    invitePending: bool
     userType: UserType
+    roles: Optional[List[UserRole]] = []
 
 
 class UpdateUser(BaseModel):
+    """Update user schema."""
+
     firstName: Optional[str]
     fullName: Optional[str]
     invitePending: Optional[bool]
@@ -114,3 +145,10 @@ class UpdateUser(BaseModel):
     role: Optional[str]
     state: Optional[str]
     userType: Optional[UserType]
+
+
+class RegisterUserResponse(BaseModel):
+    """Register or deny user response."""
+
+    statusCode: int
+    body: str
