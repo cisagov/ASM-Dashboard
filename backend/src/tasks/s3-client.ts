@@ -43,27 +43,27 @@ class S3Client {
     name: string = '',
     bucket: string = 'crossfeed-local-exports'
   ) {
+    const bucketToUse = bucket ?? process.env.EXPORT_BUCKET_NAME;
     try {
       const Key = `${Math.random()}/${name}-${new Date().toISOString()}.csv`;
       const params = {
-        Bucket: bucket ?? process.env.EXPORT_BUCKET_NAME,
+        Bucket: bucketToUse,
         Key,
         Body: body,
         ContentType: 'text/csv'
       };
       await this.s3.putObject(params).promise();
       const url = await this.s3.getSignedUrlPromise('getObject', {
-        Bucket: bucket,
+        Bucket: bucketToUse,
         Key,
         Expires: 60 * 5 // 5 minutes
       });
-
       // Do this so exports are accessible when running locally.
       if (this.isLocal) {
         console.log(url.replace('minio:9000', 'localhost:9000'));
         return { url: url.replace('minio:9000', 'localhost:9000'), key: Key };
       }
-      return { url, key: Key };
+      return { url: url, key: Key, bucket: bucketToUse };
     } catch (e) {
       console.error(e);
       throw e;

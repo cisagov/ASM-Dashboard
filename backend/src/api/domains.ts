@@ -233,7 +233,7 @@ export const export_ = wrapHandler(async (event) => {
     res.products = Object.values(products).join(', ');
     return res;
   });
-  const { url } = await client.saveCSV(
+  const res = await client.saveCSV(
     Papa.unparse({
       fields: [
         'name',
@@ -247,13 +247,14 @@ export const export_ = wrapHandler(async (event) => {
       ],
       data: result
     }),
-    'domains'
+    'domains',
+    process.env.EXPORT_BUCKET_NAME
   );
 
   return {
     statusCode: 200,
     body: JSON.stringify({
-      url
+      url: res.url
     })
   };
 });
