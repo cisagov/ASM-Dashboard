@@ -6,15 +6,16 @@ from typing import Optional
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import HTTPException
-from .s3_client import S3Client
 from jinja2 import Template
+
+from .s3_client import S3Client
 
 
 def send_invite_email(email, organization=None):
     """Send an invitation email to the specified address."""
     frontend_domain = os.getenv("FRONTEND_DOMAIN")
     reply_to = os.getenv("CROSSFEED_SUPPORT_EMAIL_REPLYTO")
-    
+
     org_name_part = f"the {organization.name} organization on " if organization else ""
     message = f"""
     Hi there,
@@ -42,30 +43,30 @@ def send_email(recipient, subject, body):
     ses_client = boto3.client("ses", region_name="us-east-1")
     sender = os.getenv("CROSSFEED_SUPPORT_EMAIL_SENDER")
     reply_to = os.getenv("CROSSFEED_SUPPORT_EMAIL_REPLYTO")
-    
+
     email_params = {
         "Source": sender,
         "Destination": {"ToAddresses": [recipient]},
-        "Message": {
-            "Subject": {"Data": subject},
-            "Body": {"Text": {"Data": body}}
-        },
-        "ReplyToAddresses": [reply_to]
+        "Message": {"Subject": {"Data": subject}, "Body": {"Text": {"Data": body}}},
+        "ReplyToAddresses": [reply_to],
     }
-    
+
     try:
         ses_client.send_email(**email_params)
         print(f"Email sent to {recipient}")
     except ClientError as e:
         print(f"Error sending email: {e}")
 
-def send_registration_approved_email(recipient: str, subject: str, first_name: str, last_name: str, template):
+
+def send_registration_approved_email(
+    recipient: str, subject: str, first_name: str, last_name: str, template
+):
     """Send registration approved email."""
     try:
         # Initialize S3 client and fetch email template
         client = S3Client()
         html_template = client.get_email_asset(template)
-        
+
         if not html_template:
             raise ValueError("Email template not found or empty.")
 
@@ -74,7 +75,7 @@ def send_registration_approved_email(recipient: str, subject: str, first_name: s
         data = {
             "firstName": first_name,
             "lastName": last_name,
-            "domain": os.getenv("FRONTEND_DOMAIN")
+            "domain": os.getenv("FRONTEND_DOMAIN"),
         }
         html_to_send = template.render(data)
 
@@ -83,15 +84,13 @@ def send_registration_approved_email(recipient: str, subject: str, first_name: s
         reply_to = os.getenv("CROSSFEED_SUPPORT_EMAIL_REPLYTO")
 
         email_params = {
-                "Source": sender,
-                "Destination": {
-                    "ToAddresses": [recipient]
-                },
-                "Message": {
-                    "Subject": {"Data": subject},
-                    "Body": {"Html": {"Data": html_to_send}}
-                },
-                "ReplyToAddresses": [reply_to]
+            "Source": sender,
+            "Destination": {"ToAddresses": [recipient]},
+            "Message": {
+                "Subject": {"Data": subject},
+                "Body": {"Html": {"Data": html_to_send}},
+            },
+            "ReplyToAddresses": [reply_to],
         }
         # SES client
         if not os.getenv("IS_LOCAL"):
@@ -102,18 +101,20 @@ def send_registration_approved_email(recipient: str, subject: str, first_name: s
         else:
             print(email_params)
             print("Local environment cannot send email")
-            
 
     except (ClientError, ValueError) as e:
         print("Email error:", e)
 
-def send_registration_denied_email(recipient: str, subject: str, first_name: str, last_name: str, template):
+
+def send_registration_denied_email(
+    recipient: str, subject: str, first_name: str, last_name: str, template
+):
     """Send registration denied email."""
     try:
         # Initialize S3 client and fetch email template
         client = S3Client()
         html_template = client.get_email_asset(template)
-        
+
         if not html_template:
             raise ValueError("Email template not found or empty.")
 
@@ -130,15 +131,13 @@ def send_registration_denied_email(recipient: str, subject: str, first_name: str
         reply_to = os.getenv("CROSSFEED_SUPPORT_EMAIL_REPLYTO")
 
         email_params = {
-                "Source": sender,
-                "Destination": {
-                    "ToAddresses": [recipient]
-                },
-                "Message": {
-                    "Subject": {"Data": subject},
-                    "Body": {"Html": {"Data": html_to_send}}
-                },
-                "ReplyToAddresses": [reply_to]
+            "Source": sender,
+            "Destination": {"ToAddresses": [recipient]},
+            "Message": {
+                "Subject": {"Data": subject},
+                "Body": {"Html": {"Data": html_to_send}},
+            },
+            "ReplyToAddresses": [reply_to],
         }
         # SES client
         if not os.getenv("IS_LOCAL"):
@@ -149,7 +148,6 @@ def send_registration_denied_email(recipient: str, subject: str, first_name: str
         else:
             print(email_params)
             print("Local environment cannot send email")
-            
 
     except (ClientError, ValueError) as e:
         print("Email error:", e)
