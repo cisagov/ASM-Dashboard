@@ -312,7 +312,7 @@ export const export_ = wrapHandler(async (event) => {
   const search = await validateBody(VulnerabilitySearch, event.body);
   const [result, count] = await search.getResults(event);
   const client = new S3Client();
-  const url = await client.saveCSV(
+  const { url } = await client.saveCSV(
     Papa.unparse({
       fields: [
         'organization',
