@@ -349,7 +349,7 @@ resource "aws_ecs_task_definition" "worker" {
         "valueFrom": "${data.aws_ssm_parameter.ssm_dmz_api_key.arn}"
       },
       {
-        "name: "MDL_SYNC_ENDPOINT",
+        "name": "MDL_SYNC_ENDPOINT",
         "valueFrom": "${data.aws_ssm_parameter.ssm_mdl_sync_endpoint.arn}"
       }
     ]
