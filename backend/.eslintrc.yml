@@ -3,7 +3,7 @@ env:
   es6: true
   node: true
 parser: '@typescript-eslint/parser'
-ignorePatterns: [dist/**,dmzLzSyncTestDAta.ts]
+ignorePatterns: [dist/**, dmzLzSyncTestDAta.ts]
 extends:
   - plugin:prettier/recommended
   - plugin:@typescript-eslint/eslint-recommended
