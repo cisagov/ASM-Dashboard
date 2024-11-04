@@ -1,19 +1,20 @@
-from django.core.management.base import BaseCommand
-from django.conf import settings
-import redis
+# Standard Python Libraries
 import json
 
+# Third-Party Libraries
+from django.conf import settings
+from django.core.management.base import BaseCommand
+import redis
 
 
 class Command(BaseCommand):
-    help = 'Inspects and displays the num_vulnerabilities_stats from AWS ElastiCache (Redis).'
+    help = "Inspects and displays the num_vulnerabilities_stats from AWS ElastiCache (Redis)."
 
     def handle(self, *args, **options):
         """
         Connects to AWS ElastiCache (Redis), retrieves the 'num_vulnerabilities_stats' hash,
         and displays its contents.
         """
-
 
         try:
             # Initialize Redis client
@@ -26,18 +27,30 @@ class Command(BaseCommand):
             )
 
             # Check if the key exists
-            if redis_client.exists('num_vulnerabilities_stats'):
-                self.stdout.write(self.style.SUCCESS("'num_vulnerabilities_stats' key exists in Redis."))
-                vulnerabilities_stats = redis_client.hgetall('num_vulnerabilities_stats')
+            if redis_client.exists("num_vulnerabilities_stats"):
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        "'num_vulnerabilities_stats' key exists in Redis."
+                    )
+                )
+                vulnerabilities_stats = redis_client.hgetall(
+                    "num_vulnerabilities_stats"
+                )
 
                 if vulnerabilities_stats:
                     self.stdout.write("Vulnerabilities data:")
                     for key, value in vulnerabilities_stats.items():
                         self.stdout.write(f"{key}: {value}")
                 else:
-                    self.stdout.write(self.style.WARNING("'num_vulnerabilities_stats' key is empty."))
+                    self.stdout.write(
+                        self.style.WARNING("'num_vulnerabilities_stats' key is empty.")
+                    )
             else:
-                self.stdout.write(self.style.WARNING("'num_vulnerabilities_stats' key does not exist in Redis."))
+                self.stdout.write(
+                    self.style.WARNING(
+                        "'num_vulnerabilities_stats' key does not exist in Redis."
+                    )
+                )
 
         except redis.ConnectionError as conn_err:
             self.stderr.write(self.style.ERROR(f"Redis connection error: {conn_err}"))

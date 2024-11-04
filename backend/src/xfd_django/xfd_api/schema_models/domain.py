@@ -70,3 +70,10 @@ class DomainSearch(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class TotalDomainsResponse(BaseModel):
+    value: int
+
+    class Config:
+        from_attributes = True

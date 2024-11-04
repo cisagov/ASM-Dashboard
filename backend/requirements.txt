@@ -5,9 +5,12 @@ docker
 fastapi==0.111.0
 mangum==0.17.0
 minio
+mypy
 psycopg2-binary
 PyJWT
 pytest
 pytest-django
+redis==5.2.0
 requests==2.32.3
+types-redis
 uvicorn==0.30.1

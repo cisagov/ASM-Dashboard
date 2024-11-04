@@ -1,12 +1,16 @@
-from django.core.management.base import BaseCommand
-from django.conf import settings
-import redis
+# Standard Python Libraries
 import json
 
+# Third-Party Libraries
+from django.conf import settings
+from django.core.management.base import BaseCommand
+import redis
 
 
 class Command(BaseCommand):
-    help = 'Inspects and displays the latest_vulnerabilities from AWS ElastiCache (Redis).'
+    help = (
+        "Inspects and displays the latest_vulnerabilities from AWS ElastiCache (Redis)."
+    )
 
     def handle(self, *args, **options):
         """
@@ -20,15 +24,17 @@ class Command(BaseCommand):
                 host=settings.ELASTICACHE_ENDPOINT,
                 port=6379,
                 db=0,
-                decode_responses=True  # Automatically decode responses as UTF-8 strings
+                decode_responses=True,  # Automatically decode responses as UTF-8 strings
             )
 
             # Check if the key exists
-            if redis_client.exists('latest_vulnerabilities'):
-                self.stdout.write(self.style.SUCCESS("'latest_vulnerabilities' key exists in Redis."))
+            if redis_client.exists("latest_vulnerabilities"):
+                self.stdout.write(
+                    self.style.SUCCESS("'latest_vulnerabilities' key exists in Redis.")
+                )
 
                 # Retrieve the JSON string
-                vulnerabilities_json = redis_client.get('latest_vulnerabilities')
+                vulnerabilities_json = redis_client.get("latest_vulnerabilities")
 
                 if vulnerabilities_json:
                     # Parse the JSON string into Python objects
@@ -41,9 +47,15 @@ class Command(BaseCommand):
                             f"Domain: {vuln['domain']}"
                         )
                 else:
-                    self.stdout.write(self.style.WARNING("'latest_vulnerabilities' key is empty."))
+                    self.stdout.write(
+                        self.style.WARNING("'latest_vulnerabilities' key is empty.")
+                    )
             else:
-                self.stdout.write(self.style.WARNING("'latest_vulnerabilities' key does not exist in Redis."))
+                self.stdout.write(
+                    self.style.WARNING(
+                        "'latest_vulnerabilities' key does not exist in Redis."
+                    )
+                )
 
         except redis.ConnectionError as conn_err:
             self.stderr.write(self.style.ERROR(f"Redis connection error: {conn_err}"))

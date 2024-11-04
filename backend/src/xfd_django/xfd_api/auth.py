@@ -5,10 +5,12 @@ from datetime import datetime, timedelta
 import hashlib
 from hashlib import sha256
 import os
+from typing import List, Optional
 from urllib.parse import urlencode
 import uuid
 
 # Third-Party Libraries
+from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.forms.models import model_to_dict
 from django.utils import timezone
@@ -19,7 +21,7 @@ from jwt import ExpiredSignatureError, InvalidTokenError
 import requests
 
 # from .helpers import user_to_dict
-from .models import ApiKey, OrganizationTag, User
+from .models import ApiKey, Domain, Organization, OrganizationTag, Role, Service, User
 
 # JWT_ALGORITHM = "RS256"
 JWT_SECRET = settings.JWT_SECRET
@@ -85,6 +87,123 @@ def decode_jwt_token(token):
         return user
     except (ExpiredSignatureError, InvalidTokenError, User.DoesNotExist):
         return None
+
+
+def get_org_memberships(current_user) -> list[str]:
+    """Returns the organization IDs that a user is a member of."""
+    # Check if the user has a 'roles' attribute and it's not None
+
+    roles = Role.objects.filter(userId=current_user)
+    return [role.organizationId.id for role in roles if role.organizationId]
+
+
+async def get_user_domains(user_id: str) -> List[str]:
+    """
+    Retrieves a list of domain names associated with the user's organizations.
+    """
+    try:
+        # Check if the user exists
+        user_exists = await sync_to_async(User.objects.filter(id=user_id).exists)()
+        if not user_exists:
+            return []
+
+        # Fetch organization IDs associated with the user
+        organization_ids_qs = Role.objects.filter(userId__id=user_id).values_list(
+            "organizationId", flat=True
+        )
+        organization_ids = await sync_to_async(lambda qs: list(qs))(organization_ids_qs)
+
+        if not organization_ids:
+            return []
+
+        # Fetch domain names associated with these organizations
+        domain_names_qs = Domain.objects.filter(
+            organizationId__in=organization_ids
+        ).values_list("name", flat=True)
+        domain_list = await sync_to_async(lambda qs: list(qs))(domain_names_qs)
+
+        return domain_list
+    except Exception as e:
+        # Optionally, handle exceptions or return an empty list
+        return []
+
+
+def get_user_service_ids(user_id):
+    """
+    Retrieves service IDs associated with the organizations the user belongs to.
+    """
+    # Get organization IDs the user is a member of
+    organization_ids = Role.objects.filter(userId=user_id).values_list(
+        "organizationId", flat=True
+    )
+
+    # Get domain IDs associated with these organizations
+    domain_ids = Domain.objects.filter(organizationId__in=organization_ids).values_list(
+        "id", flat=True
+    )
+
+    # Get service IDs associated with these domains
+    service_ids = Service.objects.filter(domainId__in=domain_ids).values_list(
+        "id", flat=True
+    )
+
+    return list(map(str, service_ids))  # Convert UUIDs to strings if necessary
+
+
+async def get_user_organization_ids(user_id: str) -> List[str]:
+    try:
+        # Fetch organization IDs associated with the user
+        organization_ids_qs = Role.objects.filter(userId__id=user_id).values_list(
+            "organizationId__id", flat=True
+        )
+        organization_ids = await sync_to_async(list)(organization_ids_qs)
+        return [str(org_id) for org_id in organization_ids]
+    except Exception:
+        return []
+
+
+def get_user_ports(user_id):
+    """
+    Retrieves port numbers associated with the organizations the user belongs to.
+    """
+    # Get organization IDs the user is a member of
+    organization_ids = Role.objects.filter(userId=user_id).values_list(
+        "organizationId", flat=True
+    )
+
+    # Get domain IDs associated with these organizations
+    domain_ids = Domain.objects.filter(organizationId__in=organization_ids).values_list(
+        "id", flat=True
+    )
+
+    # Get ports associated with services of these domains
+    ports = (
+        Service.objects.filter(domainId__in=domain_ids)
+        .values_list("port", flat=True)
+        .distinct()
+    )
+
+    return list(ports)
+
+
+def get_tag_organization_ids(current_user, tag_id: Optional[str] = None) -> list[str]:
+    """Returns the organizations belonging to a tag, if the user can access the tag."""
+    # Check if the user is a global view admin
+    if not is_global_view_admin(current_user):
+        return []
+
+    # Fetch the OrganizationTag and its related organizations
+    tag = (
+        OrganizationTag.objects.prefetch_related("organizations")
+        .filter(id=tag_id)
+        .first()
+    )
+    if tag:
+        # Return a list of organization IDs
+        return [org.id for org in tag.organizations.all()]
+
+    # Return an empty list if tag is not found
+    return []
 
 
 def hash_key(key: str) -> str:

@@ -14,9 +14,12 @@ import os
 import django
 from django.apps import apps
 from django.conf import settings
+from django.core.wsgi import get_wsgi_application
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.wsgi import WSGIMiddleware
 from mangum import Mangum
+from redis import asyncio as aioredis
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
@@ -41,6 +44,24 @@ def get_application() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(api_router)
+
+    app.mount("/", WSGIMiddleware(get_wsgi_application()))
+
+    @app.on_event("startup")
+    async def startup():
+        """Start up Redis with ElastiCache."""
+        # Initialize Redis with the ElastiCache endpoint using the modern Redis-Py Asyncio
+        app.state.redis = await aioredis.from_url(
+            f"redis://{settings.ELASTICACHE_ENDPOINT}",
+            encoding="utf-8",
+            decode_responses=True,
+        )
+
+    @app.on_event("shutdown")
+    async def redis_shutdown():
+        """Shut down Redis connection."""
+        await app.state.redis.close()
+
     return app
 
 
