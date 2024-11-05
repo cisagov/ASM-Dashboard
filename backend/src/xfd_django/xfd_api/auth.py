@@ -12,22 +12,19 @@ import uuid
 # Third-Party Libraries
 from django.conf import settings
 from django.forms.models import model_to_dict
-from fastapi import Depends, HTTPException, Security, status
-from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
+from fastapi import Depends, HTTPException, Request, Security, status
+from fastapi.security import APIKeyHeader
 import jwt
 from jwt import ExpiredSignatureError, InvalidTokenError
 import requests
 
-# from .helpers import user_to_dict
 from .models import ApiKey, Organization, OrganizationTag, Role, User
 
-# JWT_ALGORITHM = "RS256"
 JWT_SECRET = os.getenv("JWT_SECRET")
 SECRET_KEY = settings.SECRET_KEY
 JWT_ALGORITHM = "HS256"
 JWT_TIMEOUT_HOURS = 4
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False)
 
 
@@ -41,8 +38,7 @@ def user_to_dict(user):
     Returns:
         dict: Returns sanitized and formated dict
     """
-    user_dict = model_to_dict(user)  # Convert model to dict
-    # Convert any UUID fields to strings
+    user_dict = model_to_dict(user)
     if isinstance(user_dict.get("id"), uuid.UUID):
         user_dict["id"] = str(user_dict["id"])
     for key, val in user_dict.items():
@@ -79,8 +75,9 @@ def decode_jwt_token(token):
     Returns:
         User: The user object decoded from the token, or None if invalid or expired.
     """
+
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithm=JWT_ALGORITHM)
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         user = User.objects.get(id=payload["id"])
         return user
     except (ExpiredSignatureError, InvalidTokenError, User.DoesNotExist):
@@ -94,105 +91,33 @@ def hash_key(key: str) -> str:
     Returns:
         str: hashed API key value
     """
+
     return hashlib.sha256(key.encode()).hexdigest()
 
 
-# TODO: Confirm still needed
-# async def get_user_info_from_cognito(token):
-#     """
-#     Get user info from cognito
+async def get_token_from_header(request: Request) -> str:
+    """
+    Extract token from the Authorization header, allowing 'Bearer' or raw tokens.
 
-#     Args:
-#         token (_type_): _description_
+    Args:
+        request (Request): The incoming request object.
 
-#     Returns:
-#         _type_: _description_
-#     """
-#     jwks_url = f"https://cognito-idp.us-east-1.amazonaws.com/{os.getenv('REACT_APP_USER_POOL_ID')}/.well-known/jwks.json"
-#     response = requests.get(jwks_url)
-#     jwks = response.json()
-#     unverified_header = jwt.get_unverified_header(token)
+    Returns:
+        str: The token extracted from the Authorization header.
 
-#     for key in jwks["keys"]:
-#         if key["kid"] == unverified_header["kid"]:
-#             rsa_key = {
-#                 "kty": key["kty"],
-#                 "kid": key["kid"],
-#                 "use": key["use"],
-#                 "n": key["n"],
-#                 "e": key["e"],
-#             }
-
-#     user_info = decode_jwt_token(token)
-#     return user_info
-
-
-# def create_jwt_token(user):
-#     """
-#     Create a JWT token for a given user.
-
-#     Args:
-#         user (User): The user object for whom the token is created.
-
-#     Returns:
-#         str: The encoded JWT token.
-#     """
-#     payload = {
-#         "id": str(user.id),
-#         "email": user.email,
-#         "exp": datetime.now(datetime.timezone.utc) + timedelta(hours=JWT_TIMEOUT_HOURS),
-#     }
-#     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-
-
-# def decode_jwt_token(token):
-#     """
-#     Decode a JWT token to retrieve the user.
-
-#     Args:
-#         token (str): The JWT token to decode.
-
-#     Returns:
-#         User: The user object decoded from the token, or None if invalid or expired.
-#     """
-#     try:
-#         payload = jwt.decode(token, JWT_SECRET, algorithm=JWT_ALGORITHM)
-#         user = User.objects.get(id=payload["id"])
-#         return user
-#     except (ExpiredSignatureError, InvalidTokenError, User.DoesNotExist):
-#         return None
-
-
-# def hash_key(key: str) -> str:
-#     """
-#     Helper to hash API key.
-
-#     Returns:
-#         str: hashed API key value
-#     """
-#     return hashlib.sha256(key.encode()).hexdigest()
-
-
-# TODO: Confirm still needed
-async def get_user_info_from_cognito(token):
-    """Get user info from cognito."""
-    jwks_url = f"https://cognito-idp.us-east-1.amazonaws.com/{os.getenv('REACT_APP_USER_POOL_ID')}/.well-known/jwks.json"
-    response = requests.get(jwks_url)
-    jwks = response.json()
-    unverified_header = jwt.get_unverified_header(token)
-
-    for key in jwks["keys"]:
-        if key["kid"] == unverified_header["kid"]:
-            rsa_key = {
-                "kty": key["kty"],
-                "kid": key["kid"],
-                "use": key["use"],
-                "n": key["n"],
-                "e": key["e"],
-            }
-
-    user_info = decode_jwt_token(token)
-    return user_info
+    Raises:
+        HTTPException: If the Authorization header is missing or improperly formatted.
+    """
+    auth_header = request.headers.get("Authorization")
+    if auth_header:
+        if auth_header.startswith("Bearer "):
+            return auth_header[7:]  # Remove 'Bearer ' prefix
+        return auth_header  # Return the token directly if no 'Bearer ' prefix
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Authorization header is missing",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
 def get_user_by_api_key(api_key: str):
@@ -210,43 +135,49 @@ def get_user_by_api_key(api_key: str):
 
 def get_current_active_user(
     api_key: Optional[str] = Security(api_key_header),
-    token: Optional[str] = Depends(oauth2_scheme),
+    token: Optional[str] = Depends(get_token_from_header),
 ):
-    """Ensure the current user is authenticated and active."""
+    """
+    Ensure the current user is authenticated and active, supporting API key or token.
+
+    Args:
+        api_key (Optional[str]): The API key provided in headers.
+        token (Optional[str]): The JWT token from the Authorization header.
+
+    Returns:
+        User: The authenticated user object.
+
+    Raises:
+        HTTPException: If authentication fails or credentials are invalid.
+    """
     user = None
     if api_key:
         user = get_user_by_api_key(api_key)
     else:
         try:
-            # Decode token in Authorization header to get user
             payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
             user_id = payload.get("id")
 
             if user_id is None:
-                print("No user ID found in token")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid token",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
-            # Fetch the user by ID from the database
             user = User.objects.get(id=user_id)
         except jwt.ExpiredSignatureError:
-            print("Token has expired")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token has expired",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         except jwt.InvalidTokenError:
-            print("Invalid token")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token",
                 headers={"WWW-Authenticate": "Bearer"},
             )
     if user is None:
-        print("User not authenticated")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
@@ -255,11 +186,9 @@ def get_current_active_user(
 
 
 async def process_user(decoded_token, access_token, refresh_token):
-    # Find the user by email
+    """Process a user based on decoded token information."""
     user = User.objects.filter(email=decoded_token["email"]).first()
-
     if not user:
-        # Create a new user if they don't exist from Okta fields in SAML Response
         user = User(
             email=decoded_token["email"],
             oktaId=decoded_token["sub"],
@@ -270,25 +199,14 @@ async def process_user(decoded_token, access_token, refresh_token):
         )
         user.save()
     else:
-        # Update user oktaId (legacy users) and login time
         user.oktaId = decoded_token["sub"]
         user.lastLoggedIn = datetime.now()
         user.save()
 
-    # # Create response object
-    # response = JSONResponse({"message": "User processed"})
-
-    # # Set cookies for access token and refresh token
-    # response.set_cookie(key="access_token", value=access_token, httponly=True, secure=True)
-    # response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=True)
-    # print(f"Response output: {str(response.headers)}")
-
-    # If user exists, generate a signed JWT token
     if user:
         if not JWT_SECRET:
             raise HTTPException(status_code=500, detail="JWT_SECRET is not defined")
 
-        # Generate JWT token
         signed_token = jwt.encode(
             {
                 "id": str(user.id),
@@ -299,32 +217,14 @@ async def process_user(decoded_token, access_token, refresh_token):
             algorithm=JWT_ALGORITHM,
         )
 
-        # Set JWT token as a cookie
-        # response.set_cookie(key="id_token", value=signed_token, httponly=True, secure=True)
-
-        # Return the response with token and user info
-        # return JSONResponse(
-
-        process_resp = {
-            "token": signed_token,
-            "user": user_to_dict(user)
-            # "user": {
-            #     "id": str(user.id),
-            #     "email": user.email,
-            #     "firstName": user.firstName,
-            #     "lastName": user.lastName,
-            #     "state": user.state,
-            #     "regionId": user.regionId,
-            # }
-        }
-        print(f"process_resp: {process_resp}")
+        process_resp = {"token": signed_token, "user": user_to_dict(user)}
         return process_resp
-
     else:
         raise HTTPException(status_code=400, detail="User not found")
 
 
 async def get_jwt_from_code(auth_code: str):
+    """Exchange authorization code for JWT tokens and decode."""
     try:
         callback_url = os.getenv("REACT_APP_COGNITO_CALLBACK_URL")
         client_id = os.getenv("REACT_APP_COGNITO_CLIENT_ID")
@@ -342,22 +242,15 @@ async def get_jwt_from_code(auth_code: str):
             "Content-Type": "application/x-www-form-urlencoded",
         }
 
-        # Make Oauth2/token request with code
         response = requests.post(
             authorize_token_url, headers=headers, data=urlencode(authorize_token_body)
         )
         token_response = response.json()
-        print(f"oauth2/token response: {token_response}")
-
-        # Convert the id_token to bytes
         id_token = token_response["id_token"].encode("utf-8")
         access_token = token_response.get("access_token")
         refresh_token = token_response.get("refresh_token")
 
-        # Decode the token without verifying the signature (if needed)
         decoded_token = jwt.decode(id_token, options={"verify_signature": False})
-        print(f"decoded token: {decoded_token}")
-
         return {
             "refresh_token": refresh_token,
             "id_token": id_token,
@@ -368,44 +261,6 @@ async def get_jwt_from_code(auth_code: str):
     except Exception as error:
         print(f"get_jwt_from_code post error: {error}")
         pass
-
-
-# TODO: determine if we still need.
-# async def handle_cognito_callback(body):
-#     try:
-#         print(f"handle_cognito_callback body input: {str(body)}")
-#         user_info = await get_user_info_from_cognito(body["token"])
-#         print(f"handle_cognito_callback user_info: {str(user_info)}")
-#         user = await update_or_create_user(user_info)
-#         token = create_jwt_token(user)
-#         print(f"handle_cognito_callback token: {str(token)}")
-#         return token, user
-#     except Exception as error:
-#         print(f"Error : {str(error)}")
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error)
-#         ) from error
-
-
-# # TODO: Uncomment the token and if not user token once the JWT from OKTA is working
-# def get_current_active_user(
-#     api_key: str = Security(api_key_header),
-#     # token: str = Depends(oauth2_scheme),
-# ):
-#     """Ensure the current user is authenticated and active."""
-#     user = None
-#     if api_key:
-#         user = get_user_by_api_key(api_key)
-#     # if not user and token:
-#     #     user = decode_jwt_token(token)
-#     if user is None:
-#         print("User not authenticated")
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="Invalid authentication credentials",
-#         )
-#     print(f"Authenticated user: {user.id}")
-#     return user
 
 
 def is_global_write_admin(current_user) -> bool:
@@ -427,13 +282,9 @@ def is_org_admin(current_user, organization_id) -> bool:
     """Check if the user is an admin of the given organization."""
     if not organization_id:
         return False
-
-    # Check if the user has an admin role in the given organization
     for role in current_user.roles.all():
         if str(role.organization.id) == str(organization_id) and role.role == "admin":
             return True
-
-    # If the user is a global write admin, they are considered an org admin
     return is_global_write_admin(current_user)
 
 
@@ -441,18 +292,10 @@ def is_regional_admin_for_organization(current_user, organization_id) -> bool:
     """Check if user is a regional admin and if a selected organization belongs to their region."""
     if not organization_id:
         return False
-
-    # Check if the user is a regional admin
     if is_regional_admin(current_user):
-        # Check if the organization belongs to the user's region
-        user_region_id = (
-            current_user.regionId
-        )  # Assuming this is available in the user object
-        organization_region_id = get_organization_region(
-            organization_id
-        )  # Function to fetch the organization's region
+        user_region_id = current_user.regionId
+        organization_region_id = get_organization_region(organization_id)
         return user_region_id == organization_region_id
-
     return False
 
 
@@ -464,21 +307,15 @@ def get_organization_region(organization_id: str) -> str:
 
 def get_tag_organizations(current_user, tag_id) -> list[str]:
     """Returns the organizations belonging to a tag, if the user can access the tag."""
-    # Check if the user is a global view admin
     if not is_global_view_admin(current_user):
         return []
-
-    # Fetch the OrganizationTag and its related organizations
     tag = (
         OrganizationTag.objects.prefetch_related("organizations")
         .filter(id=tag_id)
         .first()
     )
     if tag:
-        # Return a list of organization IDs
         return [org.id for org in tag.organizations.all()]
-
-    # Return an empty list if tag is not found
     return []
 
 
@@ -492,14 +329,8 @@ def get_org_memberships(current_user) -> list[str]:
 
 def matches_user_region(current_user, user_region_id: str) -> bool:
     """Checks if the current user's region matches the user's region being modified."""
-
-    # Check if the current user is a global admin (can match any region)
     if is_global_write_admin(current_user):
         return True
-
-    # Ensure the user has a region associated with them
     if not current_user.region_id or not user_region_id:
         return False
-
-    # Compare the region IDs
     return user_region_id == current_user.region_id
