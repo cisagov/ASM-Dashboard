@@ -133,12 +133,64 @@ def get_user_by_api_key(api_key: str):
         return None
 
 
+# def get_current_active_user(
+#     api_key: Optional[str] = Security(api_key_header),
+#     token: Optional[str] = Depends(get_token_from_header),
+# ):
+#     """
+#     Ensure the current user is authenticated and active, supporting API key or token.
+
+#     Args:
+#         api_key (Optional[str]): The API key provided in headers.
+#         token (Optional[str]): The JWT token from the Authorization header.
+
+#     Returns:
+#         User: The authenticated user object.
+
+#     Raises:
+#         HTTPException: If authentication fails or credentials are invalid.
+#     """
+#     user = None
+#     if api_key:
+#         user = get_user_by_api_key(api_key)
+#     else:
+#         try:
+#             payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+#             user_id = payload.get("id")
+
+#             if user_id is None:
+#                 raise HTTPException(
+#                     status_code=status.HTTP_401_UNAUTHORIZED,
+#                     detail="Invalid token",
+#                     headers={"WWW-Authenticate": "Bearer"},
+#                 )
+#             user = User.objects.get(id=user_id)
+#         except jwt.ExpiredSignatureError:
+#             raise HTTPException(
+#                 status_code=status.HTTP_401_UNAUTHORIZED,
+#                 detail="Token has expired",
+#                 headers={"WWW-Authenticate": "Bearer"},
+#             )
+#         except jwt.InvalidTokenError:
+#             raise HTTPException(
+#                 status_code=status.HTTP_401_UNAUTHORIZED,
+#                 detail="Invalid token",
+#                 headers={"WWW-Authenticate": "Bearer"},
+#             )
+#     if user is None:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Invalid authentication credentials",
+#         )
+#     return user
+
+
 def get_current_active_user(
     api_key: Optional[str] = Security(api_key_header),
     token: Optional[str] = Depends(get_token_from_header),
 ):
     """
-    Ensure the current user is authenticated and active, supporting API key or token.
+    Ensure the current user is authenticated and active, supporting either API key or token.
 
     Args:
         api_key (Optional[str]): The API key provided in headers.
@@ -153,7 +205,7 @@ def get_current_active_user(
     user = None
     if api_key:
         user = get_user_by_api_key(api_key)
-    else:
+    elif token:
         try:
             payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
             user_id = payload.get("id")
@@ -177,6 +229,12 @@ def get_current_active_user(
                 detail="Invalid token",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No valid authentication credentials provided",
+        )
+
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
