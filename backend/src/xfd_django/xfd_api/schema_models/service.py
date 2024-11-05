@@ -25,8 +25,8 @@ class Service(BaseModel):
     censysIpv4Results: Json[Any]
     shodanResults: Json[Any]
     wappalyzerResults: Json[Any]
-    domainId: Optional[Any]
-    discoveredById: Optional[Any]
+    domain: Optional[Any]
+    discoveredBy: Optional[Any]
 
     class Config:
         from_attributes = True
