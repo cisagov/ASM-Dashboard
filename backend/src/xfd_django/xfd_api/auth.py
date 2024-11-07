@@ -600,14 +600,6 @@ def get_tag_organizations(current_user, tag_id) -> list[str]:
     return []
 
 
-def get_org_memberships(current_user) -> list[str]:
-    """Returns the organization IDs that a user is a member of."""
-    roles = Role.objects.filter(user=current_user)
-    if not roles:
-        return []
-    return [role.organization.id for role in roles if role.organization]
-
-
 def matches_user_region(current_user, user_region_id: str) -> bool:
     """Checks if the current user's region matches the user's region being modified."""
 

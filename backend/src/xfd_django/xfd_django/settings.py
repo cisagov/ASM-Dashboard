@@ -114,7 +114,11 @@ DATABASES = {
     }
 }
 
+# ElastiCache AWS
 ELASTICACHE_ENDPOINT = os.getenv("ELASTICACHE_ENDPOINT")
+
+# Elasticsearch
+ELASTICSEARCH_ENDPOINT = os.getenv("ELASTICSEARCH_ENDPOINT")
 
 
 # Password validation

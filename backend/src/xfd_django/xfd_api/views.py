@@ -8,11 +8,10 @@ from uuid import UUID
 # Third-Party Libraries
 from asgiref.sync import sync_to_async
 from django.shortcuts import render
-from fastapi import APIRouter,Body, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
+from fastapi.responses import RedirectResponse
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 from redis import asyncio as aioredis
-from fastapi.responses import RedirectResponse
-
 
 # from .schemas import Cpe
 from .api_methods import api_key as api_key_methods
@@ -31,7 +30,11 @@ from .api_methods.saved_search import (
 )
 from .api_methods.search import export, search_post
 from .api_methods.user import get_users
-from .api_methods.vulnerability import get_vulnerability_by_id, update_vulnerability
+from .api_methods.vulnerability import (
+    get_vulnerability_by_id,
+    search_vulnerabilities,
+    update_vulnerability,
+)
 from .auth import (
     get_current_active_user,
     get_tag_organization_ids,
@@ -40,16 +43,10 @@ from .auth import (
     get_user_ports,
     get_user_service_ids,
     is_global_view_admin,
-    get_vulnerability_by_id,
-    search_vulnerabilities,
-    update_vulnerability,
 )
 from .login_gov import callback, login
 from .models import Assessment, Domain, Organization, User, Vulnerability
-from .auth import get_current_active_user
-from .login_gov import callback, login
-from .models import Assessment, User
-from .schema_models import organization as OrganizationSchema
+from .schema_models import organization_schema as OrganizationSchema
 from .schema_models import scan as scanSchema
 from .schema_models import scan_tasks as scanTaskSchema
 from .schema_models.api_key import ApiKey as ApiKeySchema
@@ -62,20 +59,15 @@ from .schema_models.domain import DomainFilters, DomainSearch, TotalDomainsRespo
 from .schema_models.latest_vuln import LatestVulnerabilitySchema
 from .schema_models.most_common_vuln import MostCommonVulnerabilitySchema
 from .schema_models.notification import Notification as NotificationSchema
-from .schema_models.organization import Organization as OrganizationSchema
 from .schema_models.ports_stats import PortsStats
 from .schema_models.role import Role as RoleSchema
+from .schema_models.saved_search import SavedSearch as SavedSearchSchema
+from .schema_models.search import SearchBody, SearchRequest, SearchResponse
 from .schema_models.service import ServicesStat
 from .schema_models.severity_count import SeverityCountSchema
 from .schema_models.user import User as UserSchema
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
-from .schema_models.vulnerability import VulnerabilityStat
-from .schema_models.role import Role as RoleSchema
-from .schema_models.saved_search import SavedSearch as SavedSearchSchema
-from .schema_models.search import SearchBody, SearchRequest, SearchResponse
-from .schema_models.user import User as UserSchema
-from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
-from .schema_models.vulnerability import VulnerabilitySearch
+from .schema_models.vulnerability import VulnerabilitySearch, VulnerabilityStat
 
 # Define API router
 api_router = APIRouter()
@@ -694,6 +686,7 @@ async def invoke_scheduler(current_user: User = Depends(get_current_active_user)
     response = await scan.invoke_scheduler(current_user)
     return response
 
+
 @api_router.get(
     "/services/",
     tags=["Retrieve Stats"],
@@ -1196,6 +1189,8 @@ async def get_total_domains(
 
     except HTTPException as http_exc:
         raise http_exc
+
+
 # ========================================
 #   Scan Task Endpoints
 # ========================================
@@ -1470,6 +1465,7 @@ async def search(request: SearchRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
+
 @api_router.get(
     "/by-org/",
     response_model=List[ByOrgItem],
@@ -1561,6 +1557,10 @@ async def get_by_org(
         results = sorted(org_counts.values(), key=lambda x: x["value"], reverse=True)
 
         return results
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @api_router.post(
     "/search/export", dependencies=[Depends(get_current_active_user)], tags=["Search"]

@@ -19,7 +19,7 @@ from ..auth import (
 )
 from ..helpers.regionStateMap import REGION_STATE_MAP
 from ..models import Organization, OrganizationTag, Role, Scan, ScanTask, User
-from ..schema_models import organization as organization_schemas
+from ..schema_models import organization_schema
 
 
 def is_valid_uuid(val: str) -> bool:
@@ -330,7 +330,7 @@ def get_all_regions(current_user):
 
 
 def find_or_create_tags(
-    tags: List[organization_schemas.TagSchema],
+    tags: List[organization_schema.TagSchema],
 ) -> List[OrganizationTag]:
     """Find or create organization tags."""
     final_tags = []
