@@ -159,7 +159,8 @@ async function startLocalContainers(
           `SERVICE_TYPE=${scanType}`,
           `PE_API_URL=${process.env.PE_API_URL}`,
           `PE_API_KEY=${process.env.PE_API_KEY}`,
-          `CF_API_KEY=${process.env.CF_API_KEY}`
+          `CF_API_KEY=${process.env.CF_API_KEY}`,
+          `WHOIS_XML_KEY=${process.env.WHOIS_XML_KEY}`
         ]
       } as any);
       await container.start();

@@ -160,7 +160,11 @@ resource "aws_ecs_task_definition" "pe_worker" {
       {
         "name": "ELASTICSEARCH_ENDPOINT",
         "valueFrom": "${aws_ssm_parameter.es_endpoint.arn}"
-      }
+      },
+      {
+        "name": "WHOIS_XML_KEY",
+        "valueFrom": "${aws_ssm_parameter.whoisxml_api_key.arn}"
+      },
     ]
   }
 ]

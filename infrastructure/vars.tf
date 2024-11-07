@@ -327,6 +327,12 @@ variable "ssm_xpanse_api_key" {
   default     = "/crossfeed/staging/XPANSE_API_KEY"
 }
 
+variable "ssm_whoisxml_api_key" {
+  description = "ssm_whoisxml_api_key"
+  type        = string
+  default     = "/crossfeed/staging/WHOIS_XML_KEY"
+}
+
 variable "ssm_xpanse_auth_id" {
   description = "ssm_xpanse_auth_id"
   type        = string

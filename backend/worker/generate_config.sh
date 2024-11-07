@@ -25,7 +25,7 @@ client_id=${SIXGILL_CLIENT_ID}
 client_secret=${SIXGILL_CLIENT_SECRET}
 
 [whoisxml]
-key=
+key=${WHOIS_XML_KEY}
 
 [intelx]
 api_key=${INTELX_API_KEY}
