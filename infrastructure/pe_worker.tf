@@ -164,7 +164,7 @@ resource "aws_ecs_task_definition" "pe_worker" {
       {
         "name": "WHOIS_XML_KEY",
         "valueFrom": "${data.aws_ssm_parameter.whoisxml_api_key.arn}"
-      },
+      }
     ]
   }
 ]
