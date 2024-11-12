@@ -103,9 +103,9 @@ async function upsertOrganization(client: Client, org: DL_Organization) {
 
   const result = await client.query(
     `INSERT INTO public.organization (
-      id, name, acronym, enrolled_in_vs_timestamp, period_start_vs_timestamp, 
-      created_at, updated_at, retired, pe_report_on, pe_premium, pe_demo, 
-      pe_run_scans, type, stakeholder, init_stage, scheduler, 
+      id, name, acronym, enrolled_in_vs_timestamp, period_start_vs_timestamp,
+      created_at, updated_at, retired, pe_report_on, pe_premium, pe_demo,
+      pe_run_scans, type, stakeholder, init_stage, scheduler,
       report_types, scan_types, scan_windows, scan_limits, ip_blocks, is_passive
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
     ON CONFLICT (acronym) DO UPDATE SET
