@@ -4,12 +4,13 @@ import { useAuthContext } from 'context';
 import logo from '../../assets/cyhydashboard.svg';
 import * as FooterStyles from './styleFooter';
 import { Stack } from '@mui/system';
+import * as packageJson from '../../../package.json';
 
 export const CrossfeedFooter: React.FC = (props) => {
   const { logout, user } = useAuthContext();
   const FooterRoot = FooterStyles.FooterRoot;
   const footerClasses = FooterStyles.footerClasses;
-  const versionNumber = process.env.REACT_APP_VERSION_NUMBER;
+  const versionNumber = packageJson.version;
 
   return (
     <FooterRoot>
