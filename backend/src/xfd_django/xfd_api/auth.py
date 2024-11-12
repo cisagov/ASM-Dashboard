@@ -23,7 +23,7 @@ from .models import ApiKey, Organization, OrganizationTag, Role, User
 JWT_SECRET = os.getenv("JWT_SECRET")
 SECRET_KEY = settings.SECRET_KEY
 JWT_ALGORITHM = "HS256"
-JWT_TIMEOUT_HOURS = 24
+JWT_TIMEOUT_HOURS = 4
 
 api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False)
 
