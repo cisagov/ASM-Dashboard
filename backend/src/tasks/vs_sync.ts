@@ -10,12 +10,12 @@ import {
   DL_Cve,
   Ticket,
   TicketEvent,
-  PortScan
+  PortScan,
+  connectToDatalake
 } from '../models';
 const { Client } = require('pg');
 import { CommandOptions } from './ecs-client';
 import saveVulnScan from './helpers/saveVulnScan';
-import saveOrganizationToMdl from './helpers/saveOrganizationToMdl';
 import saveHost from './helpers/saveHost';
 import saveIpToMdl from './helpers/saveIpToMdl';
 import saveCveToMdl from './helpers/saveCveToMdl';
@@ -24,7 +24,12 @@ import saveTicketEvent from './helpers/saveTicketEvent';
 import { plainToClass } from 'class-transformer';
 import savePortScan from './helpers/savePortScan';
 import axios from 'axios';
-import { createChecksum, jsonToCSV } from '../tools/csv-utils';
+import { createChecksum } from '../tools/csv-utils';
+import { TEST_DATA } from './REMOVE_ME';
+import { getRepository } from 'typeorm';
+import { unparse } from 'papaparse';
+import { chunk } from 'lodash';
+import saveOrganizationToMdl from './helpers/saveOrganizationToMdl';
 
 /** Removes a value for a given key from the dictionary and then returns it. */
 function getValueAndDelete<T>(
@@ -53,12 +58,12 @@ export const handler = async (commandOptions: CommandOptions) => {
 
   let requestArray;
   try {
-    await client.connect();
+    // await client.connect();
     const startTime = Date.now();
     const query = 'SELECT * FROM vmtableau.requests;';
     // const query = 'SELECT * FROM organization;';
-    const result = await client.query(query);
-    // const result = { rows: TEST_DATA };
+    // const result = await client.query(query);
+    const result = { rows: TEST_DATA };
     const endTime = Date.now();
     const durationMs = endTime - startTime;
     const durationSeconds = Math.round(durationMs / 1000);
@@ -269,57 +274,46 @@ export const handler = async (commandOptions: CommandOptions) => {
     console.error('Error reading requests:', error);
     throw error;
   }
-
   try {
-    // Data is oddly shaped and need to flatten some fields out for easier traversal
-    const shaped = requestArray.map(
-      ({
-        _id,
-        agency,
-        networks,
-        report_types,
-        scan_types,
-        stakeholder,
-        retired,
-        period_start,
-        enrolled
-      }) => {
-        return {
-          _id,
-          networks,
-          report_types: report_types,
-          scan_types: scan_types,
-          stakeholder,
-          retired,
-          period_start,
-          enrolled,
-          acronym: _id,
-          country: agency?.location?.country,
-          country_name: agency?.location?.country_name,
-          state: agency?.location?.state,
-          state_name: agency?.location?.state_name,
-          state_fips: agency?.location?.state_fips,
-          county: agency?.location?.county,
-          county_fips: agency?.location?.county_fips,
-          agency_type: agency?.type,
-          name: agency?.name
-        };
-      }
-    );
-    const csvRows = jsonToCSV(shaped);
-    const checksum = createChecksum(csvRows);
-    await axios.request({
-      method: 'POST',
-      url: process.env.MDL_SYNC_ENDPOINT,
-      headers: {
-        'Content-Type': 'text/csv',
-        Authorization: process.env.DMZ_API_KEY,
-        'x-checksum': checksum
-      },
-      data: csvRows
+    await connectToDatalake();
+    const orgRepository = getRepository(DL_Organization);
+    const organizations = await orgRepository.find({
+      relations: ['location', 'sectors', 'cidrs', 'parent', 'children']
     });
+
+    const shapedOrganizations = organizations.map((item) => {
+      return {
+        ...item,
+        location: JSON.stringify(item.location),
+        parent: JSON.stringify(item.parent),
+        sectors: JSON.stringify(item.sectors),
+        children: JSON.stringify(item.children),
+        cidrs: JSON.stringify(item.cidrs)
+      };
+    });
+
+    const chunkedOrgs = chunk(shapedOrganizations, 1000);
+
+    const requests = chunkedOrgs.map((orgs) => {
+      const csvRows = unparse(orgs, { header: true });
+      const checksum = createChecksum(csvRows);
+      console.log(
+        `Posting CSV file with ${orgs.length} organizations to /sync`
+      );
+      return axios.request({
+        method: 'POST',
+        url: process.env.MDL_SYNC_ENDPOINT,
+        headers: {
+          'Content-Type': 'text/csv',
+          Authorization: process.env.DMZ_API_KEY,
+          'x-checksum': checksum
+        },
+        data: csvRows
+      });
+    });
+    await Promise.all(requests);
   } catch (error) {
-    console.log(`Error sending Redshift data to DMZ /sync - ${error}`);
+    console.log('Error fetching data from old MDL', error);
   }
 
   // Connect to Redshift and select vuln_scans table

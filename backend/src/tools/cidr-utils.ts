@@ -81,7 +81,7 @@ interface Agency {
   acronym: string;
   location: Location;
   name: string;
-  type: string;
+  type: string | null;
 }
 
 interface Record {
@@ -100,6 +100,7 @@ interface Record {
 // Sets to store unique values globally
 const uniqueNetworks = new Set<string>();
 const uniqueAcronyms = new Set<string>();
+const recordsMap = new Map<string, Record>();
 
 const generateRandomCIDR = (): string => {
   const randomOctet = () => Math.floor(Math.random() * 256);
@@ -123,7 +124,7 @@ const generateUniqueAcronym = (): string => {
   let acronym;
   do {
     acronym = uuidv4().slice(0, 4).toUpperCase();
-  } while (uniqueAcronyms.has(acronym)); // Ensure uniqueness across all records
+  } while (uniqueAcronyms.has(acronym));
   uniqueAcronyms.add(acronym);
   return acronym;
 };
@@ -144,7 +145,7 @@ const generateAgency = (acronym: string): Agency => ({
   acronym,
   location: generateLocation(acronym),
   name: `City of ${acronym}, CA`,
-  type: 'LOCAL'
+  type: Math.random() < 0.5 ? 'LOCAL' : null // Randomly decide if this is a sector
 });
 
 const generateDateString = (startYear: number, endYear: number): string => {
@@ -166,14 +167,24 @@ const generateUniqueNetworksArray = (): string[] => {
   return networks;
 };
 
+const generateChildren = (currentAcronym: string): string[] | null => {
+  const childAcronyms = Array.from(uniqueAcronyms).filter(
+    (acronym) => acronym !== currentAcronym
+  );
+  const numChildren =
+    Math.random() < 0.5 ? 0 : Math.floor(Math.random() * 3) + 1; // Sometimes null, other times 1-3 children
+  if (numChildren === 0) return null;
+  return childAcronyms.slice(0, numChildren);
+};
+
 const generateRecord = (): Record => {
   const acronym = generateUniqueAcronym();
   const agency = generateAgency(acronym);
 
-  return {
+  const record: Record = {
     _id: acronym,
     agency: JSON.stringify(agency),
-    children: null,
+    children: generateChildren(acronym),
     networks: JSON.stringify(generateUniqueNetworksArray()),
     report_types: JSON.stringify(['CYHY']),
     scan_types: JSON.stringify(['CYHY']),
@@ -182,6 +193,9 @@ const generateRecord = (): Record => {
     period_start: generateDateString(2024, 2024),
     enrolled: generateDateString(2013, 2023)
   };
+
+  recordsMap.set(acronym, record); // Add record to map for reference by children
+  return record;
 };
 
 export const generateRecords = (N: number): Record[] =>

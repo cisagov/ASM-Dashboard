@@ -5,6 +5,8 @@ import { REGION_STATE_MAP, wrapHandler } from './helpers';
 import { Client } from 'pg';
 import { v4 } from 'uuid';
 import { getCidrInfo } from '../tools/cidr-utils';
+import { Cidr } from 'src/models/mini_data_lake/cidrs';
+import { DL_Organization } from 'src/models';
 
 interface ShapedOrg {
   networks: string[];
@@ -19,6 +21,7 @@ interface ShapedOrg {
   country: string;
   country_name: string;
   state: string;
+  children: string;
   state_name: string;
   state_fips: string;
   county: string;
@@ -26,92 +29,277 @@ interface ShapedOrg {
   agency_type: string;
 }
 
-const persistOrgAndCidrs = async (client: any, org: ShapedOrg) => {
-  const report_types = org.report_types.includes(',')
-    ? org.report_types.split(',')
-    : [org.report_types];
-  const scan_types = org.scan_types.includes(',')
-    ? org.scan_types.split(',')
-    : [org.scan_types];
+interface RawOrganization {
+  cidrs: string;
+  name: string;
+  report_types: string;
+  scan_types: string;
+  stakeholder: boolean;
+  retired: boolean;
+  period_start: string;
+  enrolled: string;
+  acronym: string;
+  country: string;
+  country_name: string;
+  state: string;
+  children: string;
+  state_name: string;
+  state_fips: string;
+  county: string;
+  county_fips: string;
+  agency_type: string;
+}
 
-  try {
-    const insertOrgText = `
-      INSERT INTO public.organization (
-        id, name, report_types, scan_types, stakeholder, retired, acronym, country,
-        country_name, state, state_name, state_fips, county, county_fips, agency_type,
-        created_at, updated_at, ip_blocks, is_passive, enrolled_in_vs_timestamp,
-        period_start_vs_timestamp, region_id
-      )
-      VALUES (
-        uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
-        $14, $15, $16, $17, $18, $19, $20, $21
-      )
-      RETURNING id;
-    `;
-    const result = await client.query(insertOrgText, [
-      org.name,
-      JSON.stringify(report_types),
-      JSON.stringify(scan_types),
-      org.stakeholder,
-      org.retired === '' ? false : org.retired,
-      org.acronym,
-      org.country,
-      org.country_name,
-      org.state,
-      org.state_name,
-      org.state_fips,
-      org.county,
-      org.county_fips,
-      org.agency_type,
-      'now()',
-      'now()',
-      'N/A',
-      'false',
-      org.enrolled === '' ? 'now' : org.enrolled,
-      org.period_start === '' ? 'now()' : org.period_start,
-      REGION_STATE_MAP[org.state_name]
-    ]);
-    const organizationId = result?.rows[0].id;
+type ParsedOrganization = DL_Organization;
 
-    // Collect CIDR info and batch insert
-    const cidrValues = org.networks
-      .map((network) => {
-        const cidrInfo = getCidrInfo(network);
-        return cidrInfo
-          ? `('${v4()}', '${cidrInfo.network}', '${cidrInfo.startIp}', '${
-              cidrInfo.endIp
-            }', 'now()', 'now()')`
-          : null;
-      })
-      .filter(Boolean);
+async function upsertOrganization(client: Client, org: DL_Organization) {
+  const {
+    id,
+    name,
+    acronym,
+    enrolledInVsTimestamp,
+    periodStartVsTimestamp,
+    createdDate,
+    updatedDate,
+    retired,
+    peReportOn,
+    pePremium,
+    peDemo,
+    peRunScans,
+    type,
+    stakeholder,
+    initStage,
+    scheduler,
+    reportTypes,
+    scanTypes,
+    scanLimits,
+    scanWindows
+  } = org;
 
-    const insertCidrText = `
-      INSERT INTO public.cidr (id, network, start_ip, end_ip, created_date, updated_at)
-      VALUES ${cidrValues.join(', ')}
-      RETURNING id;
-    `;
+  const params = [
+    id,
+    name,
+    acronym,
+    enrolledInVsTimestamp || 'now()',
+    periodStartVsTimestamp || 'now()',
+    createdDate,
+    updatedDate,
+    !!retired,
+    !!peReportOn,
+    !!pePremium,
+    !!peDemo,
+    !!peRunScans,
+    type,
+    !!stakeholder,
+    initStage,
+    scheduler,
+    JSON.stringify(reportTypes),
+    JSON.stringify(scanTypes),
+    JSON.stringify(scanWindows),
+    JSON.stringify(scanLimits),
+    JSON.stringify(org?.cidrs?.map((item) => item.network) ?? []),
+    false
+  ];
 
-    const cidrResults = await client.query(insertCidrText);
-    const cidrIds = cidrResults.rows.map((row) => row.id);
+  const result = await client.query(
+    `INSERT INTO public.organization (
+      id, name, acronym, enrolled_in_vs_timestamp, period_start_vs_timestamp, 
+      created_at, updated_at, retired, pe_report_on, pe_premium, pe_demo, 
+      pe_run_scans, type, stakeholder, init_stage, scheduler, 
+      report_types, scan_types, scan_windows, scan_limits, ip_blocks, is_passive
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+    ON CONFLICT (acronym) DO UPDATE SET
+      name = EXCLUDED.name, acronym = EXCLUDED.acronym,
+      enrolled_in_vs_timestamp = EXCLUDED.enrolled_in_vs_timestamp,
+      period_start_vs_timestamp = EXCLUDED.period_start_vs_timestamp,
+      created_at = EXCLUDED.created_at, updated_at = EXCLUDED.updated_at,
+      retired = EXCLUDED.retired, pe_report_on = EXCLUDED.pe_report_on,
+      pe_premium = EXCLUDED.pe_premium, pe_demo = EXCLUDED.pe_demo,
+      pe_run_scans = EXCLUDED.pe_run_scans, type = EXCLUDED.type,
+      stakeholder = EXCLUDED.stakeholder,
+      init_stage = EXCLUDED.init_stage, scheduler = EXCLUDED.scheduler,
+      report_types = EXCLUDED.report_types, scan_types = EXCLUDED.scan_types,
+      scan_windows = EXCLUDED.scan_windows, scan_limits = EXCLUDED.scan_limits
+    RETURNING id;`,
+    params
+  );
 
-    // Batch insert CIDR-to-Organization links
-    const cidrOrgLinkValues = cidrIds
-      .map((id) => `('${id}', '${organizationId}')`)
-      .join(', ');
+  return result.rows[0].id;
+}
 
-    const insertCidrOrgLinkText = `
-      INSERT INTO public.cidr_organizations (cidr_id, organization_id)
-      VALUES ${cidrOrgLinkValues};
-    `;
+// Upsert a location and return its ID
+async function upsertLocation(client: Client, location) {
+  const {
+    id,
+    name,
+    countryAbrv,
+    country,
+    county,
+    countyFips,
+    gnisId,
+    stateAbrv,
+    stateFips,
+    state
+  } = location;
 
-    await client.query(insertCidrOrgLinkText);
-  } catch (error) {
-    console.log(`Error while saving organization - ${org.name} ${error}`);
+  const result = await client.query(
+    `INSERT INTO public.location (
+      id, name, country_abrv, country, county, county_fips, gnis_id,
+      state_abrv, state_fips, state
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    ON CONFLICT (id) DO UPDATE SET
+      name = EXCLUDED.name, country_abrv = EXCLUDED.country_abrv,
+      country = EXCLUDED.country, county = EXCLUDED.county,
+      county_fips = EXCLUDED.county_fips, gnis_id = EXCLUDED.gnis_id,
+      state_abrv = EXCLUDED.state_abrv, state_fips = EXCLUDED.state_fips,
+      state = EXCLUDED.state
+    RETURNING id;`,
+    [
+      id,
+      name,
+      countryAbrv,
+      country,
+      county,
+      countyFips,
+      gnisId,
+      stateAbrv,
+      stateFips,
+      state
+    ]
+  );
+
+  return result.rows[0].id;
+}
+
+// Link organization to location
+async function linkOrganizationLocation(client: Client, orgId, locationId) {
+  await client.query(
+    `UPDATE public.organization SET location_id = $1 WHERE id = $2;`,
+    [locationId, orgId]
+  );
+}
+
+// Upsert sectors and link them to an organization
+async function upsertSectors(client: Client, orgId, sectors) {
+  for (const sector of sectors) {
+    const { id, name, acronym, retired } = sector;
+
+    const sectorResult = await client.query(
+      `INSERT INTO public.sector (
+        id, name, acronym, retired
+      ) VALUES ($1, $2, $3, $4)
+      ON CONFLICT (id) DO UPDATE SET
+        name = EXCLUDED.name, retired = EXCLUDED.retired
+      RETURNING id;`,
+      [id, name, acronym, retired]
+    );
+
+    const sectorId = sectorResult.rows[0].id;
+    await client.query(
+      `INSERT INTO public.sector_organizations (organization_id, sector_id)
+       VALUES ($1, $2)
+       ON CONFLICT DO NOTHING;`,
+      [orgId, sectorId]
+    );
   }
-};
+}
+
+// Upsert CIDRs and link them to an organization
+async function upsertCIDRs(client: Client, orgId, cidrs) {
+  for (const cidr of cidrs) {
+    const { id, network, startIp, endIp, retired, createdDate, updatedAt } =
+      cidr;
+
+    const cidrResult = await client.query(
+      `INSERT INTO public.cidr (
+        id, network, start_ip, end_ip, retired, created_date, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT (id) DO UPDATE SET
+        network = EXCLUDED.network, start_ip = EXCLUDED.start_ip,
+        end_ip = EXCLUDED.end_ip, retired = EXCLUDED.retired,
+        updated_at = EXCLUDED.updated_at
+      RETURNING id;`,
+      [id, network, startIp, endIp, retired, createdDate, updatedAt]
+    );
+
+    const cidrId = cidrResult.rows[0].id;
+    await client.query(
+      `INSERT INTO public.cidr_organizations (organization_id, cidr_id)
+       VALUES ($1, $2)
+       ON CONFLICT DO NOTHING;`,
+      [orgId, cidrId]
+    );
+  }
+}
+
+// Recursive function to handle an organization and its related entities
+async function handleOrganization(client: Client, org, parentOrgId = null) {
+  const orgId = await upsertOrganization(client, org);
+
+  // Link parent organization if provided
+  if (parentOrgId) {
+    await client.query(
+      `UPDATE public.organization SET parent_id = $1 WHERE id = $2;`,
+      [parentOrgId, orgId]
+    );
+  }
+
+  // Link location if specified
+  if (org.location) {
+    const locationId = await upsertLocation(client, org.location);
+    try {
+      await linkOrganizationLocation(client, orgId, locationId);
+    } catch (error) {
+      console.log(
+        `Error occurred while linking location and organization ${error}`
+      );
+    }
+  }
+
+  // Link sectors if specified
+  if (org.sectors) {
+    try {
+      await upsertSectors(client, orgId, org.sectors);
+    } catch (error) {
+      console.log(
+        `Error occurred while creating and linking sectors and organization ${error}`
+      );
+    }
+  }
+
+  // Link CIDRs if specified
+  if (org.cidrs) {
+    try {
+      await upsertCIDRs(client, orgId, org.cidrs);
+    } catch (error) {
+      console.log(
+        `Error occurred while creating and linking cidrs and organization ${error}`
+      );
+    }
+  }
+
+  // Process child organizations if any
+  if (org.children && org.children.length > 0) {
+    try {
+      for (const child of org.children) {
+        await handleOrganization(client, child, orgId);
+      }
+    } catch (error) {
+      console.log(
+        `Error occurred while creating and linking children and organization ${error}`
+      );
+    }
+  }
+}
+
+// Process an array of organizations
+async function processOrganizations(client: Client, organizations) {
+  for (const org of organizations) {
+    await handleOrganization(client, org);
+  }
+}
 
 export const ingest = wrapHandler(async (event) => {
-  console.time('IngestTimer');
   const originalChecksum = event.headers['x-checksum'];
   const newChecksum = event.body ? createChecksum(event.body) : '';
   const csvData = event.body;
@@ -132,41 +320,40 @@ export const ingest = wrapHandler(async (event) => {
       } catch (error) {
         console.error(`Error occurred pushing data to S3: ${error}`);
       }
-      try {
-        const data = await s3Client.getObject(
-          uploadKey,
-          process.env.IS_LOCAL ? 'crossfeed-local-exports' : 'crossfeed-lz-sync'
-        );
-        const fileContents = (await data?.promise())?.Body?.toString('utf-8');
-        if (fileContents) {
-          const parsed = parse<ShapedOrg>(fileContents, {
-            header: true,
-            transform: (v, f) => {
-              if (f === 'networks') {
-                return v.split(',');
-              }
-              return v;
+
+      const data = await s3Client.getObject(
+        uploadKey,
+        process.env.IS_LOCAL ? 'crossfeed-local-exports' : 'crossfeed-lz-sync'
+      );
+      const fileContents = (await data?.promise())?.Body?.toString('utf-8');
+      if (fileContents) {
+        const parsed = parse<ParsedOrganization>(fileContents, {
+          header: true,
+          transform(value, field) {
+            if (
+              field === 'children' ||
+              field === 'sectors' ||
+              field === 'location' ||
+              field === 'cidrs'
+            ) {
+              return JSON.parse(value);
             }
-          });
-          const client = new Client({
-            user: process.env.MDL_USERNAME,
-            host: process.env.MDL_HOST,
-            database: process.env.MDL_DATABASE,
-            password: process.env.MDL_PASSWORD
-          });
-          await client.connect();
+            return value;
+          }
+        });
+        const client = new Client({
+          user: process.env.MDL_USERNAME,
+          host: process.env.MDL_HOST,
+          database: process.env.MDL_DATABASE,
+          password: process.env.MDL_PASSWORD
+        });
+        await client.connect();
+        console.time(`Timer: ${parsed.data[0].acronym}`);
+        await processOrganizations(client, parsed.data);
 
-          const persists = parsed.data.map((org) => {
-            return persistOrgAndCidrs(client, org);
-          });
-
-          await Promise.all(persists);
-          console.timeEnd('IngestTimer');
-        } else {
-          console.log('File contents empty');
-        }
-      } catch (error) {
-        console.error(`Error occurred fetching object from S3: ${error} `);
+        console.timeEnd(`Timer: ${parsed.data[0].acronym}`);
+      } else {
+        console.log('File contents empty');
       }
     }
   }

@@ -5,7 +5,7 @@ export const handler: Handler = async (event) => {
   const connection = await connectToDatabase();
   try {
     await connection.query(
-      `CREATE USER ${process.env.MDL_USERNAME} WITH PASSWORD '${process.env.MDL_PASSWORD}';`
+      `CREATE USER ${process.env.OLD_MDL_USERNAME} WITH PASSWORD '${process.env.OLD_MDL_PASSWORD}';`
     );
   } catch (e) {
     console.log(
@@ -15,14 +15,14 @@ export const handler: Handler = async (event) => {
   }
   try {
     await connection.query(
-      `GRANT ${process.env.MDL_USERNAME} to ${process.env.DB_USERNAME};`
+      `GRANT ${process.env.OLD_MDL_USERNAME} to ${process.env.DB_USERNAME};`
     );
   } catch (e) {
     console.log('Grant role failed. Error:', e);
   }
   try {
     await connection.query(
-      `CREATE DATABASE ${process.env.MDL_NAME} owner ${process.env.MDL_USERNAME};`
+      `CREATE DATABASE ${process.env.OLD_MDL_NAME} owner ${process.env.OLD_MDL_USERNAME};`
     );
   } catch (e) {
     console.log(
@@ -33,7 +33,7 @@ export const handler: Handler = async (event) => {
 
   try {
     await connection.query(
-      `GRANT ALL PRIVILEGES ON DATABASE ${process.env.MDL_NAME} TO ${process.env.MDL_USERNAME};`
+      `GRANT ALL PRIVILEGES ON DATABASE ${process.env.OLD_MDL_NAME} TO ${process.env.OLD_MDL_USERNAME};`
     );
   } catch (e) {
     console.log(

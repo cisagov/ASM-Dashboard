@@ -118,7 +118,10 @@ class ECSClient {
             `LG_API_KEY=${process.env.LG_API_KEY}`,
             `LG_WORKSPACE_NAME=${process.env.LG_WORKSPACE_NAME}`,
             `DMZ_API_KEY=${process.env.DMZ_API_KEY}`,
-            `MDL_SYNC_ENDPOINT=${process.env.MDL_SYNC_ENDPOINT}`
+            `MDL_SYNC_ENDPOINT=${process.env.MDL_SYNC_ENDPOINT}`,
+            `OLD_MDL_NAME=${process.env.OLD_MDL_NAME}`,
+            `OLD_MDL_USERNAME=${process.env.OLD_MDL_USERNAME}`,
+            `OLD_MDL_PASSWORD=${process.env.OLD_MDL_PASSWORD}`
           ]
         } as any);
         await container.start();
