@@ -98,56 +98,53 @@ export const RegionAndOrganizationFilters: React.FC<
             regions
           }
         });
-        if (results && results.body && results.body.hits.hits.length > 0) {
-          const orgs = results.body.hits.hits.map((hit) => hit._source);
-          // Filter out organizations that match the exclusions
-          const refinedOrgs = orgs.filter((org) => {
-            let exlude = false;
-            ORGANIZATION_EXCLUSIONS.forEach((exc) => {
-              if (org.name.toLowerCase().includes(exc)) {
-                exlude = true;
-              }
-            });
-            return !exlude;
-          });
-          // Filter out organizations that are already in the filters
-          const filteredOrgs = refinedOrgs.filter(
-            (org) =>
-              !filters.find(
-                (filter) =>
-                  filter.field === ORGANIZATION_FILTER_KEY &&
-                  filter.values.find(
-                    (value: { id: string }) => value.id === org.id
-                  )
-              )
-          );
-          // Sort filtered orgs by name
-          const sortedOrgs = filteredOrgs.sort((a, b) =>
-            a.name.localeCompare(b.name)
-          );
 
-          // Utility function to replce HTML encodings
-          const decodeHtml = (orgName: string): string => {
-            const encodings: { [key: string]: string } = {
-              '&amp;': '&',
-              '&lt;': '<',
-              '&gt;': '>',
-              '&quot;': '"',
-              '&#039;': "'"
-            };
-            return orgName.replace(/&amp;|&lt;|&gt;|&quot;|&#039;/g, (m) => {
-              return encodings[m];
-            });
+        const orgs = results.body.hits.hits.map((hit) => hit._source);
+        // Filter out organizations that match the exclusions
+        const refinedOrgs = orgs.filter((org) => {
+          let exlude = false;
+          ORGANIZATION_EXCLUSIONS.forEach((exc) => {
+            if (org.name.toLowerCase().includes(exc)) {
+              exlude = true;
+            }
+          });
+          return !exlude;
+        });
+        // Filter out organizations that are already in the filters
+        const filteredOrgs = refinedOrgs.filter(
+          (org) =>
+            !filters.find(
+              (filter) =>
+                filter.field === ORGANIZATION_FILTER_KEY &&
+                filter.values.find(
+                  (value: { id: string }) => value.id === org.id
+                )
+            )
+        );
+        // Sort filtered orgs by name
+        const sortedOrgs = filteredOrgs.sort((a, b) =>
+          a.name.localeCompare(b.name)
+        );
+
+        // Utility function to replce HTML encodings
+        const decodeHtml = (orgName: string): string => {
+          const encodings: { [key: string]: string } = {
+            '&amp;': '&',
+            '&lt;': '<',
+            '&gt;': '>',
+            '&quot;': '"',
+            '&#039;': "'"
           };
-          // Decode HTML encodings in org names
-          sortedOrgs.forEach((org) => {
-            org.name = decodeHtml(org.name);
+          return orgName.replace(/&amp;|&lt;|&gt;|&quot;|&#039;/g, (m) => {
+            return encodings[m];
           });
+        };
+        // Decode HTML encodings in org names
+        sortedOrgs.forEach((org) => {
+          org.name = decodeHtml(org.name);
+        });
 
-          setOrgResults(sortedOrgs);
-        } else {
-          console.log('No results found');
-        }
+        setOrgResults(sortedOrgs);
       } catch (e) {
         console.log(e);
       }
