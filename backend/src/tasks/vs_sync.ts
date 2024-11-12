@@ -25,7 +25,7 @@ import { plainToClass } from 'class-transformer';
 import savePortScan from './helpers/savePortScan';
 import axios from 'axios';
 import { createChecksum } from '../tools/csv-utils';
-import { TEST_DATA } from './REMOVE_ME';
+// import { TEST_DATA } from './REMOVE_ME';
 import { getRepository } from 'typeorm';
 import { unparse } from 'papaparse';
 import { chunk } from 'lodash';
@@ -58,12 +58,12 @@ export const handler = async (commandOptions: CommandOptions) => {
 
   let requestArray;
   try {
-    // await client.connect();
+    await client.connect();
     const startTime = Date.now();
     const query = 'SELECT * FROM vmtableau.requests;';
     // const query = 'SELECT * FROM organization;';
-    // const result = await client.query(query);
-    const result = { rows: TEST_DATA };
+    const result = await client.query(query);
+    // const result = { rows: TEST_DATA };
     const endTime = Date.now();
     const durationMs = endTime - startTime;
     const durationSeconds = Math.round(durationMs / 1000);
