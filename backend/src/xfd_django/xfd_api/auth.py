@@ -23,7 +23,7 @@ from .models import ApiKey, Organization, OrganizationTag, Role, User
 JWT_SECRET = os.getenv("JWT_SECRET")
 SECRET_KEY = settings.SECRET_KEY
 JWT_ALGORITHM = "HS256"
-JWT_TIMEOUT_HOURS = 4
+JWT_TIMEOUT_HOURS = 24
 
 api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False)
 
@@ -38,7 +38,8 @@ def user_to_dict(user):
     Returns:
         dict: Returns sanitized and formated dict
     """
-    user_dict = model_to_dict(user)
+    user_dict = model_to_dict(user)  # Convert model to dict
+    # Convert any UUID fields to strings
     if isinstance(user_dict.get("id"), uuid.UUID):
         user_dict["id"] = str(user_dict["id"])
     for key, val in user_dict.items():
@@ -77,7 +78,7 @@ def decode_jwt_token(token):
     """
 
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(token, JWT_SECRET, algorithm=JWT_ALGORITHM)
         user = User.objects.get(id=payload["id"])
         return user
     except (ExpiredSignatureError, InvalidTokenError, User.DoesNotExist):
@@ -93,6 +94,26 @@ def hash_key(key: str) -> str:
     """
 
     return hashlib.sha256(key.encode()).hexdigest()
+
+
+# TODO: Confirm still needed
+async def get_user_info_from_cognito(token):
+    """Get user info from cognito."""
+    jwks_url = f"https://cognito-idp.us-east-1.amazonaws.com/{os.getenv('REACT_APP_USER_POOL_ID')}/.well-known/jwks.json"
+    response = requests.get(jwks_url)
+    jwks = response.json()
+    unverified_header = jwt.get_unverified_header(token)
+    for key in jwks["keys"]:
+        if key["kid"] == unverified_header["kid"]:
+            rsa_key = {
+                "kty": key["kty"],
+                "kid": key["kid"],
+                "use": key["use"],
+                "n": key["n"],
+                "e": key["e"],
+            }
+    user_info = decode_jwt_token(token)
+    return user_info
 
 
 async def get_token_from_header(request: Request) -> str:
@@ -133,58 +154,6 @@ def get_user_by_api_key(api_key: str):
         return None
 
 
-# def get_current_active_user(
-#     api_key: Optional[str] = Security(api_key_header),
-#     token: Optional[str] = Depends(get_token_from_header),
-# ):
-#     """
-#     Ensure the current user is authenticated and active, supporting API key or token.
-
-#     Args:
-#         api_key (Optional[str]): The API key provided in headers.
-#         token (Optional[str]): The JWT token from the Authorization header.
-
-#     Returns:
-#         User: The authenticated user object.
-
-#     Raises:
-#         HTTPException: If authentication fails or credentials are invalid.
-#     """
-#     user = None
-#     if api_key:
-#         user = get_user_by_api_key(api_key)
-#     else:
-#         try:
-#             payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-#             user_id = payload.get("id")
-
-#             if user_id is None:
-#                 raise HTTPException(
-#                     status_code=status.HTTP_401_UNAUTHORIZED,
-#                     detail="Invalid token",
-#                     headers={"WWW-Authenticate": "Bearer"},
-#                 )
-#             user = User.objects.get(id=user_id)
-#         except jwt.ExpiredSignatureError:
-#             raise HTTPException(
-#                 status_code=status.HTTP_401_UNAUTHORIZED,
-#                 detail="Token has expired",
-#                 headers={"WWW-Authenticate": "Bearer"},
-#             )
-#         except jwt.InvalidTokenError:
-#             raise HTTPException(
-#                 status_code=status.HTTP_401_UNAUTHORIZED,
-#                 detail="Invalid token",
-#                 headers={"WWW-Authenticate": "Bearer"},
-#             )
-#     if user is None:
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="Invalid authentication credentials",
-#         )
-#     return user
-
-
 def get_current_active_user(
     api_key: Optional[str] = Security(api_key_header),
     token: Optional[str] = Depends(get_token_from_header),
@@ -207,23 +176,28 @@ def get_current_active_user(
         user = get_user_by_api_key(api_key)
     elif token:
         try:
+            # Decode token in Authorization header to get user
             payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
             user_id = payload.get("id")
 
             if user_id is None:
+                print("No user ID found in token")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid token",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
+            # Fetch the user by ID from the database
             user = User.objects.get(id=user_id)
         except jwt.ExpiredSignatureError:
+            print("Token has expired")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token has expired",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         except jwt.InvalidTokenError:
+            print("Invalid token")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token",
@@ -236,6 +210,7 @@ def get_current_active_user(
         )
 
     if user is None:
+        print("User not authenticated")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
@@ -247,6 +222,7 @@ async def process_user(decoded_token, access_token, refresh_token):
     """Process a user based on decoded token information."""
     user = User.objects.filter(email=decoded_token["email"]).first()
     if not user:
+        # Create a new user if they don't exist from Okta fields in SAML Response
         user = User(
             email=decoded_token["email"],
             oktaId=decoded_token["sub"],
@@ -257,6 +233,7 @@ async def process_user(decoded_token, access_token, refresh_token):
         )
         user.save()
     else:
+        # Update user oktaId (legacy users) and login time
         user.oktaId = decoded_token["sub"]
         user.lastLoggedIn = datetime.now()
         user.save()
@@ -264,7 +241,7 @@ async def process_user(decoded_token, access_token, refresh_token):
     if user:
         if not JWT_SECRET:
             raise HTTPException(status_code=500, detail="JWT_SECRET is not defined")
-
+        # Generate JWT token
         signed_token = jwt.encode(
             {
                 "id": str(user.id),
@@ -304,11 +281,14 @@ async def get_jwt_from_code(auth_code: str):
             authorize_token_url, headers=headers, data=urlencode(authorize_token_body)
         )
         token_response = response.json()
+        # Convert the id_token to bytes
         id_token = token_response["id_token"].encode("utf-8")
         access_token = token_response.get("access_token")
         refresh_token = token_response.get("refresh_token")
 
+        # Decode the token without verifying the signature (if needed)
         decoded_token = jwt.decode(id_token, options={"verify_signature": False})
+        print(f"decoded token: {decoded_token}")
         return {
             "refresh_token": refresh_token,
             "id_token": id_token,
@@ -340,9 +320,13 @@ def is_org_admin(current_user, organization_id) -> bool:
     """Check if the user is an admin of the given organization."""
     if not organization_id:
         return False
+
+    # Check if the user has an admin role in the given organization
     for role in current_user.roles.all():
         if str(role.organization.id) == str(organization_id) and role.role == "admin":
             return True
+
+    # If the user is a global write admin, they are considered an org admin
     return is_global_write_admin(current_user)
 
 
@@ -350,10 +334,18 @@ def is_regional_admin_for_organization(current_user, organization_id) -> bool:
     """Check if user is a regional admin and if a selected organization belongs to their region."""
     if not organization_id:
         return False
+
+    # Check if the user is a regional admin
     if is_regional_admin(current_user):
-        user_region_id = current_user.regionId
-        organization_region_id = get_organization_region(organization_id)
+        # Check if the organization belongs to the user's region
+        user_region_id = (
+            current_user.regionId
+        )  # Assuming this is available in the user object
+        organization_region_id = get_organization_region(
+            organization_id
+        )  # Function to fetch the organization's region
         return user_region_id == organization_region_id
+
     return False
 
 
@@ -365,15 +357,21 @@ def get_organization_region(organization_id: str) -> str:
 
 def get_tag_organizations(current_user, tag_id) -> list[str]:
     """Returns the organizations belonging to a tag, if the user can access the tag."""
+    # Check if the user is a global view admin
     if not is_global_view_admin(current_user):
         return []
+
+    # Fetch the OrganizationTag and its related organizations
     tag = (
         OrganizationTag.objects.prefetch_related("organizations")
         .filter(id=tag_id)
         .first()
     )
     if tag:
+        # Return a list of organization IDs
         return [org.id for org in tag.organizations.all()]
+
+    # Return an empty list if tag is not found
     return []
 
 
@@ -387,8 +385,14 @@ def get_org_memberships(current_user) -> list[str]:
 
 def matches_user_region(current_user, user_region_id: str) -> bool:
     """Checks if the current user's region matches the user's region being modified."""
+
+    # Check if the current user is a global admin (can match any region)
     if is_global_write_admin(current_user):
         return True
+
+    # Ensure the user has a region associated with them
     if not current_user.region_id or not user_region_id:
         return False
+
+    # Compare the region IDs
     return user_region_id == current_user.region_id
