@@ -11,14 +11,12 @@ import {
   UpdateDateColumn
 } from 'typeorm';
 import { ApiKey } from './api-key';
-import { Assessment } from './assessment';
 import { Role } from './';
 
 export enum UserType {
   GLOBAL_ADMIN = 'globalAdmin',
   GLOBAL_VIEW = 'globalView',
   REGIONAL_ADMIN = 'regionalAdmin',
-  READY_SET_CYBER = 'readySetCyber',
   STANDARD = 'standard'
 }
 @Entity()
@@ -127,7 +125,4 @@ export class User extends BaseEntity {
     nullable: true
   })
   state: string;
-
-  @OneToMany(() => Assessment, (assessment) => assessment.user)
-  assessments: Assessment[];
 }

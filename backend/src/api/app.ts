@@ -24,7 +24,6 @@ import * as savedSearches from './saved-searches';
 import rateLimit from 'express-rate-limit';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { Organization, User, UserType, connectToDatabase } from '../models';
-import * as assessments from './assessments';
 import * as jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import fetch from 'node-fetch';
@@ -96,8 +95,7 @@ app.use(
   cors({
     origin: [
       'http://localhost',
-      /^https:\/\/(.*\.)?crossfeed\.cyber\.dhs\.gov$/,
-      /^https:\/\/(.*\.)?readysetcyber\.cyber\.dhs\.gov$/
+      /^https:\/\/(.*\.)?crossfeed\.cyber\.dhs\.gov$/
     ],
     methods: 'GET,POST,PUT,DELETE,OPTIONS'
   })
@@ -309,7 +307,6 @@ app.get('/', handlerToExpress(healthcheck));
 app.post('/auth/login', handlerToExpress(auth.login));
 app.post('/auth/callback', handlerToExpress(auth.callback));
 app.post('/users/register', handlerToExpress(users.register));
-app.post('/readysetcyber/register', handlerToExpress(users.RSCRegister));
 
 app.get('/notifications', handlerToExpress(notifications.list));
 app.get(
@@ -798,10 +795,6 @@ authenticatedRoute.put(
   '/notifications/:notificationId',
   handlerToExpress(notifications.update)
 );
-//Authenticated ReadySetCyber Routes
-authenticatedRoute.get('/assessments', handlerToExpress(assessments.list));
-
-authenticatedRoute.get('/assessments/:id', handlerToExpress(assessments.get));
 
 //************* */
 //  V2 Routes   //

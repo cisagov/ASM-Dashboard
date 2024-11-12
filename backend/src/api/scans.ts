@@ -174,13 +174,6 @@ export const SCAN_SCHEMA: ScanSchema = {
     description:
       'Creates domains from root domains by doing a single DNS lookup for each root domain.'
   },
-  rscSync: {
-    type: 'fargate',
-    isPassive: true,
-    global: true,
-    description:
-      'Retrieves and saves assessments from ReadySetCyber mission instance.'
-  },
   savedSearch: {
     type: 'fargate',
     isPassive: true,
