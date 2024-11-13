@@ -41,7 +41,7 @@ jobs:
       - name: Lint with pylint
         run: pylint src/xfd_django
 
-  test_build:
+  test:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -71,31 +71,8 @@ jobs:
         env:
           SLS_DEBUG: '*'
 
-  test_python:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5.0.0
-        with:
-          python-version: '3.10'
-      - name: Copy .env file
-        run: cp ../dev.env.example .env
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: pip-
-      - run: pip install -r requirements.txt
-      - name: Run db locally
-        run: |
-          cp dev.env.example .env
-          docker compose up -d db
-          npm install -g wait-port
-          wait-port -t 3000 5432
-        working-directory: ./
-      - run: make pytest
+      - name: Run pytest
+        run: make pytest
 
   test_worker:
     runs-on: ubuntu-latest
