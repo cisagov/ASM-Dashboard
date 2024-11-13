@@ -1,6 +1,9 @@
-from elasticsearch import Elasticsearch, helpers
-import os
+# Standard Python Libraries
 import logging
+import os
+
+# Third-Party Libraries
+from elasticsearch import Elasticsearch, helpers
 
 # Constants
 DOMAINS_INDEX = "domains-5"
@@ -11,10 +14,7 @@ logging.basicConfig(level=logging.INFO)
 
 # Define mappings
 organization_mapping = {
-    "properties": {
-        "name": {"type": "text"},
-        "suggest": {"type": "completion"}
-    }
+    "properties": {"name": {"type": "text"}, "suggest": {"type": "completion"}}
 }
 
 domain_mapping = {
@@ -22,13 +22,11 @@ domain_mapping = {
         "services": {"type": "nested"},
         "vulnerabilities": {"type": "nested"},
         "webpage_body": {"type": "text", "term_vector": "yes"},
-        "parent_join": {
-            "type": "join",
-            "relations": {"domain": "webpage"}
-        },
-        "suggest": {"type": "completion"}
+        "parent_join": {"type": "join", "relations": {"domain": "webpage"}},
+        "suggest": {"type": "completion"},
     }
 }
+
 
 class ESClient:
     def __init__(self):
@@ -43,11 +41,16 @@ class ESClient:
                 logging.info(f"Creating index {ORGANIZATIONS_INDEX}...")
                 self.client.indices.create(
                     index=ORGANIZATIONS_INDEX,
-                    body={"mappings": organization_mapping, "settings": {"number_of_shards": 2}}
+                    body={
+                        "mappings": organization_mapping,
+                        "settings": {"number_of_shards": 2},
+                    },
                 )
             else:
                 logging.info(f"Updating index {ORGANIZATIONS_INDEX}...")
-                self.client.indices.put_mapping(index=ORGANIZATIONS_INDEX, body=organization_mapping)
+                self.client.indices.put_mapping(
+                    index=ORGANIZATIONS_INDEX, body=organization_mapping
+                )
         except Exception as e:
             logging.error(f"Error syncing organizations index: {e}")
             raise e
@@ -59,13 +62,20 @@ class ESClient:
                 logging.info(f"Creating index {DOMAINS_INDEX}...")
                 self.client.indices.create(
                     index=DOMAINS_INDEX,
-                    body={"mappings": domain_mapping, "settings": {"number_of_shards": 2}}
+                    body={
+                        "mappings": domain_mapping,
+                        "settings": {"number_of_shards": 2},
+                    },
                 )
             else:
                 logging.info(f"Updating index {DOMAINS_INDEX}...")
-                self.client.indices.put_mapping(index=DOMAINS_INDEX, body=domain_mapping)
+                self.client.indices.put_mapping(
+                    index=DOMAINS_INDEX, body=domain_mapping
+                )
             # Set refresh interval
-            self.client.indices.put_settings(index=DOMAINS_INDEX, body={"settings": {"refresh_interval": "1800s"}})
+            self.client.indices.put_settings(
+                index=DOMAINS_INDEX, body={"settings": {"refresh_interval": "1800s"}}
+            )
         except Exception as e:
             logging.error(f"Error syncing domains index: {e}")
             raise e
@@ -94,7 +104,7 @@ class ESClient:
                 "doc": {
                     **domain,
                     "suggest": [{"input": domain["name"], "weight": 1}],
-                    "parent_join": "domain"
+                    "parent_join": "domain",
                 },
                 "doc_as_upsert": True,
             }
@@ -113,7 +123,10 @@ class ESClient:
                 "doc": {
                     **webpage,
                     "suggest": [{"input": webpage["webpage_url"], "weight": 1}],
-                    "parent_join": {"name": "webpage", "parent": webpage["webpage_domainId"]}
+                    "parent_join": {
+                        "name": "webpage",
+                        "parent": webpage["webpage_domainId"],
+                    },
                 },
                 "doc_as_upsert": True,
             }

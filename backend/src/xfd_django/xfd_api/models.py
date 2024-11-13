@@ -165,6 +165,7 @@ class Cve(models.Model):
         related_name="cves",
         db_table="cve_cpes_cpe",
     )
+
     class Meta:
         """The Meta class for Cve."""
 

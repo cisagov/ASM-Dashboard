@@ -1,21 +1,24 @@
-import os
+# Standard Python Libraries
 import json
+import os
 import random
-from django.core.management.base import BaseCommand
-from django.core.management import call_command
+
+# Third-Party Libraries
 from django.conf import settings
+from django.core.management import call_command
+from django.core.management.base import BaseCommand
 from django.db import transaction
-from xfd_api.models import Organization, Domain, Service, Vulnerability, OrganizationTag
+from xfd_api.models import Domain, Organization, OrganizationTag, Service, Vulnerability
 from xfd_api.tasks.es_client import ESClient
 
 # Sample data and helper data for random generation
-SAMPLE_TAG_NAME = 'Sample Data'
+SAMPLE_TAG_NAME = "Sample Data"
 NUM_SAMPLE_ORGS = 10
 NUM_SAMPLE_DOMAINS = 10
 PROB_SAMPLE_SERVICES = 0.5
 PROB_SAMPLE_VULNERABILITIES = 0.5
-SAMPLE_STATES = ['VA', 'CA', 'CO']
-SAMPLE_REGION_IDS = ['1', '2', '3']
+SAMPLE_STATES = ["VA", "CA", "CO"]
+SAMPLE_REGION_IDS = ["1", "2", "3"]
 
 SAMPLE_DATA_DIR = os.path.join(settings.BASE_DIR, "xfd_api", "tasks", "sample_data")
 services = json.load(open(os.path.join(SAMPLE_DATA_DIR, "services.json")))
@@ -28,27 +31,38 @@ adjectives = json.load(open(os.path.join(SAMPLE_DATA_DIR, "adjectives.json")))
 # Initialize Elasticsearch client
 es_client = ESClient()
 
+
 class Command(BaseCommand):
     help = "Synchronizes and populates the database with optional sample data, and manages Elasticsearch indices."
 
     def add_arguments(self, parser):
-        parser.add_argument('-d', '--dangerouslyforce', action='store_true', help='Force drop and recreate the database.')
-        parser.add_argument('-p', '--populate', action='store_true', help='Populate the database with sample data.')
+        parser.add_argument(
+            "-d",
+            "--dangerouslyforce",
+            action="store_true",
+            help="Force drop and recreate the database.",
+        )
+        parser.add_argument(
+            "-p",
+            "--populate",
+            action="store_true",
+            help="Populate the database with sample data.",
+        )
 
     def handle(self, *args, **options):
-        dangerouslyforce = options['dangerouslyforce']
-        populate = options['populate']
+        dangerouslyforce = options["dangerouslyforce"]
+        populate = options["populate"]
 
         # Step 1: Database Reset and Migration
         if dangerouslyforce:
             self.stdout.write("Dropping and recreating the database...")
-            call_command('flush', '--noinput')
-            call_command('makemigrations')
-            call_command('migrate')
+            call_command("flush", "--noinput")
+            call_command("makemigrations")
+            call_command("migrate")
         else:
             self.stdout.write("Applying migrations...")
-            call_command('makemigrations')
-            call_command('migrate')
+            call_command("makemigrations")
+            call_command("migrate")
 
         # Step 2: Elasticsearch Index Management
         self.manage_elasticsearch_indices(dangerouslyforce)
@@ -76,7 +90,7 @@ class Command(BaseCommand):
             tag, _ = OrganizationTag.objects.get_or_create(name=SAMPLE_TAG_NAME)
             for _ in range(NUM_SAMPLE_ORGS):
                 org = Organization.objects.create(
-                    acronym=''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ', k=5)),
+                    acronym="".join(random.choices("ABCDEFGHIJKLMNOPQRSTUVWXYZ", k=5)),
                     name=self.generate_random_name(),
                     rootDomains=["crossfeed.local"],
                     ipBlocks=[],
@@ -107,7 +121,7 @@ class Command(BaseCommand):
             fromRootDomain="crossfeed.local",
             isFceb=True,
             subdomainSource="findomain",
-            organization=organization
+            organization=organization,
         )
 
     def create_sample_services_and_vulnerabilities(self, domain):
@@ -119,10 +133,9 @@ class Command(BaseCommand):
                 port=random.choice([80, 443]),
                 service="http",
                 serviceSource="shodan",
-                wappalyzerResults=[{
-                    "technology": {"cpe": random.choice(cpes)},
-                    "version": ""
-                }]
+                wappalyzerResults=[
+                    {"technology": {"cpe": random.choice(cpes)}, "version": ""}
+                ],
             )
 
         # Add random vulnerabilities
@@ -132,11 +145,11 @@ class Command(BaseCommand):
                 domain=domain,
                 service=None,
                 description="Sample description",
-                severity=random.choice(['Low', 'Medium', 'High']),
+                severity=random.choice(["Low", "Medium", "High"]),
                 needsPopulation=True,  # Ensuring required fields are populated
                 state="open",
                 substate="unconfirmed",
                 source="sample_source",
                 actions=[],
-                structuredData={}
+                structuredData={},
             )

@@ -794,15 +794,3 @@ variable "create_elasticache_cluster" {
   type        = bool
   default     = false
 }
-
-variable "ssm_pe_api_key" {
-  description = "ssm_pe_api_key"
-  type        = string
-  default     = "/crossfeed/staging/PE_API_KEY"
-}
-
-variable "ssm_cf_api_key" {
-  description = "ssm_cf_api_key"
-  type        = string
-  default     = "/crossfeed/staging/CF_API_KEY"
-}

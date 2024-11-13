@@ -13,7 +13,7 @@ resource "aws_ecr_repository" "worker" {
   tags = {
     Project = var.project
     Stage   = var.stage
-    Owner = "Crossfeed managed resource"
+    Owner   = "Crossfeed managed resource"
   }
 }
 
@@ -38,7 +38,7 @@ resource "aws_iam_role" "worker_task_execution_role" {
   tags = {
     Project = var.project
     Stage   = var.stage
-    Owner = "Crossfeed managed resource"
+    Owner   = "Crossfeed managed resource"
   }
 }
 
@@ -140,7 +140,7 @@ resource "aws_iam_role" "worker_task_role" {
   tags = {
     Project = var.project
     Stage   = var.stage
-    Owner = "Crossfeed managed resource"
+    Owner   = "Crossfeed managed resource"
   }
 }
 
@@ -199,7 +199,7 @@ resource "aws_ecs_cluster" "worker" {
   tags = {
     Project = var.project
     Stage   = var.stage
-    Owner = "Crossfeed managed resource"
+    Owner   = "Crossfeed managed resource"
   }
 }
 
@@ -215,7 +215,7 @@ resource "aws_ssm_parameter" "worker_arn" {
 
   tags = {
     Project = var.project
-    Owner = "Crossfeed managed resource"
+    Owner   = "Crossfeed managed resource"
   }
 }
 
@@ -378,7 +378,7 @@ resource "aws_ecs_task_definition" "worker" {
   tags = {
     Project = var.project
     Stage   = var.stage
-    Owner = "Crossfeed managed resource"
+    Owner   = "Crossfeed managed resource"
   }
 }
 
@@ -389,7 +389,7 @@ resource "aws_cloudwatch_log_group" "worker" {
   tags = {
     Project = var.project
     Stage   = var.stage
-    Owner = "Crossfeed managed resource"
+    Owner   = "Crossfeed managed resource"
   }
 }
 
@@ -451,7 +451,7 @@ resource "aws_s3_bucket" "export_bucket" {
   tags = {
     Project = var.project
     Stage   = var.stage
-    Owner = "Crossfeed managed resource"
+    Owner   = "Crossfeed managed resource"
   }
 }
 
@@ -480,7 +480,7 @@ resource "aws_s3_bucket_policy" "export_bucket" {
 }
 
 resource "aws_s3_bucket_acl" "export_bucket" {
-  count = var.is_dmz ? 1 : 0
+  count  = var.is_dmz ? 1 : 0
   bucket = aws_s3_bucket.export_bucket.id
   acl    = "private"
 }
