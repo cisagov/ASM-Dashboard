@@ -7,8 +7,10 @@ Domain API.
 import csv
 
 # Third-Party Libraries
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.http import Http404
 from fastapi import HTTPException
 
 from ..auth import get_org_memberships, is_global_view_admin
@@ -45,14 +47,6 @@ def search_domains(domain_search: DomainSearch, current_user):
             sort_direction(domain_search.sort, domain_search.order)
         )
 
-        # Apply global filters based on user permissions
-        if not is_global_view_admin(current_user):
-            orgs = get_org_memberships(current_user)
-            if not orgs:
-                # No organization memberships, return empty result
-                return [], 0
-            domains = domains.filter(organization__id__in=orgs)
-
         # Add a filter to restrict based on FCEB and CIDR criteria
         domains = domains.filter(Q(isFceb=True) | Q(isFceb=False, fromCidr=True))
 
@@ -61,6 +55,8 @@ def search_domains(domain_search: DomainSearch, current_user):
         paginator = Paginator(domains, domain_search.pageSize)
 
         return paginator.get_page(domain_search.page)
+    except Domain.DoesNotExist as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

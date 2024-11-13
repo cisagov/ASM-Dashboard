@@ -33,7 +33,7 @@ from .api_methods.vulnerability import (
 )
 from .auth import get_current_active_user
 from .login_gov import callback, login
-from .models import Assessment, User
+from .models import Assessment, Domain, User, Vulnerability
 from .schema_models import organization as OrganizationSchema
 from .schema_models import scan as scanSchema
 from .schema_models import scan_tasks as scanTaskSchema
@@ -221,10 +221,7 @@ async def call_get_cves_by_name(cve_name):
 async def call_search_domains(
     domain_search: DomainSearch, current_user: User = Depends(get_current_active_user)
 ):
-    try:
-        return search_domains(domain_search, current_user)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return search_domains(domain_search, current_user)
 
 
 @api_router.post(
@@ -233,10 +230,7 @@ async def call_search_domains(
     tags=["Domains"],
 )
 async def call_export_domains(domain_search: DomainSearch):
-    try:
-        return export_domains(domain_search)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return export_domains(domain_search)
 
 
 @api_router.get(
@@ -264,10 +258,7 @@ async def call_search_vulnerabilities(
     vulnerability_search: VulnerabilitySearch,
     current_user: User = Depends(get_current_active_user),
 ):
-    try:
-        return search_vulnerabilities(vulnerability_search, current_user)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return search_vulnerabilities(vulnerability_search, current_user)
 
 
 @api_router.post("/vulnerabilities/export")

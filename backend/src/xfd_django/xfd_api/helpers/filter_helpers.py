@@ -43,7 +43,9 @@ def filter_domains(domains: QuerySet, domain_filters: DomainFilters):
                 "domain"
             )
             if not services_by_port.exists():
-                raise Http404("No Domains found with the provided port")
+                raise ObjectDoesNotExist(
+                    "Domain could not be found with provided port."
+                )
             domains = domains.filter(id__in=services_by_port)
 
         if domain_filters.service:
@@ -51,7 +53,7 @@ def filter_domains(domains: QuerySet, domain_filters: DomainFilters):
                 "domain"
             )
             if not service_by_id.exists():
-                raise Http404("No Domains found with the provided service")
+                raise Domain.DoesNotExist("No Domains found with the provided service")
             domains = domains.filter(id__in=service_by_id)
 
         if domain_filters.reverseName:
@@ -59,13 +61,15 @@ def filter_domains(domains: QuerySet, domain_filters: DomainFilters):
                 reverseName=domain_filters.reverseName
             ).values("id")
             if not domains_by_reverse_name.exists():
-                raise Http404("No Domains found with the provided reverse name")
+                raise Domain.DoesNotExist(
+                    "No Domains found with the provided reverse name"
+                )
             domains = domains.filter(id__in=domains_by_reverse_name)
 
         if domain_filters.ip:
             domains_by_ip = Domain.objects.filter(ip=domain_filters.ip).values("id")
             if not domains_by_ip.exists():
-                raise Http404("No Domains found with the provided ip")
+                raise Domain.DoesNotExist("Domain could not be found with provided Ip.")
             domains = domains.filter(id__in=domains_by_ip)
 
         if domain_filters.organization:
@@ -73,7 +77,9 @@ def filter_domains(domains: QuerySet, domain_filters: DomainFilters):
                 organization_id=domain_filters.organization
             ).values("id")
             if not domains_by_org.exists():
-                raise Http404("No Domains found with the provided organization")
+                raise Domain.DoesNotExist(
+                    "No Domains found with the provided organization"
+                )
             domains = domains.filter(id__in=domains_by_org)
 
         if domain_filters.organizationName:
@@ -81,7 +87,9 @@ def filter_domains(domains: QuerySet, domain_filters: DomainFilters):
                 name=domain_filters.organizationName
             ).values("id")
             if not organization_by_name.exists():
-                raise Http404("No Domains found with the provided organization name")
+                raise Domain.DoesNotExist(
+                    "No Domains found with the provided organization name"
+                )
             domains = domains.filter(organization_id__in=organization_by_name)
 
         if domain_filters.vulnerabilities:
@@ -89,13 +97,13 @@ def filter_domains(domains: QuerySet, domain_filters: DomainFilters):
                 id=domain_filters.vulnerabilities
             ).values("domain")
             if not vulnerabilities_by_id.exists():
-                raise Http404("No Domains found with the provided vulnerability")
+                raise Domain.DoesNotExist(
+                    "No Domains found with the provided vulnerability"
+                )
             domains = domains.filter(id__in=vulnerabilities_by_id)
         return domains
-    except ObjectDoesNotExist:
-        print("No vulnerability found with that ID.")
-    except Exception as e:
-        print(f"Error: {e}")
+    except Domain.DoesNotExist as e:
+        raise e
 
 
 def filter_vulnerabilities(
