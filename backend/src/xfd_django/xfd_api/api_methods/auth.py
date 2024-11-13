@@ -40,7 +40,7 @@ async def handle_okta_callback(request):
     response = JSONResponse(
         content={"message": "User authenticated", "data": resp, "token": token}
     )
-    response.body = resp
+    # response.body = resp
     # response.body = resp
     response.set_cookie(key="token", value=token)
 

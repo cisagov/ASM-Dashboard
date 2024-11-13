@@ -9,8 +9,4 @@ Modules included:
 - `jwt_utils`: Provides JWT token creation and decoding utilities.
 - `models`: Defines the database models.
 - `tests`: Contains the test cases for the application.
-
-Dependencies:
-- fastapi
-- django
 """

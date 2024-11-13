@@ -17,7 +17,7 @@ scheduler:
 
 syncdb:
   timeout: 900
-  handler: src/tasks/syncdb.handler
+  handler: src/xfd_django/xfd_api/tasks/run_syncdb.handler
 
 pesyncdb:
   timeout: 900

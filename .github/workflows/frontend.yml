@@ -5,14 +5,14 @@ on:
   push:
     branches:
       - develop
-      - production
+      - integration
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend.yml'
   pull_request:
     branches:
       - develop
-      - production
+      - integration
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend.yml'
@@ -88,12 +88,12 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           SLS_DEBUG: '*'
 
-  deploy_prod:
+  deploy_integration:
     needs: [lint, test]
     runs-on: ubuntu-latest
-    environment: production
+    environment: integration
     concurrency: '1'
-    if: github.event_name == 'push' && github.ref == 'refs/heads/production'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/integration'
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -108,11 +108,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Production
-        run: cp prod.env .env && npm run build
+      - name: Build Integration
+        run: cp integration.env .env && npm run build
 
-      - name: Deploy Production
-        run: npx sls deploy --stage=staging
+      - name: Deploy Integration
+        run: npx sls deploy --stage=integration
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

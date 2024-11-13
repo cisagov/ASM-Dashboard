@@ -39,7 +39,7 @@ def delete(id, current_user):
         )
 
 
-def get_all(current_user):
+def get_all():
     """GET All LOGIC"""
     try:
         # Get all objects from the database

@@ -523,13 +523,13 @@ async def delete_notification(
     return notification_methods.delete(id, current_user)
 
 
-# GET ALL
+# GET ALL: Doesn't require authentication
 @api_router.get(
     "/notifications", response_model=List[NotificationSchema], tags=["notifications"]
 )
-async def get_all_notifications(current_user: User = Depends(get_current_active_user)):
+async def get_all_notifications():
     """Get all notifications."""
-    return notification_methods.get_all(current_user)
+    return notification_methods.get_all()
 
 
 # GET BY ID
@@ -552,11 +552,11 @@ async def update_notification(
     return notification_methods.delete(id, current_user)
 
 
-# GET 508 Banner
+# GET 508 Banner: Doesn't require authentication
 @api_router.get("/notifications/508-banner", tags=["notifications"])
-async def get_508_banner(current_user: User = Depends(get_current_active_user)):
+async def get_508_banner():
     """Get notification by id."""
-    return notification_methods.get_508_banner(current_user)
+    return notification_methods.get_508_banner()
 
 
 # ========================================

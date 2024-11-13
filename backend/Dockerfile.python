@@ -14,4 +14,4 @@ COPY src/xfd_django .
 ENV DJANGO_SETTINGS_MODULE=xfd_django.settings
 
 # Command to run the FastAPI application
-CMD ["uvicorn", "--workers", "4", "xfd_django.asgi:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "--workers", "4", "xfd_django.asgi:app", "--host", "0.0.0.0", "--port", "3000", "--reload"]

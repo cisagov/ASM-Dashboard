@@ -31,7 +31,7 @@ class ApiKey(models.Model):
     class Meta:
         """Meta class for ApiKey."""
 
-        managed = False
+        managed = True
         db_table = "api_key"
 
 
@@ -56,7 +56,7 @@ class Assessment(models.Model):
     class Meta:
         """The Meta class for Assessment."""
 
-        managed = False
+        managed = True
         db_table = "assessment"
 
 
@@ -73,7 +73,7 @@ class Category(models.Model):
     class Meta:
         """The Meta class for Category model."""
 
-        managed = False
+        managed = True
         db_table = "category"
 
 
@@ -90,7 +90,7 @@ class Cpe(models.Model):
         """The Meta class for Cpe."""
 
         db_table = "cpe"
-        managed = False  # This ensures Django does not manage the table
+        managed = True  # This ensures Django does not manage the table
         unique_together = (("name", "version", "vendor"),)  # Unique constraint
 
 
@@ -160,25 +160,16 @@ class Cve(models.Model):
     weaknesses = models.TextField(blank=True, null=True)
     references = models.TextField(blank=True, null=True)
 
+    cpes = models.ManyToManyField(
+        "Cpe",
+        related_name="cves",
+        db_table="cve_cpes_cpe",
+    )
     class Meta:
         """The Meta class for Cve."""
 
-        managed = False
+        managed = True
         db_table = "cve"
-
-
-class CveCpesCpe(models.Model):
-    """The CveCpesCpe model."""
-
-    cveId = models.ForeignKey(Cve, on_delete=models.CASCADE, db_column="cveId")
-    cpeId = models.ForeignKey(Cpe, on_delete=models.CASCADE, db_column="cpeId")
-
-    class Meta:
-        """The Meta class for CveCpesCpe model."""
-
-        db_table = "cve_cpes_cpe"
-        managed = False  # This ensures Django does not manage the table
-        unique_together = (("cve", "cpe"),)  # Unique constraint
 
 
 class Domain(models.Model):
@@ -229,7 +220,7 @@ class Domain(models.Model):
         """The meta class for Domain."""
 
         db_table = "domain"
-        managed = False  # This ensures Django does not manage the table
+        managed = True  # This ensures Django does not manage the table
         unique_together = (("name", "organization"),)  # Unique constraint
 
     def save(self, *args, **kwargs):
@@ -250,7 +241,7 @@ class Log(models.Model):
     class Meta:
         """The Meta class for Log."""
 
-        managed = False
+        managed = True
         db_table = "log"
 
 
@@ -274,7 +265,7 @@ class Notification(models.Model):
     class Meta:
         """The Meta class for Notification."""
 
-        managed = False
+        managed = True
         db_table = "notification"
 
 
@@ -327,7 +318,7 @@ class Organization(models.Model):
     class Meta:
         """The meta class for Organization."""
 
-        managed = False
+        managed = True
         db_table = "organization"
 
 
@@ -344,14 +335,11 @@ class OrganizationTag(models.Model):
         related_name="tags",
         db_table="organization_tag_organizations_organization",
     )
-    scans = models.ManyToManyField(
-        "Scan", related_name="tags", db_table="scan_tags_organization_tag"
-    )
 
     class Meta:
         """The Meta class for OrganizationTag."""
 
-        managed = False
+        managed = True
         db_table = "organization_tag"
 
 
@@ -367,7 +355,7 @@ class QueryResultCache(models.Model):
     class Meta:
         """The Meta class for QueryResultCache."""
 
-        managed = False
+        managed = True
         db_table = "query-result-cache"
 
 
@@ -379,7 +367,7 @@ class Question(models.Model):
     description = models.CharField(blank=True, null=True)
     longForm = models.CharField(db_column="longForm")
     number = models.CharField(max_length=255)
-    categoryId = models.ForeignKey(
+    category = models.ForeignKey(
         Category, models.DO_NOTHING, db_column="categoryId", blank=True, null=True
     )
 
@@ -387,27 +375,8 @@ class Question(models.Model):
         """The Meta class for Question."""
 
         db_table = "question"
-        managed = False
+        managed = True
         unique_together = (("category", "number"),)
-
-
-# Question and Resource many-to-many
-class QuestionResourcesResource(models.Model):
-    """The QuestionResourcesResource model."""
-
-    questionId = models.ForeignKey(
-        "Question", on_delete=models.CASCADE, db_column="questionId"
-    )
-    resourceId = models.ForeignKey(
-        "Resource", on_delete=models.CASCADE, db_column="resourceId"
-    )
-
-    class Meta:
-        """The Meta class for QuestionResourcesResource."""
-
-        db_table = "question_resources_resource"
-        managed = False
-        unique_together = (("question", "resource"),)
 
 
 class Resource(models.Model):
@@ -418,11 +387,16 @@ class Resource(models.Model):
     name = models.CharField()
     type = models.CharField()
     url = models.CharField(unique=True)
+    questions = models.ManyToManyField(
+        "Question",
+        related_name="resources",
+        db_table="question_resources_resource",
+    )
 
     class Meta:
         """The Meta class for Resource."""
 
-        managed = False
+        managed = True
         db_table = "resource"
 
 
@@ -441,7 +415,7 @@ class Response(models.Model):
     class Meta:
         """The Meta class for Resource."""
 
-        managed = False
+        managed = True
         db_table = "response"
         unique_together = (("assessmentId", "questionId"),)
 
@@ -488,7 +462,7 @@ class Role(models.Model):
     class Meta:
         """The Meta class for Role."""
 
-        managed = False
+        managed = True
         db_table = "role"
         unique_together = (("user", "organization"),)
 
@@ -514,7 +488,7 @@ class SavedSearch(models.Model):
     class Meta:
         """The Meta class for SavedSearch."""
 
-        managed = False
+        managed = True
         db_table = "saved_search"
 
 
@@ -554,7 +528,7 @@ class Scan(models.Model):
     class Meta:
         """The Meta class for Scan."""
 
-        managed = False
+        managed = True
         db_table = "scan"
 
 
@@ -586,7 +560,7 @@ class ScanTask(models.Model):
     class Meta:
         """The Meta class for ScanTask."""
 
-        managed = False
+        managed = True
         db_table = "scan_task"
 
 
@@ -631,7 +605,7 @@ class Service(models.Model):
     class Meta:
         """The Meta class for Service."""
 
-        managed = False
+        managed = True
         db_table = "service"
         unique_together = (("port", "domain"),)
 
@@ -649,7 +623,7 @@ class TypeormMetadata(models.Model):
     class Meta:
         """The Meta class for TypeormMetadata."""
 
-        managed = False
+        managed = True
         db_table = "typeorm_metadata"
 
 
@@ -713,7 +687,7 @@ class User(models.Model):
     class Meta:
         """The Meta class for User."""
 
-        managed = False
+        managed = True
         db_table = "user"
 
 
@@ -778,17 +752,6 @@ class Vulnerability(models.Model):
         Service, models.DO_NOTHING, db_column="serviceId", blank=True, null=True
     )
 
-    class Meta:
-        """The Meta class for Vulnerability."""
-
-        managed = False
-        db_table = "vulnerability"
-        indexes = [
-            models.Index(fields=["createdAt"]),
-            models.Index(fields=["updatedAt"]),
-        ]
-        unique_together = (("domainId", "title"),)
-
     def setState(self, substate, automatic, user=None):
         """Set the state and update actions."""
         self.substate = substate
@@ -821,6 +784,17 @@ class Vulnerability(models.Model):
                 self.severity = self.SeverityChoices.CRITICAL
         super().save(*args, **kwargs)
 
+    class Meta:
+        """The Meta class for Vulnerability."""
+
+        managed = True
+        db_table = "vulnerability"
+        indexes = [
+            models.Index(fields=["createdAt"]),
+            models.Index(fields=["updatedAt"]),
+        ]
+        unique_together = (("domain", "title"),)
+
 
 class Webpage(models.Model):
     """The Webpage model."""
@@ -851,6 +825,6 @@ class Webpage(models.Model):
     class Meta:
         """The Meta class for Webpage."""
 
-        managed = False
+        managed = True
         db_table = "webpage"
         unique_together = (("url", "domainId"),)

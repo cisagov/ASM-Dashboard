@@ -8,14 +8,14 @@ on:
   push:
     branches:
       - develop
-      - production
+      - integration
     paths:
       - infrastructure/**
       - .github/workflows/infrastructure.yml
   pull_request:
     branches:
       - develop
-      - production
+      - integration
     paths:
       - infrastructure/**
       - .github/workflows/infrastructure.yml
@@ -77,10 +77,10 @@ jobs:
       - if: ${{ always() }}
         run: rm stage.plan || true
 
-  prod:
+  integration:
     timeout-minutes: 4320
     runs-on: ubuntu-latest
-    environment: production
+    environment: integration
     concurrency: '1'
     steps:
       - uses: actions/checkout@v3
@@ -92,7 +92,7 @@ jobs:
           sudo mv terraform /usr/local/bin
 
       - name: Terraform init
-        run: terraform init -backend-config=prod.config -input=false
+        run: terraform init -backend-config=integration.config -input=false
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -104,17 +104,17 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Terraform plan
-        run: terraform plan -var-file=prod.tfvars -out prod.plan
+        run: terraform plan -var-file=integration.tfvars -out integration.plan
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Terraform apply
-        if: github.ref == 'refs/heads/production'
-        run: terraform apply prod.plan
+        if: github.ref == 'refs/heads/integration'
+        run: terraform apply integration.plan
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - if: ${{ always() }}
-        run: rm prod.plan || true
+        run: rm integration.plan || true
