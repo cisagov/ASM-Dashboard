@@ -88,7 +88,7 @@ jobs:
           key: pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: pip-
       - run: pip install -r requirements.txt
-      - run: pytest src/xfd_django/xfd_api/tests/
+      - run: make pytest
 
   test_worker:
     runs-on: ubuntu-latest

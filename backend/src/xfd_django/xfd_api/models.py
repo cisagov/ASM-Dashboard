@@ -724,7 +724,7 @@ class Vulnerability(models.Model):
     description = models.CharField()
     references = models.JSONField(default=list)
     cvss = models.DecimalField(
-        max_digits=65535, decimal_places=65535, blank=True, null=True
+        max_digits=1000, decimal_places=1000, blank=True, null=True
     )
     severity = models.CharField(
         max_length=10, choices=SeverityChoices.choices, blank=True, null=True
@@ -807,11 +807,11 @@ class Webpage(models.Model):
     lastSeen = models.DateTimeField(db_column="lastSeen", blank=True, null=True)
     s3key = models.CharField(db_column="s3Key", blank=True, null=True)
     url = models.CharField()
-    status = models.DecimalField(max_digits=65535, decimal_places=65535)
+    status = models.DecimalField(max_digits=1000, decimal_places=1000)
     responseSize = models.DecimalField(
         db_column="responseSize",
-        max_digits=65535,
-        decimal_places=65535,
+        max_digits=1000,
+        decimal_places=1000,
         blank=True,
         null=True,
     )

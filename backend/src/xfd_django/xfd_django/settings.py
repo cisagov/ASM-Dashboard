@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 # Standard Python Libraries
+import os
 import mimetypes
 
 # Python built-in
@@ -100,14 +101,16 @@ WSGI_APPLICATION = "xfd_django.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": "crossfeed",
-        "USER": "crossfeed",
-        "PASSWORD": "password",
-        "HOST": "db",
+        "NAME": os.getenv('DB_NAME'),
+        "USER": os.getenv('DB_USERNAME'),
+        "PASSWORD": os.getenv('DB_PASSWORD'),
+        "HOST": os.getenv('DB_HOST'),
         "PORT": "5432",
+        'TEST': {
+            'NAME': 'crossfeed_test',  # Name of the test database
+        }
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
