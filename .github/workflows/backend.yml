@@ -88,6 +88,13 @@ jobs:
           key: pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: pip-
       - run: pip install -r requirements.txt
+      - name: Run db locally
+        run: |
+          cp dev.env.example .env
+          docker compose up -d db
+          npm install -g wait-port
+          wait-port -t 3000 5432
+        working-directory: ./
       - run: make pytest
 
   test_worker:

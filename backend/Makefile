@@ -5,6 +5,6 @@ syncdb:
 	docker compose exec backend python manage.py syncdb
 
 pytest:
-	docker-compose exec backend python manage.py makemigrations 
-	docker-compose exec backend python manage.py migrate
-	docker-compose exec backend pytest --no-migrations --reuse-db $(FILE)
+	docker compose exec backend python manage.py makemigrations 
+	docker compose exec backend python manage.py migrate
+	docker compose exec backend pytest --no-migrations --reuse-db $(FILE)
