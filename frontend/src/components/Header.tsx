@@ -1,32 +1,23 @@
-import React, { FC, useEffect, useState } from 'react';
+import React, { FC } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
-import { NavLink, Link, useLocation } from 'react-router-dom';
-import {
-  AppBar,
-  Toolbar,
-  IconButton,
-  Drawer,
-  ListItem,
-  List,
-  Box,
-  Typography,
-  useMediaQuery
-} from '@mui/material';
-import { ChevronLeft, FilterAlt, Menu as MenuIcon } from '@mui/icons-material';
-import { NavItem } from './NavItem';
 import { useAuthContext } from 'context';
+import {
+  useUserLevel,
+  GLOBAL_ADMIN,
+  REGIONAL_ADMIN,
+  STANDARD_USER
+} from 'hooks/useUserLevel';
+import { matchPath } from 'utils/matchPath';
+import { AppBar, Toolbar, IconButton, Box, Typography } from '@mui/material';
+import { ChevronLeft, FilterAlt } from '@mui/icons-material';
+import { useTheme } from '@mui/system';
+import { NavItem } from './NavItem';
+import { UserMenu } from './UserMenu';
 import logo from '../assets/cyhydashboard.svg';
 import cisaLogo from '../assets/cisaSeal.svg';
-import { UserMenu } from './UserMenu';
-import { matchPath } from 'utils/matchPath';
-import { useTheme } from '@mui/system';
-import { useUserLevel } from 'hooks/useUserLevel';
 
 const Root = styled('div')(() => ({}));
-
-const GLOBAL_ADMIN = 3;
-const REGIONAL_ADMIN = 2;
-const STANDARD_USER = 1;
 
 interface NavItemType {
   title: string | JSX.Element;
@@ -57,14 +48,6 @@ export const Header: React.FC<HeaderProps> = ({
   const { user, logout } = useAuthContext();
   const theme = useTheme();
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  let drawerItems: NavItemType[] = [];
-  const toggleDrawer = (newOpen: boolean) => () => {
-    setDrawerOpen(newOpen);
-  };
-
   const { userLevel, formattedUserType } = useUserLevel();
 
   const navItems: NavItemType[] = [
@@ -72,15 +55,13 @@ export const Header: React.FC<HeaderProps> = ({
       title: 'Overview',
       path: '/',
       users: STANDARD_USER,
-      exact: true,
-      onClick: toggleDrawer(false)
+      exact: true
     },
     {
       title: 'Inventory',
       path: '/inventory',
       users: STANDARD_USER,
-      exact: false,
-      onClick: toggleDrawer(false)
+      exact: false
     }
   ].filter(({ users }) => users <= userLevel);
 
@@ -122,36 +103,13 @@ export const Header: React.FC<HeaderProps> = ({
       onClick: logout,
       exact: true
     }
-  ];
+  ].filter(({ users }) => users <= userLevel);
 
   // const orgPageMatch = useRouteMatch('/organizations/:id');
 
   const desktopNavItems: JSX.Element[] = navItems.map((item) => (
     <NavItem key={item.title.toString()} {...item} />
   ));
-
-  const handleResize = () => {
-    if (window.innerWidth < 1330) {
-      setIsMobile(true);
-    } else {
-      setIsMobile(false);
-    }
-  };
-
-  useEffect(() => {
-    window.addEventListener('resize', handleResize);
-  });
-
-  if (isMobile && userMenuItems) {
-    userMenuItems.forEach((item) => {
-      if (item.title !== 'Logout') {
-        item.onClick = toggleDrawer(false);
-      }
-    });
-    drawerItems = [...navItems, ...userMenuItems];
-  }
-
-  const isSmallerThanMds = useMediaQuery(theme.breakpoints.down('mds'));
 
   return (
     <Root>
@@ -200,36 +158,26 @@ export const Header: React.FC<HeaderProps> = ({
                   alt="CyHy Dashboard Icon Navigate Home"
                 />
               </Link>
-              {!isMobile && (
-                <Box
-                  display="flex"
-                  width="max-content"
-                  sx={{
-                    [theme.breakpoints.down('sm')]: {
-                      display: 'flex'
-                    }
-                  }}
-                >
-                  {desktopNavItems.slice()}
-                </Box>
-              )}
-            </Box>
-            {!isSmallerThanMds ? (
               <Box
+                width="max-content"
+                sx={{
+                  display: { xs: 'none', sm: 'none', md: 'flex' }
+                }}
+              >
+                {desktopNavItems}
+              </Box>
+            </Box>
+            {userLevel > 0 && (
+              <Box
+                sx={{ display: { xs: 'none', sm: 'none', md: 'flex' } }}
                 textTransform="uppercase"
-                display="flex"
                 width="auto"
                 minWidth="max-content"
               >
-                {user && userLevel > 0 ? (
-                  <Typography>{formattedUserType}</Typography>
-                ) : (
-                  <></>
-                )}
+                <Typography>{formattedUserType}</Typography>
               </Box>
-            ) : (
-              <></>
             )}
+
             <Box
               display="flex"
               flexDirection="row"
@@ -237,55 +185,12 @@ export const Header: React.FC<HeaderProps> = ({
               justifyContent="end"
             >
               {userLevel > 0 && (
-                <>{!isMobile && <UserMenu userMenuItems={userMenuItems} />}</>
-              )}
-              {user && isMobile && (
-                <IconButton
-                  edge="start"
-                  style={{
-                    marginLeft: theme.spacing(2),
-                    display: 'flex'
-                  }}
-                  aria-label="toggle mobile menu"
-                  color="inherit"
-                  onClick={toggleDrawer(true)}
-                >
-                  <MenuIcon />
-                </IconButton>
+                <UserMenu userMenuItems={userMenuItems} navItems={navItems} />
               )}
             </Box>
           </Toolbar>
         </Box>
       </AppBar>
-      <Drawer
-        anchor="right"
-        open={drawerOpen}
-        onClose={toggleDrawer(false)}
-        data-testid="mobilenav"
-        PaperProps={{
-          sx: {
-            backgroundColor: 'primary.main',
-            color: 'white'
-          }
-        }}
-      >
-        <List sx={{ p: 2 }}>
-          {drawerItems.map(({ title, path }) => (
-            <React.Fragment key={title.toString()}>
-              {path && (
-                <ListItem
-                  sx={{ color: 'white' }}
-                  exact
-                  component={NavLink}
-                  to={path}
-                >
-                  {title}
-                </ListItem>
-              )}
-            </React.Fragment>
-          ))}
-        </List>
-      </Drawer>
     </Root>
   );
 };
