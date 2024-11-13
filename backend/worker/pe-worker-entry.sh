@@ -62,6 +62,8 @@ while true; do
     COMMAND="pe-source cybersixgill --org=$ORG --soc_med_included"
   elif [[ "$SERVICE_TYPE" = *"xpanse"* ]]; then
     COMMAND="pe-source xpanse --org='$ORG'"
+  elif [[ "$SERVICE_TYPE" = *"asmSync"* ]]; then
+    COMMAND="pe-asm-sync asm-sqs --org='$ORG'"
   else
     echo "Unsupported SERVICE_TYPE: $SERVICE_TYPE"
     break
