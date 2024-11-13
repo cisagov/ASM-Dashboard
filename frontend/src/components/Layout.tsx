@@ -160,7 +160,6 @@ export const Layout: React.FC<PropsWithChildren<ContextType>> = ({
           <GovBanner />
           <SkipToMainContent />
         </div>
-        {/* {!pathname.includes('/readysetcyber') ? ( */}
         <>
           <div
             style={{
@@ -212,13 +211,6 @@ export const Layout: React.FC<PropsWithChildren<ContextType>> = ({
             </Main>
           </div>
         </>
-        {/* // ) : (
-        //   <>
-        //     {/* <RSCHeader /> */}
-        {/* //     <div className={classes.content}>{children}</div> */}
-        {/* <RSCFooter /> */}
-        {/* //   </> */}
-        {/* // )} */}
       </div>
     </StyledScopedCssBaseline>
   );
