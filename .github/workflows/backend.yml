@@ -26,18 +26,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - id: setup-python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: pip-
 
-      - run: pip install -r worker/requirements.txt
+      - run: pip install -r requirements.txt
 
       - name: Lint with pylint
         run: pylint backend/src
@@ -46,20 +45,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
       - name: Run site locally
         run: |
           cp dev.env.example .env
           docker compose up -d db backend es
-          npm install -g wait-port
-          wait-port -t 3000 5432 9200 9300
+          python -m pip install wait-for-it
+          wait-for-it localhost:3000 --timeout=10
+          wait-for-it localhost:5432 --timeout=10
+          wait-for-it localhost:9200 --timeout=10
+          wait-for-it localhost:9300 --timeout=10
         working-directory: ./
 
       - name: Sync database
         run: make syncdb
 
-      - name: Package
+      - name: Package with Serverless
         run: npx sls package
         env:
           SLS_DEBUG: '*'
@@ -81,7 +88,7 @@ jobs:
           key: pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: pip-
       - run: pip install -r requirements.txt
-      - run: pytest xfd_django/xfd_api/tests/
+      - run: pytest src/xfd_django/xfd_api/tests/
   
   test_worker:
     runs-on: ubuntu-latest
