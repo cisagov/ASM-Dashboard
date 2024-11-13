@@ -116,7 +116,7 @@ async def get_user_info_from_cognito(token):
     return user_info
 
 
-async def get_token_from_header(request: Request) -> str:
+async def get_token_from_header(request: Request) -> Optional[str]:
     """
     Extract token from the Authorization header, allowing 'Bearer' or raw tokens.
 
@@ -124,21 +124,14 @@ async def get_token_from_header(request: Request) -> str:
         request (Request): The incoming request object.
 
     Returns:
-        str: The token extracted from the Authorization header.
-
-    Raises:
-        HTTPException: If the Authorization header is missing or improperly formatted.
+        Optional[str]: The token extracted from the Authorization header, or None if missing.
     """
     auth_header = request.headers.get("Authorization")
     if auth_header:
         if auth_header.startswith("Bearer "):
             return auth_header[7:]  # Remove 'Bearer ' prefix
         return auth_header  # Return the token directly if no 'Bearer ' prefix
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Authorization header is missing",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    return None
 
 
 def get_user_by_api_key(api_key: str):
@@ -155,6 +148,7 @@ def get_user_by_api_key(api_key: str):
 
 
 def get_current_active_user(
+    request: Request,
     api_key: Optional[str] = Security(api_key_header),
     token: Optional[str] = Depends(get_token_from_header),
 ):
@@ -162,6 +156,7 @@ def get_current_active_user(
     Ensure the current user is authenticated and active, supporting either API key or token.
 
     Args:
+        request (Request): The incoming request object.
         api_key (Optional[str]): The API key provided in headers.
         token (Optional[str]): The JWT token from the Authorization header.
 
