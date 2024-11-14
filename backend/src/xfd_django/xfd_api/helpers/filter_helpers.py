@@ -104,6 +104,8 @@ def filter_domains(domains: QuerySet, domain_filters: DomainFilters):
         return domains
     except Domain.DoesNotExist as e:
         raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 def filter_vulnerabilities(
@@ -123,7 +125,9 @@ def filter_vulnerabilities(
                 id=vulnerability_filters.id
             )
             if not vulnerability_by_id:
-                raise Http404("No Vulnerabilities found with the provided id")
+                raise Vulnerability.DoesNotExist(
+                    "No Vulnerabilities found with the provided id"
+                )
             vulnerabilities = vulnerabilities.filter(id=vulnerability_by_id)
 
         if vulnerability_filters.title:
@@ -131,7 +135,9 @@ def filter_vulnerabilities(
                 title=vulnerability_filters.title
             )
             if not vulnerabilities_by_title.exists():
-                raise Http404("No Vulnerabilities found with the provided title")
+                raise Vulnerability.DoesNotExist(
+                    "No Vulnerabilities found with the provided title"
+                )
             vulnerabilities = vulnerabilities.filter(id__in=vulnerabilities_by_title)
 
         if vulnerability_filters.domain:
@@ -139,7 +145,9 @@ def filter_vulnerabilities(
                 domain=vulnerability_filters.domain
             )
             if not vulnerabilities_by_domain.exists():
-                raise Http404("No Vulnerabilities found with the provided domain")
+                raise Vulnerability.DoesNotExist(
+                    "No Vulnerabilities found with the provided domain"
+                )
             vulnerabilities = vulnerabilities.filter(id__in=vulnerabilities_by_domain)
 
         if vulnerability_filters.severity:
@@ -147,7 +155,7 @@ def filter_vulnerabilities(
                 severity=vulnerability_filters.severity
             )
             if not vulnerabilities_by_severity.exists():
-                raise Http404(
+                raise Vulnerability.DoesNotExist(
                     "No Vulnerabilities found with the provided severity level"
                 )
             vulnerabilities = vulnerabilities.filter(id__in=vulnerabilities_by_severity)
@@ -157,7 +165,9 @@ def filter_vulnerabilities(
                 cpe=vulnerability_filters.cpe
             )
             if not vulnerabilities_by_cpe.exists():
-                raise Http404("No Vulnerabilities found with the provided Cpe")
+                raise Vulnerability.DoesNotExist(
+                    "No Vulnerabilities found with the provided Cpe"
+                )
             vulnerabilities = vulnerabilities.filter(id__in=vulnerabilities_by_cpe)
 
         if vulnerability_filters.state:
@@ -165,7 +175,9 @@ def filter_vulnerabilities(
                 state=vulnerability_filters.state
             )
             if not vulnerabilities_by_state.exists():
-                raise Http404("No Vulnerabilities found with the provided state")
+                raise Vulnerability.DoesNotExist(
+                    "No Vulnerabilities found with the provided state"
+                )
             vulnerabilities = vulnerabilities.filter(id__in=vulnerabilities_by_state)
 
         if vulnerability_filters.organization:
@@ -174,7 +186,7 @@ def filter_vulnerabilities(
                 organization_id=vulnerability_filters.organization
             )
             if not domains_by_organization.exists():
-                raise Http404(
+                raise Vulnerability.DoesNotExist(
                     "No Organization-Domain found with the provided organization ID"
                 )
             domains = domains.filter(id__in=domains_by_organization)
@@ -182,7 +194,7 @@ def filter_vulnerabilities(
                 id__in=domains
             )
             if not vulnerabilities_by_domain.exists():
-                raise Http404(
+                raise Vulnerability.DoesNotExist(
                     "No Vulnerabilities found with the provided organization ID"
                 )
             vulnerabilities = vulnerabilities.filter(id__in=vulnerabilities_by_domain)
@@ -192,8 +204,12 @@ def filter_vulnerabilities(
                 isKev=vulnerability_filters.isKev
             )
             if not vulnerabilities_by_is_kev.exists():
-                raise Http404("No Vulnerabilities found with the provided isKev value")
+                raise Vulnerability.DoesNotExist(
+                    "No Vulnerabilities found with the provided isKev value"
+                )
             vulnerabilities = vulnerabilities.filter(id__in=vulnerabilities_by_is_kev)
         return vulnerabilities
+    except Domain.DoesNotExist as e:
+        raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

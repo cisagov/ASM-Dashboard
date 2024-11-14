@@ -70,5 +70,7 @@ def export_domains(domain_filters: DomainFilters):
 
         # TODO: Integrate methods to generate CSV from queryset and save to S3 bucket
         return domains
+    except Domain.DoesNotExist as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
