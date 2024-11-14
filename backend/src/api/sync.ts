@@ -301,6 +301,7 @@ async function processOrganizations(client: Client, organizations) {
 
 export const ingest = wrapHandler(async (event) => {
   const originalChecksum = event.headers['x-checksum'];
+  const cursor = event.headers['x-cursor'];
   const newChecksum = event.body ? createChecksum(event.body) : '';
   const csvData = event.body;
 
@@ -312,7 +313,7 @@ export const ingest = wrapHandler(async (event) => {
       try {
         const { key } = await s3Client.saveCSV(
           csvData,
-          '',
+          cursor,
           process.env.IS_LOCAL ? 'crossfeed-local-exports' : 'crossfeed-lz-sync'
         );
         uploadKey = key;

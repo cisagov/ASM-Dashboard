@@ -25,11 +25,10 @@ import { plainToClass } from 'class-transformer';
 import savePortScan from './helpers/savePortScan';
 import axios from 'axios';
 import { createChecksum } from '../tools/csv-utils';
-// import { TEST_DATA } from './REMOVE_ME';
 import { getRepository } from 'typeorm';
 import { unparse } from 'papaparse';
-import { chunk } from 'lodash';
 import saveOrganizationToMdl from './helpers/saveOrganizationToMdl';
+import { chunkBySize } from '../tools/chunk';
 
 /** Removes a value for a given key from the dictionary and then returns it. */
 function getValueAndDelete<T>(
@@ -61,9 +60,7 @@ export const handler = async (commandOptions: CommandOptions) => {
     await client.connect();
     const startTime = Date.now();
     const query = 'SELECT * FROM vmtableau.requests;';
-    // const query = 'SELECT * FROM organization;';
     const result = await client.query(query);
-    // const result = { rows: TEST_DATA };
     const endTime = Date.now();
     const durationMs = endTime - startTime;
     const durationSeconds = Math.round(durationMs / 1000);
@@ -278,7 +275,8 @@ export const handler = async (commandOptions: CommandOptions) => {
     await connectToDatalake();
     const orgRepository = getRepository(DL_Organization);
     const organizations = await orgRepository.find({
-      relations: ['location', 'sectors', 'cidrs', 'parent', 'children']
+      relations: ['location', 'sectors', 'cidrs', 'parent', 'children'],
+      order: { acronym: 'DESC' }
     });
 
     const shapedOrganizations = organizations.map((item) => {
@@ -292,10 +290,12 @@ export const handler = async (commandOptions: CommandOptions) => {
       };
     });
 
-    const chunkedOrgs = chunk(shapedOrganizations, 1000);
+    const { chunks, chunkBounds } = chunkBySize(shapedOrganizations, 4194304);
 
-    const requests = chunkedOrgs.map((orgs) => {
+    const requests = chunks.map((orgs, i) => {
       const csvRows = unparse(orgs, { header: true });
+      const start = chunkBounds[i].start;
+      const end = chunkBounds[i].end;
       const checksum = createChecksum(csvRows);
       console.log(
         `Posting CSV file with ${orgs.length} organizations to /sync`
@@ -306,7 +306,8 @@ export const handler = async (commandOptions: CommandOptions) => {
         headers: {
           'Content-Type': 'text/csv',
           Authorization: process.env.DMZ_API_KEY,
-          'x-checksum': checksum
+          'x-checksum': checksum,
+          'x-cursor': `${start}-${end}`
         },
         data: csvRows
       });
