@@ -111,7 +111,7 @@ app.use(
           'https://cognito-idp.us-east-1.amazonaws.com',
           'https://api.staging-cd.crossfeed.cyber.dhs.gov'
         ],
-        frameSrc: ["'self'", 'https://www.dhs.gov/ntas/'],
+        frameSrc: ["'self'"],
         imgSrc: [
           "'self'",
           'data:',
