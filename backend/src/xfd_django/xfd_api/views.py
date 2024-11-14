@@ -271,11 +271,11 @@ async def export_vulnerabilities():
 
 @api_router.get(
     "/vulnerabilities/{vulnerabilityId}",
-    # dependencies=[Depends(get_current_active_user)],
+    dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
-    tags="Get vulnerability by id",
+    tags=["Get vulnerability by id"],
 )
-async def call_get_vulnerability_by_id(vuln_id):
+async def call_get_vulnerability_by_id(vuln_id: str):
     """
     Get vulnerability by id.
     Returns:
