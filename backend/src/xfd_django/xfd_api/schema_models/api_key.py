@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict
 class ApiKey(BaseModel):
     """Pydantic model for the ApiKey model."""
 
-    id: UUID
+    id: str
     createdAt: datetime
     updatedAt: datetime
     lastUsed: Optional[datetime]

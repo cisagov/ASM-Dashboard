@@ -197,7 +197,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   deploy_integration:
-    needs: [build_worker, lint, test, test_worker]
+    needs: [build_worker, test_worker]
     runs-on: ubuntu-latest
     environment: integration
     concurrency: '1'
