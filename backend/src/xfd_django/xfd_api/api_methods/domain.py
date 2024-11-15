@@ -47,6 +47,14 @@ def search_domains(domain_search: DomainSearch, current_user):
             sort_direction(domain_search.sort, domain_search.order)
         )
 
+        # Apply global filters based on user permissions
+        if not is_global_view_admin(current_user):
+            orgs = get_org_memberships(current_user)
+            if not orgs:
+                # No organization memberships, return empty result
+                return [], 0
+            domains = domains.filter(organization__id__in=orgs)
+
         # Add a filter to restrict based on FCEB and CIDR criteria
         domains = domains.filter(Q(isFceb=True) | Q(isFceb=False, fromCidr=True))
 
