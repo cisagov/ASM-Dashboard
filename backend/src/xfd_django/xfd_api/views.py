@@ -352,17 +352,17 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 
 
 @api_router.get(
-    "/users/{regionId}",
+    "/users/{region_id}",
     response_model=List[UserSchema],
     # dependencies=[Depends(get_current_active_user)],
     tags=["User"],
 )
-async def call_get_users(regionId):
+async def call_get_users(region_id):
     """
     Call get_users()
 
     Args:
-        regionId: Region IDs to filter users by.
+        region_id: Region IDs to filter users by.
 
     Raises:
         HTTPException: If the user is not authorized or no users are found.
@@ -370,7 +370,7 @@ async def call_get_users(regionId):
     Returns:
         List[User]: A list of users matching the filter criteria.
     """
-    return get_users(regionId)
+    return get_users(region_id)
 
 
 # ========================================
@@ -417,7 +417,7 @@ async def call_create_saved_search(
     request = {
         "name": name,
         "searchTerm": search_term,
-        "regionId": region_id,
+        "region_id": region_id,
         "createdById": current_user,
     }
 
@@ -756,7 +756,7 @@ async def get_organizations_by_state(
 
 
 @api_router.get(
-    "/organizations/regionId/{region_id}",
+    "/organizations/region_id/{region_id}",
     dependencies=[Depends(get_current_active_user)],
     response_model=List[OrganizationSchema.GetOrganizationSchema],
     tags=["Organizations"],
@@ -906,11 +906,11 @@ async def update_granular_scan(
 )
 async def list_organizations_v2(
     state: Optional[List[str]] = Query(None),
-    regionId: Optional[List[str]] = Query(None),
+    region_id: Optional[List[str]] = Query(None),
     current_user: User = Depends(get_current_active_user),
 ):
     """Retrieve a list of all organizations (version 2)."""
-    return organization.list_organizations_v2(state, regionId, current_user)
+    return organization.list_organizations_v2(state, region_id, current_user)
 
 
 # ========================================
