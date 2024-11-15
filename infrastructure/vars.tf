@@ -1,13 +1,13 @@
 variable "aws_region" {
   description = "aws_region"
   type        = string
-  default     = "us-gov-east-1"
+  default     = "us-east-1"
 }
 
 variable "aws_other_region" {
   description = "aws_other_region"
   type        = string
-  default     = "us-gov-west-1"
+  default     = "us-east-1"
 }
 
 variable "aws_partition" {
