@@ -236,12 +236,6 @@ SCAN_SCHEMA = {
         global_scan=False,
         description="Creates domains from root domains by doing a single DNS lookup for each root domain.",
     ),
-    "rscSync": ScanSchema(
-        type="fargate",
-        isPassive=True,
-        global_scan=True,
-        description="Retrieves and saves assessments from ReadySetCyber mission instance.",
-    ),
     "savedSearch": ScanSchema(
         type="fargate",
         isPassive=True,

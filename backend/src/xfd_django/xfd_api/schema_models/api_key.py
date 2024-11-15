@@ -15,16 +15,21 @@ class ApiKey(BaseModel):
     createdAt: datetime
     updatedAt: datetime
     lastUsed: Optional[datetime]
-    hashedKey: Optional[str]
+    hashedKey: Optional[
+        str
+    ] = None  # Make optional to avoid validation error in response
     lastFour: Optional[str]
-    userId: Optional[UUID]
+    userId: Optional[UUID] = None  # Make optional to avoid validation error in response
+    api_key: Optional[
+        str
+    ] = None  # Add the actual key to the schema for response inclusion
 
     @classmethod
     def model_validate(cls, obj):
         # Ensure that we convert the UUIDs to strings when validating
         api_key_data = obj.__dict__.copy()
 
-        # Remove the '_state' field or any other unwanted internal Django fields
+        # Remove the '_state' field or any other unwanted internal fields
         api_key_data.pop("_state", None)
         api_key_data["userId"] = api_key_data.pop("userId_id", None)
 

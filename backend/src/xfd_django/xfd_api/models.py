@@ -35,48 +35,6 @@ class ApiKey(models.Model):
         db_table = "api_key"
 
 
-class Assessment(models.Model):
-    """The Assessment model."""
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    createdAt = models.DateTimeField(auto_now_add=True, db_column="createdAt")
-    updatedAt = models.DateTimeField(auto_now=True, db_column="updatedAt")
-    rscId = models.CharField(max_length=255, db_column="rscId", unique=True)
-    type = models.CharField(max_length=255)
-
-    user = models.ForeignKey(
-        "User",
-        db_column="userId",
-        blank=True,
-        null=True,
-        on_delete=models.CASCADE,
-        related_name="assessments",
-    )
-
-    class Meta:
-        """The Meta class for Assessment."""
-
-        managed = True
-        db_table = "assessment"
-
-
-class Category(models.Model):
-    """The Category model."""
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=255)
-    number = models.CharField(max_length=255, unique=True)
-    shortName = models.CharField(
-        db_column="shortName", max_length=255, blank=True, null=True
-    )
-
-    class Meta:
-        """The Meta class for Category model."""
-
-        managed = True
-        db_table = "category"
-
-
 class Cpe(models.Model):
     """The Cpe model."""
 
@@ -360,67 +318,6 @@ class QueryResultCache(models.Model):
         db_table = "query-result-cache"
 
 
-class Question(models.Model):
-    """The Question model."""
-
-    id = models.UUIDField(primary_key=True)
-    name = models.CharField(max_length=255)
-    description = models.CharField(blank=True, null=True)
-    longForm = models.CharField(db_column="longForm")
-    number = models.CharField(max_length=255)
-    category = models.ForeignKey(
-        Category, models.DO_NOTHING, db_column="categoryId", blank=True, null=True
-    )
-
-    class Meta:
-        """The Meta class for Question."""
-
-        db_table = "question"
-        managed = True
-        unique_together = (("category", "number"),)
-
-
-class Resource(models.Model):
-    """The Resource model."""
-
-    id = models.UUIDField(primary_key=True)
-    description = models.CharField()
-    name = models.CharField()
-    type = models.CharField()
-    url = models.CharField(unique=True)
-    questions = models.ManyToManyField(
-        "Question",
-        related_name="resources",
-        db_table="question_resources_resource",
-    )
-
-    class Meta:
-        """The Meta class for Resource."""
-
-        managed = True
-        db_table = "resource"
-
-
-class Response(models.Model):
-    """The Response model."""
-
-    id = models.UUIDField(primary_key=True)
-    selection = models.CharField()
-    assessmentId = models.ForeignKey(
-        Assessment, models.DO_NOTHING, db_column="assessmentId", blank=True, null=True
-    )
-    questionId = models.ForeignKey(
-        Question, models.DO_NOTHING, db_column="questionId", blank=True, null=True
-    )
-
-    class Meta:
-        """The Meta class for Resource."""
-
-        managed = True
-        db_table = "response"
-        unique_together = (("assessmentId", "questionId"),)
-
-
 class Role(models.Model):
     """The Role model."""
 
@@ -632,7 +529,6 @@ class UserType(models.TextChoices):
     GLOBAL_ADMIN = "globalAdmin"
     GLOBAL_VIEW = "globalView"
     REGIONAL_ADMIN = "regionalAdmin"
-    READY_SET_CYBER = "readySetCyber"
     STANDARD = "standard"
 
 
