@@ -1,4 +1,7 @@
 aws_region                           = "us-east-1"
+aws_other_region                     = "us-east-1"
+aws_partition                        = "aws"
+is_dmz                               = true
 project                              = "Crossfeed"
 stage                                = "integration"
 frontend_domain                      = "integration.crossfeed.cyber.dhs.gov"
