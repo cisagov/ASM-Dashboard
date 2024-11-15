@@ -18,6 +18,7 @@ from xfd_django.asgi import app
 client = TestClient(app)
 
 test_id = "c0effe93-3647-475a-a0c5-0b629c348588"
+bad_id = "c0effe93-3647-475a-a0c5-0b629c348590"
 filters = {
     "id": "d39a8536-0b64-45b6-b621-5d954329221c",
     "title": "DNS Twist Domains",
@@ -51,6 +52,27 @@ def test_get_vulnerability_by_id():
 
     assert response.status_code == 200
     assert data["id"] == test_id
+
+
+@pytest.mark.django_db(transaction=True)
+def test_get_vulnerability_by_id_not_found():
+    # Get error 404 if vulnerability does not exist
+
+    user = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.GLOBAL_ADMIN,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+
+    response = client.get(
+        f"/vulnerabilities/{bad_id}",
+        headers={"Authorization": "Bearer " + create_jwt_token(user)},
+    )
+
+    assert response.status_code == 404
 
 
 @pytest.mark.django_db(transaction=True)
