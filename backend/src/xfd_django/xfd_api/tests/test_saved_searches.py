@@ -36,7 +36,6 @@ def test_create_saved_search_by_user():
             "filters": [],
         },
     )
-    print(response.json())  # Print the response content for debugging
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == name
@@ -232,7 +231,6 @@ def test_delete_saved_search_by_user_without_access_fails():
 
 @pytest.mark.django_db(transaction=True)
 def test_list_saved_searches_by_global_view_returns_none():
-    # pass
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -254,7 +252,6 @@ def test_list_saved_searches_by_global_view_returns_none():
         "/saved-searches",
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
-    print(response.json())  # Print the response content for debugging
     assert response.status_code == 200
     assert len(response.json()) == 0
 
