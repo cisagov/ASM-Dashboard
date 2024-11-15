@@ -39,8 +39,8 @@ def create_saved_search(request):
             filters=[
                 {
                     "type": "any",
-                    "field": request.get("field", "organization.regionId"),
-                    "values": [request.get("regionId")],
+                    "field": request.get("field", ""),
+                    "values": [request.get("values", "")],
                 }
             ],
             createdById=request.get("createdById"),
@@ -70,9 +70,11 @@ def create_saved_search(request):
         raise HTTPException(status_code=404, detail=str(e))
 
 
-def list_saved_searches():
+def list_saved_searches(user):
     """List all saved searches."""
-
+    if user.userType == "globalView":
+        # raise HTTPException(status_code=403, detail="Global View users cannot access saved searches.")
+        return []
     try:
         all_saved_searches = SavedSearch.objects.all()
         saved_search_list = []

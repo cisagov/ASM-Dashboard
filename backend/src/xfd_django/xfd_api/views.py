@@ -45,6 +45,7 @@ from .schema_models.domain import DomainFilters, DomainSearch
 from .schema_models.notification import Notification as NotificationSchema
 from .schema_models.role import Role as RoleSchema
 from .schema_models.saved_search import SavedSearch as SavedSearchSchema
+from .schema_models.saved_search import SavedSearchCreate
 from .schema_models.search import SearchBody, SearchRequest, SearchResponse
 from .schema_models.user import User as UserSchema
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
@@ -366,17 +367,19 @@ async def delete_api_key(
     tags=["Saved Search"],
 )
 async def call_create_saved_search(
-    name: str,
-    search_term: str,
-    region_id: str,
+    saved_search: SavedSearchCreate,
     current_user: User = Depends(get_current_active_user),
 ):
     """Create a new saved search."""
 
     request = {
-        "name": name,
-        "searchTerm": search_term,
-        "regionId": region_id,
+        "name": saved_search.name,
+        "count": saved_search.count,
+        "sortDirection": saved_search.sortDirection,
+        "sortField": saved_search.sortField,
+        "searchTerm": saved_search.searchTerm,
+        "searchPath": saved_search.searchPath,
+        "filters": saved_search.filters,
         "createdById": current_user,
     }
 
@@ -390,9 +393,9 @@ async def call_create_saved_search(
     response_model=List[SavedSearchSchema],
     tags=["Saved Search"],
 )
-async def call_list_saved_searches():
+async def call_list_saved_searches(user: User = Depends(get_current_active_user)):
     """Retrieve a list of all saved searches."""
-    return list_saved_searches()
+    return list_saved_searches(user)
 
 
 # Get individual saved search by ID

@@ -16,6 +16,16 @@ class SavedSearchFilters(BaseModel):
     values: List[Any]
 
 
+class SavedSearchCreate(BaseModel):
+    name: str
+    searchTerm: str
+    sortDirection: str
+    sortField: str
+    count: int
+    filters: List[SavedSearchFilters]
+    searchPath: str
+
+
 class SavedSearch(BaseModel):
     """SavedSearch schema."""
 
