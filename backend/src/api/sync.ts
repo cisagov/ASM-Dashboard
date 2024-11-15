@@ -1,54 +1,9 @@
 import { parse } from 'papaparse';
 import S3Client from '../tasks/s3-client';
 import { createChecksum } from '../tools/csv-utils';
-import { REGION_STATE_MAP, wrapHandler } from './helpers';
+import { wrapHandler } from './helpers';
 import { Client } from 'pg';
-import { v4 } from 'uuid';
-import { getCidrInfo } from '../tools/cidr-utils';
-import { Cidr } from 'src/models/mini_data_lake/cidrs';
 import { DL_Organization } from 'src/models';
-
-interface ShapedOrg {
-  networks: string[];
-  name: string;
-  report_types: string;
-  scan_types: string;
-  stakeholder: string;
-  retired: string;
-  period_start: string;
-  enrolled: string;
-  acronym: string;
-  country: string;
-  country_name: string;
-  state: string;
-  children: string;
-  state_name: string;
-  state_fips: string;
-  county: string;
-  county_fips: string;
-  agency_type: string;
-}
-
-interface RawOrganization {
-  cidrs: string;
-  name: string;
-  report_types: string;
-  scan_types: string;
-  stakeholder: boolean;
-  retired: boolean;
-  period_start: string;
-  enrolled: string;
-  acronym: string;
-  country: string;
-  country_name: string;
-  state: string;
-  children: string;
-  state_name: string;
-  state_fips: string;
-  county: string;
-  county_fips: string;
-  agency_type: string;
-}
 
 type ParsedOrganization = DL_Organization;
 
