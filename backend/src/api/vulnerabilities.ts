@@ -132,7 +132,8 @@ class VulnerabilitySearch {
          vulnerability.severity NOT ILIKE 'Low' AND
          vulnerability.severity NOT ILIKE 'Medium' AND
          vulnerability.severity NOT ILIKE 'High' AND
-         vulnerability.severity NOT ILIKE 'Critical' OR
+         vulnerability.severity NOT ILIKE 'Critical'AND
+         vulnerability.severity NOT ILIKE '' OR
          vulnerability.severity ILIKE :other`,
           {
             other: 'Other'
