@@ -229,7 +229,7 @@ async def export_vulnerabilities():
 
 
 @api_router.get(
-    "/vulnerabilities/{vulnerabilityId}",
+    "/vulnerabilities/{vuln_id}",
     dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
     tags=["Get vulnerability by id"],

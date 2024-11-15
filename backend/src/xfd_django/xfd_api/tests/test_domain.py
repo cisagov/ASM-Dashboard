@@ -1,12 +1,6 @@
 # Standard Python Libraries
 from datetime import datetime
-import logging
 import secrets
-
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)  # Set the logging level to DEBUG
-logger = logging.getLogger(__name__)
-
 
 # Third-Party Libraries
 from fastapi.testclient import TestClient
@@ -33,6 +27,7 @@ filters = {
 
 @pytest.mark.django_db(transaction=True)
 def test_get_domain_by_id():
+    # Get domain by Id.
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -49,11 +44,12 @@ def test_get_domain_by_id():
     data = response.json()
 
     assert response.status_code == 200
+    assert data["id"] == test_id
 
 
 @pytest.mark.django_db(transaction=True)
-def test_filter_domain_by_ip(capfd):
-    # Filter domains by ip
+def test_search_domain_by_ip():
+    # Search domains by ip
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -75,8 +71,8 @@ def test_filter_domain_by_ip(capfd):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_filter_domain_by_port():
-    # Test filter domains by port
+def test_search_domain_by_port():
+    # Test search domains by port
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -98,8 +94,8 @@ def test_filter_domain_by_port():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_filter_domain_by_service():
-    # Test filter domains by service_id
+def test_search_domain_by_service():
+    # Test search domains by service_id
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -122,8 +118,8 @@ def test_filter_domain_by_service():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_filter_domain_by_organization():
-    # Test filter domains by organization
+def test_search_domain_by_organization():
+    # Test search domains by organization
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -148,8 +144,8 @@ def test_filter_domain_by_organization():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_filter_domain_by_organization_name():
-    # Test filter domains by organization
+def test_search_domain_by_organization_name():
+    # Test search domains by organization
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -176,8 +172,8 @@ def test_filter_domain_by_organization_name():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_filter_domain_by_vulnerabilities():
-    # Test filter domains by vulnerabilities
+def test_search_domain_by_vulnerabilities():
+    # Test search domains by vulnerabilities
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -204,8 +200,8 @@ def test_filter_domain_by_vulnerabilities():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_filter_domains_multiple_criteria():
-    # Test filter domains by multiple criteria
+def test_search_domains_multiple_criteria():
+    # Test search domains by multiple criteria
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -231,8 +227,8 @@ def test_filter_domains_multiple_criteria():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_filter_domains_does_not_exist():
-    # Test filter domains if record does not exist
+def test_search_domains_does_not_exist():
+    # Test search domains if record does not exist
     user = User.objects.create(
         firstName="",
         lastName="",
