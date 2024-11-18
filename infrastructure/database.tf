@@ -193,6 +193,11 @@ resource "aws_instance" "db_accessor" {
   instance_type               = var.db_accessor_instance_class
   associate_public_ip_address = false
 
+  depends_on = [
+    aws_iam_instance_profile.db_accessor,
+    aws_security_group.allow_internal,
+    aws_subnet.backend
+  ]
   tags = {
     Project           = var.project
     Stage             = var.stage
