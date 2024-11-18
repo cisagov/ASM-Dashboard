@@ -200,7 +200,7 @@ resource "aws_db_instance" "matomo_db" {
   engine_version                      = "10.6"
   skip_final_snapshot                 = true
   availability_zone                   = var.matomo_availability_zone
-  multi_az                            = true
+  multi_az                            = false
   backup_retention_period             = 35
   storage_encrypted                   = true
   iam_database_authentication_enabled = true

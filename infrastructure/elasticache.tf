@@ -14,7 +14,7 @@ resource "aws_security_group" "elasticache_security_group" {
 
 resource "aws_elasticache_subnet_group" "crossfeed_vpc" {
   count      = var.is_dmz ? 1 : 0
-  name       = "crossfeed-vpc-subnet-group"
+  name       = "crossfeed-${var.stage}-elasticache-subnet-group"
   subnet_ids = [aws_subnet.backend[0].id]
 
   tags = {
@@ -24,7 +24,7 @@ resource "aws_elasticache_subnet_group" "crossfeed_vpc" {
 
 resource "aws_elasticache_parameter_group" "xfd_redis_group" {
   count  = var.is_dmz ? 1 : 0
-  name   = "my-redis7-1"
+  name   = "crossfeed-${var.stage}-redis7-group"
   family = "redis7"
 
   parameter {
@@ -35,7 +35,7 @@ resource "aws_elasticache_parameter_group" "xfd_redis_group" {
 
 resource "aws_elasticache_cluster" "crossfeed_vpc_elasticache_cluster" {
   count                = var.create_elasticache_cluster ? 1 : 0
-  cluster_id           = "crossfeed-vpc-cluster"
+  cluster_id           = "crossfeed-${var.stage}-elasticache-cluster"
   engine               = "redis"
   node_type            = "cache.r7g.xlarge"
   num_cache_nodes      = 1
@@ -54,7 +54,7 @@ resource "aws_elasticache_cluster" "crossfeed_vpc_elasticache_cluster" {
 
 resource "aws_iam_policy" "elasticache_policy" {
   count       = var.is_dmz ? 1 : 0
-  name        = "elasticache_policy"
+  name        = "crossfeed-${var.stage}-elasticache-policy"
   description = "Policy to allow ElastiCache operations"
   policy = jsonencode({
     Version = "2012-10-17"

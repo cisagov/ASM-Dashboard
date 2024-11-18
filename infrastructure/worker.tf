@@ -484,6 +484,15 @@ resource "aws_s3_bucket_acl" "export_bucket" {
   bucket = aws_s3_bucket.export_bucket.id
   acl    = "private"
 }
+
+resource "aws_s3_bucket_ownership_controls" "export_bucket" {
+  count  = var.is_dmz ? 1 : 0
+  bucket = aws_s3_bucket.export_bucket.id
+  rule {
+    object_ownership = "ObjectWriter"
+  }
+}
+
 resource "aws_s3_bucket_server_side_encryption_configuration" "export_bucket" {
   bucket = aws_s3_bucket.export_bucket.id
   rule {

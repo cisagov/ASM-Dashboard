@@ -81,6 +81,14 @@ resource "aws_s3_bucket_acl" "logging_bucket" {
   acl    = "private"
 }
 
+resource "aws_s3_bucket_ownership_controls" "logging_bucket" {
+  count  = var.is_dmz ? 1 : 0
+  bucket = aws_s3_bucket.logging_bucket.id
+  rule {
+    object_ownership = "ObjectWriter"
+  }
+}
+
 resource "aws_s3_bucket_logging" "logging_bucket" {
   bucket        = aws_s3_bucket.logging_bucket.id
   target_bucket = aws_s3_bucket.logging_bucket.id

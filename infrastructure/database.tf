@@ -37,7 +37,7 @@ resource "aws_db_instance" "db" {
   allow_major_version_upgrade         = true
   skip_final_snapshot                 = true
   availability_zone                   = data.aws_availability_zones.available.names[0]
-  multi_az                            = true
+  multi_az                            = false
   backup_retention_period             = 35
   storage_encrypted                   = true
   iam_database_authentication_enabled = true
@@ -110,11 +110,6 @@ resource "aws_iam_instance_profile" "db_accessor" {
   count = var.create_db_accessor_instance ? 1 : 0
   name  = "crossfeed-db-accessor-${var.stage}"
   role  = aws_iam_role.db_accessor[0].id
-  tags = {
-    Project = var.project
-    Stage   = var.stage
-    Owner   = "Crossfeed managed resource"
-  }
 }
 
 #Attach Policies to Instance Role
@@ -342,6 +337,14 @@ resource "aws_s3_bucket_acl" "reports_bucket" {
   acl    = "private"
 }
 
+resource "aws_s3_bucket_ownership_controls" "reports_bucket" {
+  count  = var.is_dmz ? 1 : 0
+  bucket = aws_s3_bucket.reports_bucket.id
+  rule {
+    object_ownership = "ObjectWriter"
+  }
+}
+
 resource "aws_s3_bucket_server_side_encryption_configuration" "reports_bucket" {
   bucket = aws_s3_bucket.reports_bucket.id
   rule {
@@ -401,6 +404,14 @@ resource "aws_s3_bucket_acl" "pe_db_backups_bucket" {
   count  = var.is_dmz ? 1 : 0
   bucket = aws_s3_bucket.pe_db_backups_bucket.id
   acl    = "private"
+}
+
+resource "aws_s3_bucket_ownership_controls" "pe_db_backups_bucket" {
+  count  = var.is_dmz ? 1 : 0
+  bucket = aws_s3_bucket.pe_db_backups_bucket.id
+  rule {
+    object_ownership = "ObjectWriter"
+  }
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "pe_db_backups_bucket" {
