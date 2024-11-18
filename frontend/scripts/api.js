@@ -19,10 +19,7 @@ app.use((req, res, next) => {
 // These CORS origins work in all Crossfeed environments
 app.use(
   cors({
-    origin: [
-      /^https:\/\/(.*\.)?crossfeed\.cyber\.dhs\.gov$/,
-      /^https:\/\/(.*\.)?readysetcyber\.cyber\.dhs\.gov$/
-    ],
+    origin: [/^https:\/\/(.*\.)?crossfeed\.cyber\.dhs\.gov$/],
     methods: 'GET,POST,PUT,DELETE,OPTIONS'
   })
 );
