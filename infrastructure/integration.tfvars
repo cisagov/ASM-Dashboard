@@ -106,3 +106,4 @@ ssm_redshift_database                = "/crossfeed/integration/REDSHIFT_DATABASE
 ssm_redshift_user                    = "/crossfeed/integration/REDSHIFT_USER"
 ssm_redshift_password                = "/crossfeed/integration/REDSHIFT_PASSWORD"
 create_elasticache_cluster           = true
+matomo_availability_zone             = "us-east-1a"
