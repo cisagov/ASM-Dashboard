@@ -258,133 +258,140 @@ def test_list_saved_searches_by_global_view_returns_none():
 
 @pytest.mark.django_db(transaction=True)
 def test_list_saved_searches_by_user_only_gets_their_search():
-    pass
-    # user = User.objects.create(
-    #     firstName="",
-    #     lastName="",
-    #     email=f"{secrets.token_hex(4)}@example.com",
-    #     userType=UserType.STANDARD,
-    #     createdAt=datetime.now(),
-    #     updatedAt=datetime.now(),
-    # )
-    # user1 = User.objects.create(
-    #     firstName="",
-    #     lastName="",
-    #     email=f"{secrets.token_hex(4)}@example.com",
-    #     userType=UserType.STANDARD,
-    #     createdAt=datetime.now(),
-    #     updatedAt=datetime.now(),
-    # )
-    # search = SavedSearch.objects.create(
-    #     name=f"test-{secrets.token_hex(4)}",
-    #     count=3,
-    #     sortDirection="",
-    #     sortField="",
-    #     searchTerm="",
-    #     searchPath="",
-    #     filters=[],
-    #     createdById=user,
-    # )
-    # search2 = SavedSearch.objects.create(
-    #     name=f"test-{secrets.token_hex(4)}",
-    #     count=3,
-    #     sortDirection="",
-    #     sortField="",
-    #     searchTerm="",
-    #     searchPath="",
-    #     filters=[],
-    #     createdById=user1,
-    # )
-    # response = client.get(
-    #     "/saved-searches",
-    #     headers={"Authorization": "Bearer " + create_jwt_token(user)},
-    # )
-    # assert response.status_code == 200
-    # assert response.json()["count"] == 1
-    # assert response.json()["result"][0]["id"] == str(search.id)
+    # pass
+    user = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+    user1 = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+    search = SavedSearch.objects.create(
+        name=f"test-{secrets.token_hex(4)}",
+        count=3,
+        sortDirection="",
+        sortField="",
+        searchTerm="",
+        searchPath="",
+        filters=[],
+        createdById=user,
+    )
+    search2 = SavedSearch.objects.create(
+        name=f"test-{secrets.token_hex(4)}",
+        count=3,
+        sortDirection="",
+        sortField="",
+        searchTerm="",
+        searchPath="",
+        filters=[],
+        createdById=user1,
+    )
+    response = client.get(
+        "/saved-searches",
+        headers={"Authorization": "Bearer " + create_jwt_token(user)},
+    )
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+    assert response.json()[0]["id"] == str(search.id)
 
 
 @pytest.mark.django_db(transaction=True)
 def test_get_saved_search_by_global_view_fails():
-    pass
-    # search = SavedSearch.objects.create(
-    #     name=f"test-{secrets.token_hex(4)}",
-    #     count=3,
-    #     sortDirection="",
-    #     sortField="",
-    #     searchTerm="",
-    #     searchPath="",
-    #     filters=[],
-    # )
-    # response = client.get(
-    #     f"/saved-searches/{search.id}",
-    #     headers={"Authorization": "Bearer " + create_jwt_token(UserType.GLOBAL_VIEW)},
-    # )
-    # assert response.status_code == 404
+    # pass
+    user = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.GLOBAL_VIEW,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+    search = SavedSearch.objects.create(
+        name=f"test-{secrets.token_hex(4)}",
+        count=3,
+        sortDirection="",
+        sortField="",
+        searchTerm="",
+        searchPath="",
+        filters=[],
+    )
+    response = client.get(
+        f"/saved-searches/{search.id}",
+        headers={"Authorization": "Bearer " + create_jwt_token(user)},
+    )
+    assert response.status_code == 404
 
 
 # This test is passing
 @pytest.mark.django_db(transaction=True)
 def test_get_saved_search_by_user_passes():
-    pass
-    # user = User.objects.create(
-    #     firstName="",
-    #     lastName="",
-    #     email=f"{secrets.token_hex(4)}@example.com",
-    #     userType=UserType.STANDARD,
-    #     createdAt=datetime.now(),
-    #     updatedAt=datetime.now(),
-    # )
-    # search = SavedSearch.objects.create(
-    #     name=f"test-{secrets.token_hex(4)}",
-    #     count=3,
-    #     sortDirection="",
-    #     sortField="",
-    #     searchTerm="",
-    #     searchPath="",
-    #     filters=[],
-    #     createdById=user,
-    # )
-    # response = client.get(
-    #     f"/saved-searches/{search.id}",
-    #     headers={"Authorization": "Bearer " + create_jwt_token(user)},
-    # )
-    # assert response.status_code == 200
-    # assert response.json()["name"] == search.name
+    # pass
+    user = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+    search = SavedSearch.objects.create(
+        name=f"test-{secrets.token_hex(4)}",
+        count=3,
+        sortDirection="",
+        sortField="",
+        searchTerm="",
+        searchPath="",
+        filters=[],
+        createdById=user,
+    )
+    response = client.get(
+        f"/saved-searches/{search.id}",
+        headers={"Authorization": "Bearer " + create_jwt_token(user)},
+    )
+    assert response.status_code == 200
+    assert response.json()["name"] == search.name
 
 
 @pytest.mark.django_db(transaction=True)
 def test_get_saved_search_by_different_user_fails():
-    pass
-    # user = User.objects.create(
-    #     firstName="",
-    #     lastName="",
-    #     email=f"{secrets.token_hex(4)}@example.com",
-    #     userType=UserType.STANDARD,
-    #     createdAt=datetime.now(),
-    #     updatedAt=datetime.now(),
-    # )
-    # user1 = User.objects.create(
-    #     firstName="",
-    #     lastName="",
-    #     email=f"{secrets.token_hex(4)}@example.com",
-    #     userType=UserType.STANDARD,
-    #     createdAt=datetime.now(),
-    #     updatedAt=datetime.now(),
-    # )
-    # search = SavedSearch.objects.create(
-    #     name=f"test-{secrets.token_hex(4)}",
-    #     count=3,
-    #     sortDirection="",
-    #     sortField="",
-    #     searchTerm="",
-    #     searchPath="",
-    #     filters=[],
-    #     createdById=user1,
-    # )
-    # response = client.get(
-    #     f"/saved-searches/{search.id}",
-    #     headers={"Authorization": "Bearer " + create_jwt_token(user)},
-    # )
-    # assert response.status_code == 404
-    # assert response.json() == {}
+    # pass
+    user = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+    user1 = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+    search = SavedSearch.objects.create(
+        name=f"test-{secrets.token_hex(4)}",
+        count=3,
+        sortDirection="",
+        sortField="",
+        searchTerm="",
+        searchPath="",
+        filters=[],
+        createdById=user1,
+    )
+    response = client.get(
+        f"/saved-searches/{search.id}",
+        headers={"Authorization": "Bearer " + create_jwt_token(user)},
+    )
+    assert response.status_code == 404

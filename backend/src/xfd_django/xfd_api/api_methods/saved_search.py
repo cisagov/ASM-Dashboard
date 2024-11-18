@@ -79,6 +79,8 @@ def list_saved_searches(user):
         all_saved_searches = SavedSearch.objects.all()
         saved_search_list = []
         for search in all_saved_searches:
+            if search.createdById != user:
+                continue
             response = {
                 "id": str(search.id),
                 "createdAt": search.createdAt,
@@ -103,12 +105,21 @@ def list_saved_searches(user):
         raise HTTPException(status_code=404, detail=str(e))
 
 
-def get_saved_search(saved_search_id):
+def get_saved_search(saved_search_id, user):
+    if user.userType == "globalView":
+        raise HTTPException(
+            status_code=404, detail="Global View users cannot retrieve saved searches."
+        )
+
     try:
         if not uuid.UUID(saved_search_id):
             raise HTTPException({"error": "Invalid UUID"}, status=404)
 
         saved_search = SavedSearch.objects.get(id=saved_search_id)
+
+        if saved_search.createdById.id != user.id:
+            raise HTTPException(status_code=404, detail="Saved search not found")
+
         response = {
             "id": str(saved_search.id),
             "createdAt": saved_search.createdAt,

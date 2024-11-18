@@ -405,9 +405,11 @@ async def call_list_saved_searches(user: User = Depends(get_current_active_user)
     response_model=SavedSearchSchema,
     tags=["Saved Search"],
 )
-async def call_get_saved_search(saved_search_id: str):
+async def call_get_saved_search(
+    saved_search_id: str, current_user: User = Depends(get_current_active_user)
+):
     """Retrieve a saved search by its ID."""
-    return get_saved_search(saved_search_id)
+    return get_saved_search(saved_search_id, current_user)
 
 
 # Update saved search by ID
