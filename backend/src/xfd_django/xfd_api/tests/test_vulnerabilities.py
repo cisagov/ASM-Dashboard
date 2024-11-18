@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 from fastapi.testclient import TestClient
 import pytest
 from xfd_api.auth import create_jwt_token
-from xfd_api.models import User, UserType
+from xfd_api.models import User, UserType, Vulnerability
 from xfd_django.asgi import app
 
 client = TestClient(app)
@@ -55,9 +55,8 @@ def test_get_vulnerability_by_id():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_get_vulnerability_by_id_not_found():
+def test_get_vulnerability_by_id_fails_404():
     # Get error 404 if vulnerability does not exist
-
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -73,6 +72,198 @@ def test_get_vulnerability_by_id_not_found():
     )
 
     assert response.status_code == 404
+
+
+@pytest.mark.django_db(transaction=True)
+def test_update_vulnerability():
+    user = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.GLOBAL_ADMIN,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+
+    vulnerability = Vulnerability.objects.create(
+        title="Old Vulnerability",
+        description="Old description.",
+        severity="Medium",
+        cvss=5.0,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+        needsPopulation=True,
+        source="source1",
+        notes="old notes",
+        actions=[],
+        structuredData={},
+        isKev=False,
+        kevResults={},
+        domain_id="",
+        service_id="",
+    )
+
+    new_data = {
+        "id": str(vulnerability.id),
+        "createdAt": str(vulnerability.createdAt),
+        "updatedAt": str(datetime.now()),
+        "lastSeen": str(datetime.now()),
+        "title": "Updated Vulnerability",
+        "cve": vulnerability.cve,
+        "cwe": vulnerability.cwe,
+        "cpe": vulnerability.cpe,
+        "description": "Updated description.",
+        "references": None,
+        "severity": "High",
+        "cvss": 7.5,
+        "needsPopulation": False,
+        "state": vulnerability.state,
+        "substate": vulnerability.substate,
+        "source": "source2",
+        "notes": "updated notes",
+        "actions": ["action1"],
+        "structuredData": {"key": "value"},
+        "isKev": True,
+        "domain_id": None,
+        "service_id": None,
+    }
+
+    response = client.put(
+        f"/vulnerabilities/{vulnerability.id}",
+        json=new_data,
+        headers={"Authorization": "Bearer " + create_jwt_token(user)},
+    )
+
+    assert response.status_code == 200
+
+    vulnerability.refresh_from_db()
+    assert vulnerability.title == new_data["title"]
+    assert vulnerability.description == new_data["description"]
+    assert vulnerability.needsPopulation == new_data["needsPopulation"]
+    assert vulnerability.source == new_data["source"]
+    assert vulnerability.notes == new_data["notes"]
+
+    assert vulnerability.id == vulnerability.id
+
+
+@pytest.mark.django_db(transaction=True)
+def test_update_vulnerability_fails_404():
+    user = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.GLOBAL_ADMIN,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+
+    vulnerability = Vulnerability.objects.create(
+        title="Old Vulnerability",
+        description="Old description.",
+        severity="Medium",
+        cvss=5.0,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+        needsPopulation=True,
+        source="source1",
+        notes="old notes",
+        actions=[],
+        structuredData={},
+        isKev=False,
+        kevResults={},
+        domain_id="",
+        service_id="",
+    )
+
+    new_data = {
+        "id": str(vulnerability.id),
+        "createdAt": str(vulnerability.createdAt),
+        "updatedAt": str(datetime.now()),
+        "lastSeen": str(datetime.now()),
+        "title": "Updated Vulnerability",
+        "cve": vulnerability.cve,
+        "cwe": vulnerability.cwe,
+        "cpe": vulnerability.cpe,
+        "description": "Updated description.",
+        "references": None,
+        "severity": "High",
+        "cvss": 7.5,
+        "needsPopulation": False,
+        "state": vulnerability.state,
+        "substate": vulnerability.substate,
+        "source": "source2",
+        "notes": "updated notes",
+        "actions": ["action1"],
+        "structuredData": {"key": "value"},
+        "isKev": True,
+        "domain_id": None,
+        "service_id": None,
+    }
+
+    response = client.put(
+        f"/vulnerabilities/{bad_id}",
+        json=new_data,
+        headers={"Authorization": "Bearer " + create_jwt_token(user)},
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db(transaction=True)
+def test_update_vulnerability_fails_422():
+    user = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.GLOBAL_ADMIN,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+
+    vulnerability = Vulnerability.objects.create(
+        title="Old Vulnerability",
+        description="Old description.",
+        severity="Medium",
+        cvss=5.0,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+        needsPopulation=True,
+        source="source1",
+        notes="old notes",
+        actions=[],
+        structuredData={},
+        isKev=False,
+        kevResults={},
+        domain_id="",
+        service_id="",
+    )
+
+    new_data = {
+        "title": "Updated Vulnerability",
+        "cve": vulnerability.cve,
+        "cwe": vulnerability.cwe,
+        "cpe": vulnerability.cpe,
+        "description": "Updated description.",
+        "references": None,
+        "severity": "High",
+        "cvss": 7.5,
+        "needsPopulation": False,
+        "state": vulnerability.state,
+        "substate": vulnerability.substate,
+        "source": "source2",
+        "notes": "updated notes",
+        "actions": ["action1"],
+        "structuredData": {"key": "value"},
+        "isKev": True,
+        "domain_id": None,
+        "service_id": None,
+    }
+
+    response = client.put(
+        f"/vulnerabilities/{vulnerability.id}",
+        json=new_data,
+        headers={"Authorization": "Bearer " + create_jwt_token(user)},
+    )
+    assert response.status_code == 422
 
 
 @pytest.mark.django_db(transaction=True)

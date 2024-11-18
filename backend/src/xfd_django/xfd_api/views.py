@@ -229,34 +229,38 @@ async def export_vulnerabilities():
 
 
 @api_router.get(
-    "/vulnerabilities/{vuln_id}",
+    "/vulnerabilities/{vulnerability_id}",
     dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
     tags=["Get vulnerability by id"],
 )
-async def call_get_vulnerability_by_id(vuln_id: str):
+async def call_get_vulnerability_by_id(vulnerability_id: str):
     """
     Get vulnerability by id.
     Returns:
         object: a single Vulnerability object.
     """
-    return get_vulnerability_by_id(vuln_id)
+    return get_vulnerability_by_id(vulnerability_id)
 
 
 @api_router.put(
-    "/vulnerabilities/{vulnerabilityId}",
-    # dependencies=[Depends(get_current_active_user)],
+    "/vulnerabilities/{vulnerability_id}",
+    dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
     tags="Update vulnerability",
 )
-async def call_update_vulnerability(vuln_id, data: VulnerabilitySchema):
+async def call_update_vulnerability(
+    vulnerability_id,
+    data: VulnerabilitySchema,
+    current_user: User = Depends(get_current_active_user),
+):
     """
     Update vulnerability by id.
 
     Returns:
         object: a single vulnerability object that has been modified.
     """
-    return update_vulnerability(vuln_id, data)
+    return update_vulnerability(vulnerability_id, data, current_user)
 
 
 # ========================================
