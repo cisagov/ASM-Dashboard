@@ -1,6 +1,7 @@
 """/api-keys API logic"""
 
 # Standard Python Libraries
+from datetime import datetime, timezone
 import hashlib
 import secrets
 import uuid
@@ -12,25 +13,32 @@ from xfd_api.schema_models.api_key import ApiKey as ApiKeySchema
 
 
 def post(current_user):
-    """POST API LOGIC"""
+    """POST API logic for creating a new API key."""
     # Generate a random 16-byte API key
     key = secrets.token_hex(16)
 
     # Hash the API key
     hashed_key = hashlib.sha256(key.encode()).hexdigest()
 
-    # Create with schema validation
-    api_key = ApiKeySchema(
+    # Create ApiKey instance in the database
+    api_key_instance = ApiKey.objects.create(
         id=uuid.uuid4(),
         hashedKey=hashed_key,
         lastFour=key[-4:],
         userId=current_user,
+        createdAt=datetime.utcnow(),
+        updatedAt=datetime.utcnow(),
     )
 
-    # Return Serialized data from Schema
-    return ApiKeySchema.model_validate(api_key).model_dump(
-        exclude={"hashedKey", "userId"}, api_key=key
+    # Convert the Django model instance to the Pydantic model, excluding fields like hashedKey and userId
+    validated_data = ApiKeySchema.model_validate(api_key_instance).model_dump(
+        exclude={"hashedKey", "userId"}
     )
+
+    # Add the actual API key to the response for initial display to the user
+    validated_data["api_key"] = key
+
+    return validated_data
 
 
 def delete(id, current_user):
