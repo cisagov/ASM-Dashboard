@@ -15,7 +15,6 @@ import { handler as intrigueIdent } from './tasks/intrigue-ident';
 import { handler as lookingGlass } from './tasks/lookingGlass';
 import { handler as portscanner } from './tasks/portscanner';
 import { handler as rootDomainSync } from './tasks/rootDomainSync';
-import { handler as rscSync } from './tasks/rscSync';
 import { handler as savedSearch } from './tasks/saved-search';
 import { handler as searchSync } from './tasks/search-sync-domains';
 import { handler as shodan } from './tasks/shodan';
@@ -56,7 +55,6 @@ async function main() {
     trustymail,
     vulnScanningSync,
     vulnSync,
-    rscSync,
     savedSearch,
     searchSync,
     shodan,
