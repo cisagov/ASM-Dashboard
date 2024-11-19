@@ -11,7 +11,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from fastapi import HTTPException
 
-from ..auth import get_org_memberships, is_global_view_admin
+from ..auth import get_org_memberships, get_user_organization_ids, is_global_view_admin
 from ..helpers.filter_helpers import filter_domains, sort_direction
 from ..models import Domain
 from ..schema_models.domain import DomainFilters, DomainSearch
@@ -76,3 +76,62 @@ def export_domains(domain_filters: DomainFilters):
         return domains
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+async def stats_total_domains(organization, tag, current_user):
+    """
+    Get total number of domains
+    Returns:
+        int: total number of domains
+    """
+    try:
+        # Base QuerySet
+        queryset = Domain.objects.all()
+
+        # Apply filtering logic at the endpoint
+        # Check if the user is a global admin
+        is_admin = is_global_view_admin(current_user)
+
+        # Get user's accessible organizations
+        if not is_admin:
+            user_org_ids = await get_user_organization_ids(current_user)
+            if not user_org_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="User does not belong to any organizations.",
+                )
+            queryset = queryset.filter(organizationId__id__in=user_org_ids)
+        else:
+            user_org_ids = None  # Admin has access to all organizations
+
+        # Apply organization filter
+        if organization:
+            if user_org_ids is not None and organization not in user_org_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="User does not have access to the specified organization.",
+                )
+            queryset = queryset.filter(organizationId__id=organization)
+
+        # Apply tag filter
+        if tag:
+            tag_org_ids = get_tag_organization_ids(tag)
+            if user_org_ids is not None:
+                accessible_org_ids = set(user_org_ids).intersection(tag_org_ids)
+                if not accessible_org_ids:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="No accessible organizations found for the specified tag.",
+                    )
+                queryset = queryset.filter(organizationId__id__in=accessible_org_ids)
+            else:
+                queryset = queryset.filter(organizationId__id__in=tag_org_ids)
+
+        # Get total count
+        total_domains = await sync_to_async(queryset.count)()
+
+        # Return the count in the expected schema
+        return {"value": total_domains}
+
+    except HTTPException as http_exc:
+        raise http_exc
