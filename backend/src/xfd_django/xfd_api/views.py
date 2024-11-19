@@ -41,7 +41,7 @@ from .api_methods.vulnerability import (
 )
 from .auth import get_current_active_user
 from .login_gov import callback, login
-from .models import Assessment, User
+from .models import Domain, User, Vulnerability
 from .schema_models import organization as OrganizationSchema
 from .schema_models import scan as scanSchema
 from .schema_models import scan_tasks as scanTaskSchema
@@ -136,47 +136,6 @@ async def pe_proxy(
     return await proxy.proxy_request(request, os.getenv("PE_API_URL", ""), path)
 
 
-# ========================================
-#   Assessment Endpoints
-# ========================================
-
-
-# TODO: Uncomment checks for current_user once authentication is implemented
-@api_router.get(
-    "/assessments",
-    #  current_user: User = Depends(get_current_active_user),
-    tags=["ReadySetCyber"],
-)
-async def list_assessments():
-    """
-    Lists all assessments for the logged-in user.
-
-    Args:
-        current_user (User): The current authenticated user.
-
-    Raises:
-        HTTPException: If the user is not authorized or assessments are not found.
-
-    Returns:
-        List[Assessment]: A list of assessments for the logged-in user.
-    """
-    # Ensure the user is authenticated
-    # if not current_user:
-    #     raise HTTPException(status_code=401, detail="Unauthorized")
-
-    # Query the database for assessments belonging to the current user
-    # assessments = Assessment.objects.filter(user=current_user)
-    assessments = (
-        Assessment.objects.all()
-    )  # TODO: Remove this line once filtering by user is implemented
-
-    # Return assessments if found, or raise a 404 error if none exist
-    if not assessments.exists():
-        raise HTTPException(status_code=404, detail="No assessments found")
-
-    return list(assessments)
-
-
 @api_router.get(
     "/cpes/{cpe_id}",
     # dependencies=[Depends(get_current_active_user)],
@@ -231,10 +190,7 @@ async def call_get_cves_by_name(cve_name):
 async def call_search_domains(
     domain_search: DomainSearch, current_user: User = Depends(get_current_active_user)
 ):
-    try:
-        return search_domains(domain_search, current_user)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return search_domains(domain_search, current_user)
 
 
 @api_router.post(
@@ -243,10 +199,7 @@ async def call_search_domains(
     tags=["Domains"],
 )
 async def call_export_domains(domain_search: DomainSearch):
-    try:
-        return export_domains(domain_search)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return export_domains(domain_search)
 
 
 @api_router.get(
@@ -274,10 +227,7 @@ async def call_search_vulnerabilities(
     vulnerability_search: VulnerabilitySearch,
     current_user: User = Depends(get_current_active_user),
 ):
-    try:
-        return search_vulnerabilities(vulnerability_search, current_user)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return search_vulnerabilities(vulnerability_search, current_user)
 
 
 @api_router.post("/vulnerabilities/export")
@@ -289,34 +239,38 @@ async def export_vulnerabilities():
 
 
 @api_router.get(
-    "/vulnerabilities/{vulnerabilityId}",
-    # dependencies=[Depends(get_current_active_user)],
+    "/vulnerabilities/{vulnerability_id}",
+    dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
     tags=["Vulnerabilities"],
 )
-async def call_get_vulnerability_by_id(vuln_id):
+async def call_get_vulnerability_by_id(vulnerability_id: str):
     """
     Get vulnerability by id.
     Returns:
         object: a single Vulnerability object.
     """
-    return get_vulnerability_by_id(vuln_id)
+    return get_vulnerability_by_id(vulnerability_id)
 
 
 @api_router.put(
-    "/vulnerabilities/{vulnerabilityId}",
-    # dependencies=[Depends(get_current_active_user)],
+    "/vulnerabilities/{vulnerability_id}",
+    dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
     tags=["Vulnerabilities"],
 )
-async def call_update_vulnerability(vuln_id, data: VulnerabilitySchema):
+async def call_update_vulnerability(
+    vulnerability_id,
+    data: VulnerabilitySchema,
+    current_user: User = Depends(get_current_active_user),
+):
     """
     Update vulnerability by id.
 
     Returns:
         object: a single vulnerability object that has been modified.
     """
-    return update_vulnerability(vuln_id, data)
+    return update_vulnerability(vulnerability_id, data, current_user)
 
 
 # ========================================
@@ -356,59 +310,23 @@ async def callback_route(request: Request):
 
 
 # GET Current User
-@api_router.post("/users/acceptTerms", tags=["Users"])
-async def call_accept_terms(request: Request):
-    """
-    Accept the latest terms of service.
-
-    Args:
-        request : The HTTP request containing the user and the terms version.
-
-    Returns:
-        User: The updated user.
-    """
-
-    return accept_terms(request)
-
-
-# TODO: Add authentication and  permissions
-@api_router.delete(
-    "/users/{userId}", dependencies=[Depends(get_current_active_user)], tags=["Users"]
-)
-async def call_delete_user(
-    userId, current_user: User = Depends(get_current_active_user)
-):
-    """
-    Delete a user by ID.
-
-    Args:
-        userId : The ID of the user to delete.
-
-    Raises:
-        HTTPException: If the user is not authorized or the user is not found.
-
-    Returns:
-        JSONResponse: The result of the deletion.
-    """
-    return delete_user(current_user, userId)
-
-
-@api_router.get("/users/me", tags=["Users"])
+@api_router.get("/users/me", tags=["users"])
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
 
 
 @api_router.get(
-    "/users",
+    "/users/{regionId}",
     response_model=List[UserSchema],
-    dependencies=[Depends(get_current_active_user)],
-    tags=["Users"],
+    # dependencies=[Depends(get_current_active_user)],
+    tags=["User"],
 )
-async def call_get_users(current_user: User = Depends(get_current_active_user)):
+async def call_get_users(regionId):
     """
     Call get_users()
+
     Args:
-        request : The HTTP request containing query parameters.
+        regionId: Region IDs to filter users by.
 
     Raises:
         HTTPException: If the user is not authorized or no users are found.
@@ -416,137 +334,7 @@ async def call_get_users(current_user: User = Depends(get_current_active_user)):
     Returns:
         List[User]: A list of users matching the filter criteria.
     """
-    return get_users(current_user)
-
-
-@api_router.get(
-    "/users/regionId/{regionId}",
-    response_model=List[UserSchema],
-    dependencies=[Depends(get_current_active_user)],
-    tags=["Users"],
-)
-async def call_get_users_by_region_id(
-    regionId, current_user: User = Depends(get_current_active_user)
-):
-    """
-    Call get_users_by_region_id()
-    Args:
-        request : The HTTP request containing query parameters.
-
-    Raises:
-        HTTPException: If the user is not authorized or no users are found.
-
-    Returns:
-        List[User]: A list of users matching the filter criteria.
-    """
-    return get_users_by_region_id(regionId, current_user)
-
-
-@api_router.get(
-    "/users/state/{state}",
-    response_model=List[UserSchema],
-    dependencies=[Depends(get_current_active_user)],
-    tags=["Users"],
-)
-async def call_get_users_by_state(
-    state, current_user: User = Depends(get_current_active_user)
-):
-    """
-    Call get_users_by_state()
-    Args:
-        request : The HTTP request containing query parameters.
-
-    Raises:
-        HTTPException: If the user is not authorized or no users are found.
-
-    Returns:
-        List[User]: A list of users matching the filter criteria.
-    """
-    return get_users_by_state(state, current_user)
-
-
-@api_router.get(
-    "/v2/users",
-    response_model=List[UserResponse],
-    dependencies=[Depends(get_current_active_user)],
-    tags=["Users"],
-)
-async def call_get_users_v2(
-    state: Optional[str] = Query(None),
-    regionId: Optional[str] = Query(None),
-    invitePending: Optional[bool] = Query(None),
-    current_user: User = Depends(get_current_active_user),
-):
-    """
-    Call get_users_v2()
-    Args:
-        request : The HTTP request containing query parameters.
-
-    Raises:
-        HTTPException: If the user is not authorized or no users are found.
-
-    Returns:
-        List[User]: A list of users matching the filter criteria.
-    """
-    return get_users_v2(state, regionId, invitePending, current_user)
-
-
-@api_router.post("/users/{userId}", tags=["Users"])
-async def call_update_user(
-    userId, body, current_user: User = Depends(get_current_active_user)
-):
-    """
-    Update a user by ID.
-    Args:
-        userId : The ID of the user to update.
-        request : The HTTP request containing authorization and target for update.
-
-    Raises:
-        HTTPException: If the user is not authorized or the user is not found.
-
-    Returns:
-        JSONResponse: The result of the update.
-    """
-    return update_user(userId, body, current_user)
-
-
-@api_router.put(
-    "/users/{user_id}/register/approve",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=RegisterUserResponse,
-    tags=["Users"],
-)
-async def register_approve(
-    user_id: str, current_user: User = Depends(get_current_active_user)
-):
-    """Approve a registered user."""
-    return user.user_register_approve(user_id, current_user)
-
-
-@api_router.put(
-    "/users/{user_id}/register/deny",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=RegisterUserResponse,
-    tags=["Users"],
-)
-async def register_deny(
-    user_id: str, current_user: User = Depends(get_current_active_user)
-):
-    """Deny a registered user."""
-    return user.deny_user_registration(user_id, current_user)
-
-
-@api_router.post(
-    "/users",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=NewUserResponseModel,
-    tags=["Users"],
-)
-async def invite_user(
-    new_user: NewUser, current_user: User = Depends(get_current_active_user)
-):
-    """Invite a user."""
-    return user.invite(new_user, current_user)
+    return get_users(regionId)
 
 
 # ========================================
