@@ -33,7 +33,7 @@ from .api_methods.vulnerability import (
 )
 from .auth import get_current_active_user
 from .login_gov import callback, login
-from .models import User
+from .models import Domain, User, Vulnerability
 from .schema_models import organization as OrganizationSchema
 from .schema_models import scan as scanSchema
 from .schema_models import scan_tasks as scanTaskSchema
@@ -180,10 +180,7 @@ async def call_get_cves_by_name(cve_name):
 async def call_search_domains(
     domain_search: DomainSearch, current_user: User = Depends(get_current_active_user)
 ):
-    try:
-        return search_domains(domain_search, current_user)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return search_domains(domain_search, current_user)
 
 
 @api_router.post(
@@ -192,10 +189,7 @@ async def call_search_domains(
     tags=["Domains"],
 )
 async def call_export_domains(domain_search: DomainSearch):
-    try:
-        return export_domains(domain_search)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return export_domains(domain_search)
 
 
 @api_router.get(
@@ -223,10 +217,7 @@ async def call_search_vulnerabilities(
     vulnerability_search: VulnerabilitySearch,
     current_user: User = Depends(get_current_active_user),
 ):
-    try:
-        return search_vulnerabilities(vulnerability_search, current_user)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return search_vulnerabilities(vulnerability_search, current_user)
 
 
 @api_router.post("/vulnerabilities/export")
@@ -238,34 +229,38 @@ async def export_vulnerabilities():
 
 
 @api_router.get(
-    "/vulnerabilities/{vulnerabilityId}",
-    # dependencies=[Depends(get_current_active_user)],
+    "/vulnerabilities/{vulnerability_id}",
+    dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
-    tags="Get vulnerability by id",
+    tags=["Get vulnerability by id"],
 )
-async def call_get_vulnerability_by_id(vuln_id):
+async def call_get_vulnerability_by_id(vulnerability_id: str):
     """
     Get vulnerability by id.
     Returns:
         object: a single Vulnerability object.
     """
-    return get_vulnerability_by_id(vuln_id)
+    return get_vulnerability_by_id(vulnerability_id)
 
 
 @api_router.put(
-    "/vulnerabilities/{vulnerabilityId}",
-    # dependencies=[Depends(get_current_active_user)],
+    "/vulnerabilities/{vulnerability_id}",
+    dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
     tags="Update vulnerability",
 )
-async def call_update_vulnerability(vuln_id, data: VulnerabilitySchema):
+async def call_update_vulnerability(
+    vulnerability_id,
+    data: VulnerabilitySchema,
+    current_user: User = Depends(get_current_active_user),
+):
     """
     Update vulnerability by id.
 
     Returns:
         object: a single vulnerability object that has been modified.
     """
-    return update_vulnerability(vuln_id, data)
+    return update_vulnerability(vulnerability_id, data, current_user)
 
 
 # ========================================
