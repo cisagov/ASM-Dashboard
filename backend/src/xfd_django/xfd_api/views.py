@@ -442,9 +442,11 @@ async def call_update_saved_search(
     dependencies=[Depends(get_current_active_user)],
     tags=["Saved Search"],
 )
-async def call_delete_saved_search(saved_search_id: str):
+async def call_delete_saved_search(
+    saved_search_id: str, current_user: User = Depends(get_current_active_user)
+):
     """Delete a saved search by its ID."""
-    return delete_saved_search(saved_search_id)
+    return delete_saved_search(saved_search_id, current_user)
 
 
 # GET ALL

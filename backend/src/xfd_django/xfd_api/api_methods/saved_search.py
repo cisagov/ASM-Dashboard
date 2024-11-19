@@ -72,9 +72,6 @@ def create_saved_search(request):
 
 def list_saved_searches(user):
     """List all saved searches."""
-    if user.userType == "globalView":
-        # raise HTTPException(status_code=403, detail="Global View users cannot access saved searches.")
-        return []
     try:
         all_saved_searches = SavedSearch.objects.all()
         saved_search_list = []
@@ -95,9 +92,7 @@ def list_saved_searches(user):
                 "createdById": search.createdById.id,
             }
             saved_search_list.append(response)
-
         return list(saved_search_list)
-
     except User.DoesNotExist:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -170,20 +165,23 @@ def update_saved_search(request):
     except User.DoesNotExist:
         raise HTTPException(status_code=404, detail="User not found")
     except SavedSearch.DoesNotExist as dne:
-        return HTTPException(status_code=404, detail=str(dne))
+        raise HTTPException(status_code=404, detail=str(dne))
     except Exception as e:
-        return HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
 
     return response
 
 
-def delete_saved_search(saved_search_id):
+def delete_saved_search(saved_search_id, user):
     """Delete saved search by id."""
 
     try:
         if not uuid.UUID(saved_search_id):
             raise HTTPException(status_code=404, detail={"error": "Invalid UUID"})
         search = SavedSearch.objects.get(id=saved_search_id)
+        print("Comparison fields", search.createdById.id, user.id)
+        if search.createdById.id != user.id:
+            raise HTTPException(status_code=404, detail="Saved search not found")
         search.delete()
         return JsonResponse(
             {
@@ -194,6 +192,6 @@ def delete_saved_search(saved_search_id):
     except User.DoesNotExist:
         raise HTTPException(status_code=404, detail="User not found")
     except SavedSearch.DoesNotExist as dne:
-        return HTTPException(status_code=404, detail=str(dne))
+        raise HTTPException(status_code=404, detail=str(dne))
     except Exception as e:
-        return HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail=str(e))
