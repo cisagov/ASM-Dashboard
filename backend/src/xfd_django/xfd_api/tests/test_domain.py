@@ -26,9 +26,8 @@ filters = {
 }
 
 
-@pytest.mark.django_db(transaction=True)
-def test_get_domain_by_id():
-    # Get domain by Id.
+@pytest.fixture
+def user():
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -37,7 +36,13 @@ def test_get_domain_by_id():
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
+    yield user
+    user.delete()  # Clean up after the test
 
+
+@pytest.mark.django_db(transaction=True)
+def test_get_domain_by_id(user):
+    # Get domain by Id.
     response = client.get(
         f"/domain/{test_id}",
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
@@ -49,17 +54,8 @@ def test_get_domain_by_id():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_get_domain_by_id_fails_404():
+def test_get_domain_by_id_fails_404(user):
     # Get domain by Id.
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
     response = client.get(
         f"/domain/{bad_id}",
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
@@ -70,17 +66,8 @@ def test_get_domain_by_id_fails_404():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_domain_by_ip():
+def test_search_domain_by_ip(user):
     # Search domains by ip
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
     response = client.post(
         "/domain/search",
         json={"page": 1, "filters": {"ip": filters["ip"]}, "pageSize": 25},
@@ -93,16 +80,8 @@ def test_search_domain_by_ip():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_domain_by_port():
+def test_search_domain_by_port(user):
     # Test search domains by port
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
     response = client.post(
         "/domain/search",
         json={"page": 1, "filters": {"ports": filters["ports"]}, "pageSize": 25},
@@ -116,17 +95,8 @@ def test_search_domain_by_port():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_domain_by_service():
+def test_search_domain_by_service(user):
     # Test search domains by service_id
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
     response = client.post(
         "/domain/search",
         json={"page": 1, "filters": {"service": filters["service"]}, "pageSize": 25},
@@ -140,16 +110,8 @@ def test_search_domain_by_service():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_domain_by_organization():
+def test_search_domain_by_organization(user):
     # Test search domains by organization
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
     response = client.post(
         "/domain/search",
         json={
@@ -166,17 +128,8 @@ def test_search_domain_by_organization():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_domain_by_organization_name():
+def test_search_domain_by_organization_name(user):
     # Test search domains by organization
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
     response = client.post(
         "/domain/search",
         json={
@@ -194,17 +147,8 @@ def test_search_domain_by_organization_name():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_domain_by_vulnerabilities():
+def test_search_domain_by_vulnerabilities(user):
     # Test search domains by vulnerabilities
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
     response = client.post(
         "/domain/search",
         json={
@@ -222,17 +166,8 @@ def test_search_domain_by_vulnerabilities():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_domains_multiple_criteria():
+def test_search_domains_multiple_criteria(user):
     # Test search domains by multiple criteria
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
     response = client.post(
         "/domain/search",
         json={
@@ -249,17 +184,8 @@ def test_search_domains_multiple_criteria():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_domains_does_not_exist():
+def test_search_domains_does_not_exist(user):
     # Test search domains if record does not exist
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
     response = client.post(
         "/domain/search",
         json={"page": 1, "filters": {"ip": "Does not exist"}, "pageSize": 25},

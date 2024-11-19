@@ -32,9 +32,8 @@ filters = {
 }
 
 
-@pytest.mark.django_db(transaction=True)
-def test_get_vulnerability_by_id():
-    # Get vulnerability by Id.
+@pytest.fixture
+def user():
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -43,48 +42,12 @@ def test_get_vulnerability_by_id():
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
-
-    response = client.get(
-        f"/vulnerabilities/{test_id}",
-        headers={"Authorization": "Bearer " + create_jwt_token(user)},
-    )
-    data = response.json()
-
-    assert response.status_code == 200
-    assert data["id"] == test_id
+    yield user
+    user.delete()  # Clean up after the test
 
 
-@pytest.mark.django_db(transaction=True)
-def test_get_vulnerability_by_id_fails_404():
-    # Get error 404 if vulnerability does not exist
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
-    response = client.get(
-        f"/vulnerabilities/{bad_id}",
-        headers={"Authorization": "Bearer " + create_jwt_token(user)},
-    )
-
-    assert response.status_code == 404
-
-
-@pytest.mark.django_db(transaction=True)
-def test_update_vulnerability():
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
+@pytest.fixture
+def create_vulnerability():
     vulnerability = Vulnerability.objects.create(
         title="Old Vulnerability",
         description="Old description.",
@@ -102,6 +65,37 @@ def test_update_vulnerability():
         domain_id="",
         service_id="",
     )
+    yield vulnerability
+    vulnerability.delete()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_get_vulnerability_by_id(user):
+    # Get vulnerability by Id.
+    response = client.get(
+        f"/vulnerabilities/{test_id}",
+        headers={"Authorization": "Bearer " + create_jwt_token(user)},
+    )
+    data = response.json()
+
+    assert response.status_code == 200
+    assert data["id"] == test_id
+
+
+@pytest.mark.django_db(transaction=True)
+def test_get_vulnerability_by_id_fails_404(user):
+    # Get error 404 if vulnerability does not exist
+    response = client.get(
+        f"/vulnerabilities/{bad_id}",
+        headers={"Authorization": "Bearer " + create_jwt_token(user)},
+    )
+
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db(transaction=True)
+def test_update_vulnerability(user, create_vulnerability):
+    vulnerability = create_vulnerability
 
     new_data = {
         "id": str(vulnerability.id),
@@ -147,34 +141,8 @@ def test_update_vulnerability():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_update_vulnerability_fails_404():
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
-    vulnerability = Vulnerability.objects.create(
-        title="Old Vulnerability",
-        description="Old description.",
-        severity="Medium",
-        cvss=5.0,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-        needsPopulation=True,
-        source="source1",
-        notes="old notes",
-        actions=[],
-        structuredData={},
-        isKev=False,
-        kevResults={},
-        domain_id="",
-        service_id="",
-    )
-
+def test_update_vulnerability_fails_404(user, create_vulnerability):
+    vulnerability = create_vulnerability
     new_data = {
         "id": str(vulnerability.id),
         "createdAt": str(vulnerability.createdAt),
@@ -209,33 +177,8 @@ def test_update_vulnerability_fails_404():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_update_vulnerability_fails_422():
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
-    vulnerability = Vulnerability.objects.create(
-        title="Old Vulnerability",
-        description="Old description.",
-        severity="Medium",
-        cvss=5.0,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-        needsPopulation=True,
-        source="source1",
-        notes="old notes",
-        actions=[],
-        structuredData={},
-        isKev=False,
-        kevResults={},
-        domain_id="",
-        service_id="",
-    )
+def test_update_vulnerability_fails_422(user, create_vulnerability):
+    vulnerability = create_vulnerability
 
     new_data = {
         "title": "Updated Vulnerability",
@@ -267,17 +210,8 @@ def test_update_vulnerability_fails_422():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_id():
+def test_search_vulnerabilities_id(user):
     # Search vulnerabilities by ip.
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
     response = client.post(
         "/vulnerabilities/search",
         json={"page": 1, "filters": {"id": filters["id"]}, "pageSize": 25},
@@ -292,17 +226,8 @@ def test_search_vulnerabilities_id():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_by_title():
+def test_search_vulnerabilities_by_title(user):
     # Test search vulnerabilities by title
-
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
 
     response = client.post(
         "/vulnerabilities/search",
@@ -318,18 +243,8 @@ def test_search_vulnerabilities_by_title():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_by_cpe():
+def test_search_vulnerabilities_by_cpe(user):
     # Test search vulnerabilities by cpe
-
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
     response = client.post(
         "/vulnerabilities/search",
         json={"page": 1, "filters": {"cpe": filters["cpe"]}, "pageSize": 25},
@@ -344,18 +259,8 @@ def test_search_vulnerabilities_by_cpe():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_by_severity():
+def test_search_vulnerabilities_by_severity(user):
     # Test search vulnerabilities by severity
-
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
     response = client.post(
         "/vulnerabilities/search",
         json={"page": 1, "filters": {"severity": filters["severity"]}, "pageSize": 25},
@@ -370,18 +275,8 @@ def test_search_vulnerabilities_by_severity():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_by_domain_id():
+def test_search_vulnerabilities_by_domain_id(user):
     # Test search vulnerabilities by domain id
-
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
     response = client.post(
         "/vulnerabilities/search",
         json={"page": 1, "filters": {"domain": filters["domain"]}, "pageSize": 25},
@@ -396,18 +291,8 @@ def test_search_vulnerabilities_by_domain_id():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_by_state():
+def test_search_vulnerabilities_by_state(user):
     # Test search vulnerabilities by state
-
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
     response = client.post(
         "/vulnerabilities/search",
         json={"page": 1, "filters": {"state": filters["state"]}, "pageSize": 25},
@@ -422,18 +307,8 @@ def test_search_vulnerabilities_by_state():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_by_substate():
+def test_search_vulnerabilities_by_substate(user):
     # Test search vulnerabilities by state
-
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
     response = client.post(
         "/vulnerabilities/search",
         json={"page": 1, "filters": {"substate": filters["substate"]}, "pageSize": 25},
@@ -448,18 +323,8 @@ def test_search_vulnerabilities_by_substate():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_by_organization_id():
+def test_search_vulnerabilities_by_organization_id(user):
     # Test search vulnerabilities by state
-
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
     response = client.post(
         "/vulnerabilities/search",
         json={
@@ -476,18 +341,8 @@ def test_search_vulnerabilities_by_organization_id():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_by_is_kev():
+def test_search_vulnerabilities_by_is_kev(user):
     # Test search vulnerabilities by state
-
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
     response = client.post(
         "/vulnerabilities/search",
         json={"page": 1, "filters": {"isKev": filters["isKev"]}, "pageSize": 25},
@@ -502,18 +357,8 @@ def test_search_vulnerabilities_by_is_kev():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_by_multiple_criteria():
+def test_search_vulnerabilities_by_multiple_criteria(user):
     # Test search vulnerabilities by state
-
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
     response = client.post(
         "/vulnerabilities/search",
         json={
@@ -533,18 +378,8 @@ def test_search_vulnerabilities_by_multiple_criteria():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_does_not_exist():
+def test_search_vulnerabilities_does_not_exist(user):
     # Test search vulnerabilities by state
-
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.GLOBAL_ADMIN,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
     response = client.post(
         "/vulnerabilities/search",
         json={"page": 1, "filters": {"title": "Does Not Exist"}, "pageSize": 25},
