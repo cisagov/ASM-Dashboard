@@ -7,8 +7,10 @@ Domain API.
 import csv
 
 # Third-Party Libraries
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.http import Http404
 from fastapi import HTTPException
 
 from ..auth import get_org_memberships, is_global_view_admin
@@ -61,6 +63,8 @@ def search_domains(domain_search: DomainSearch, current_user):
         paginator = Paginator(domains, domain_search.pageSize)
 
         return paginator.get_page(domain_search.page)
+    except Domain.DoesNotExist as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -74,5 +78,7 @@ def export_domains(domain_filters: DomainFilters):
 
         # TODO: Integrate methods to generate CSV from queryset and save to S3 bucket
         return domains
+    except Domain.DoesNotExist as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
