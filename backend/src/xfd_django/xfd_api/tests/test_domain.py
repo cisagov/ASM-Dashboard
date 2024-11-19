@@ -13,6 +13,7 @@ client = TestClient(app)
 
 
 test_id = "960b7db7-f3af-411d-a247-33371739050b"
+bad_id = "960b7db7-f3af-411d-a247-333717390999"
 filters = {
     "ports": "80",
     "service": "6d9ecf5a-db5d-4b77-9752-a88a5d247631",
@@ -45,6 +46,27 @@ def test_get_domain_by_id():
 
     assert response.status_code == 200
     assert data["id"] == test_id
+
+
+@pytest.mark.django_db(transaction=True)
+def test_get_domain_by_id_fails_404():
+    # Get domain by Id.
+    user = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.GLOBAL_ADMIN,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+
+    response = client.get(
+        f"/domain/{bad_id}",
+        headers={"Authorization": "Bearer " + create_jwt_token(user)},
+    )
+    data = response.json()
+
+    assert response.status_code == 404
 
 
 @pytest.mark.django_db(transaction=True)
