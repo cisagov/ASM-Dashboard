@@ -19,7 +19,6 @@ import jwt
 from jwt import ExpiredSignatureError, InvalidTokenError
 import requests
 
-
 # from .helpers import user_to_dict
 from .models import ApiKey, Domain, Organization, OrganizationTag, Role, Service, User
 
