@@ -8,7 +8,6 @@ from django.db import connection
 from django.apps import apps
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 
-
 # Set the Django settings module
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
@@ -23,8 +22,6 @@ def handler(event, context):
     """
     Lambda handler to trigger syncdb.
     """
-
-    # Parse arguments from the event
     dangerouslyforce = event.get("dangerouslyforce", False)
     populate = event.get("populate", False)
 
@@ -58,6 +55,31 @@ def handler(event, context):
             "body": f"Database synchronization failed: {str(e)}",
         }
 
+
+def synchronize():
+    """
+    Synchronize the database schema with Django models.
+    Handles creation, update, and removal of tables and fields dynamically,
+    including Many-to-Many linking tables.
+    """
+    print("Synchronizing database schema with models...")
+    with connection.cursor() as cursor:
+        with connection.schema_editor() as schema_editor:
+            # Step 1: Process models in dependency order
+            ordered_models = get_ordered_models(apps)
+            for model in ordered_models:
+                print(f"Processing model: {model.__name__}")
+                process_model(schema_editor, cursor, model)
+
+            # Step 2: Handle Many-to-Many tables
+            print("Processing Many-to-Many tables...")
+            process_m2m_tables(schema_editor, cursor)
+
+            # Step 3: Cleanup stale tables
+            cleanup_stale_tables(cursor)
+    print("Database synchronization complete.")
+
+
 def get_ordered_models(apps):
     """
     Get models in dependency order to ensure foreign key constraints are respected.
@@ -65,7 +87,6 @@ def get_ordered_models(apps):
     """
     from collections import defaultdict, deque
 
-    # Build dependency graph
     dependencies = defaultdict(set)
     dependents = defaultdict(set)
     models = list(apps.get_models())
@@ -76,7 +97,6 @@ def get_ordered_models(apps):
                 dependencies[model].add(field.related_model)
                 dependents[field.related_model].add(model)
 
-    # Resolve dependencies using Kahn's Algorithm
     ordered = []
     independent_models = deque(model for model in models if not dependencies[model])
 
@@ -102,25 +122,6 @@ def get_ordered_models(apps):
     return ordered
 
 
-def synchronize():
-    """
-    Synchronize the database schema with Django models.
-    Handles creation, update, and removal of tables and fields dynamically.
-    """
-    print("Synchronizing database schema with models...")
-    with connection.cursor() as cursor:
-        with connection.schema_editor() as schema_editor:
-            # Step 1: Process models in dependency order
-            ordered_models = get_ordered_models(apps)
-            for model in ordered_models:
-                print(f"Processing model: {model.__name__}")
-                process_model(schema_editor, cursor, model)
-
-            # Step 2: Cleanup stale tables
-            cleanup_stale_tables(cursor)
-    print("Database synchronization complete.")
-
-
 def process_model(schema_editor: BaseDatabaseSchemaEditor, cursor, model):
     """
     Process a single model: create or update its table.
@@ -137,6 +138,23 @@ def process_model(schema_editor: BaseDatabaseSchemaEditor, cursor, model):
     else:
         print(f"Creating table for model: {model.__name__}")
         schema_editor.create_model(model)
+
+
+def process_m2m_tables(schema_editor: BaseDatabaseSchemaEditor, cursor):
+    """
+    Handle creation of Many-to-Many linking tables.
+    """
+    for model in apps.get_models():
+        for field in model._meta.local_many_to_many:
+            m2m_table_name = field.m2m_db_table()
+
+            # Check if the M2M table exists
+            cursor.execute(f"SELECT to_regclass('{m2m_table_name}');")
+            table_exists = cursor.fetchone()[0] is not None
+
+            if not table_exists:
+                print(f"Creating Many-to-Many table: {m2m_table_name}")
+                schema_editor.create_model(model)
 
 
 def update_table(schema_editor: BaseDatabaseSchemaEditor, model):
@@ -172,14 +190,22 @@ def update_table(schema_editor: BaseDatabaseSchemaEditor, model):
 
 def cleanup_stale_tables(cursor):
     """
-    Remove tables that no longer correspond to any Django model.
+    Remove tables that no longer correspond to any Django model or Many-to-Many relationship.
     """
     print("Checking for stale tables...")
     model_tables = {model._meta.db_table for model in apps.get_models()}
+    m2m_tables = {
+        field.m2m_db_table() for model in apps.get_models() for field in model._meta.local_many_to_many
+    }
+    expected_tables = model_tables.union(m2m_tables)
+
     cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public';")
     existing_tables = {row[0] for row in cursor.fetchall()}
 
-    stale_tables = existing_tables - model_tables
+    stale_tables = existing_tables - expected_tables
     for table in stale_tables:
         print(f"Removing stale table: {table}")
-        cursor.execute(f"DROP TABLE {table} CASCADE;")
+        try:
+            cursor.execute(f"DROP TABLE {table} CASCADE;")
+        except Exception as e:
+            print(f"Error dropping stale table {table}: {e}")
