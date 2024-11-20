@@ -12,10 +12,7 @@ os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 django.setup()
 
 from django.core.management import call_command
-from xfd_api.management.commands.syncdb import (
-    populate_sample_data,
-    manage_elasticsearch_indices,
-)
+from xfd_api.tasks.syndb_helpers import manage_elasticsearch_indices, populate_sample_data
 
 
 def handler(event, context):
