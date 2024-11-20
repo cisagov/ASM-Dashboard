@@ -152,7 +152,7 @@ export const export_ = wrapHandler(async (event) => {
     return res;
   });
   const client = new S3Client();
-  const url = await client.saveCSV(
+  const { url } = await client.saveCSV(
     Papa.unparse({
       fields: [
         'name',

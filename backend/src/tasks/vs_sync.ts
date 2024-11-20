@@ -10,12 +10,12 @@ import {
   DL_Cve,
   Ticket,
   TicketEvent,
-  PortScan
+  PortScan,
+  connectToDatalake
 } from '../models';
 const { Client } = require('pg');
 import { CommandOptions } from './ecs-client';
 import saveVulnScan from './helpers/saveVulnScan';
-import saveOrganizationToMdl from './helpers/saveOrganizationToMdl';
 import saveHost from './helpers/saveHost';
 import saveIpToMdl from './helpers/saveIpToMdl';
 import saveCveToMdl from './helpers/saveCveToMdl';
@@ -23,6 +23,12 @@ import saveTicket from './helpers/saveTicket';
 import saveTicketEvent from './helpers/saveTicketEvent';
 import { plainToClass } from 'class-transformer';
 import savePortScan from './helpers/savePortScan';
+import axios from 'axios';
+import { createChecksum } from '../tools/csv-utils';
+import { getRepository } from 'typeorm';
+import { unparse } from 'papaparse';
+import saveOrganizationToMdl from './helpers/saveOrganizationToMdl';
+import { chunkBySize } from '../tools/chunk';
 
 /** Removes a value for a given key from the dictionary and then returns it. */
 function getValueAndDelete<T>(
@@ -37,7 +43,7 @@ function getValueAndDelete<T>(
     return undefined;
   }
 }
-
+// Redshift Connection
 const client = new Client({
   user: process.env.REDSHIFT_USER,
   host: process.env.REDSHIFT_HOST,
@@ -48,6 +54,7 @@ const client = new Client({
 
 export const handler = async (commandOptions: CommandOptions) => {
   // Connect to Redshift and select requests table
+
   let requestArray;
   try {
     await client.connect();
@@ -263,6 +270,51 @@ export const handler = async (commandOptions: CommandOptions) => {
   } catch (error) {
     console.error('Error reading requests:', error);
     throw error;
+  }
+  try {
+    await connectToDatalake();
+    const orgRepository = getRepository(DL_Organization);
+    const organizations = await orgRepository.find({
+      relations: ['location', 'sectors', 'cidrs', 'parent', 'children'],
+      order: { acronym: 'DESC' }
+    });
+
+    const shapedOrganizations = organizations.map((item) => {
+      return {
+        ...item,
+        location: JSON.stringify(item.location),
+        parent: JSON.stringify(item.parent),
+        sectors: JSON.stringify(item.sectors),
+        children: JSON.stringify(item.children),
+        cidrs: JSON.stringify(item.cidrs)
+      };
+    });
+
+    const { chunks, chunkBounds } = chunkBySize(shapedOrganizations, 4194304);
+
+    const requests = chunks.map((orgs, i) => {
+      const csvRows = unparse(orgs, { header: true });
+      const start = chunkBounds[i].start;
+      const end = chunkBounds[i].end;
+      const checksum = createChecksum(csvRows);
+      console.log(
+        `Posting CSV file with ${orgs.length} organizations to /sync`
+      );
+      return axios.request({
+        method: 'POST',
+        url: process.env.MDL_SYNC_ENDPOINT,
+        headers: {
+          'Content-Type': 'text/csv',
+          Authorization: process.env.DMZ_API_KEY,
+          'x-checksum': checksum,
+          'x-cursor': `${start}-${end}`
+        },
+        data: csvRows
+      });
+    });
+    await Promise.all(requests);
+  } catch (error) {
+    console.log('Error fetching data from old MDL', error);
   }
 
   // Connect to Redshift and select vuln_scans table

@@ -332,6 +332,54 @@ resource "aws_s3_bucket_logging" "reports_bucket" {
   target_prefix = "reports_bucket/"
 }
 
+# Crossfeed lz sync bucket
+resource "aws_s3_bucket" "crossfeed-lz-sync" {
+  bucket = var.crossfeed-lz-sync_name
+  tags = {
+    Project = var.project
+    Stage   = var.stage
+  }
+}
+
+resource "aws_s3_bucket_policy" "crossfeed-lz-sync" {
+  bucket = var.crossfeed-lz-sync_name
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Sid" : "RequireSSLRequests",
+        "Action" : "s3:*",
+        "Effect" : "Deny",
+        "Principal" : "*",
+        "Resource" : [
+          aws_s3_bucket.crossfeed-lz-sync.arn,
+          "${aws_s3_bucket.crossfeed-lz-sync.arn}/*"
+        ],
+        "Condition" : {
+          "Bool" : {
+            "aws:SecureTransport" : "false"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_s3_bucket_acl" "crossfeed-lz-sync" {
+  bucket = aws_s3_bucket.crossfeed-lz-sync.id
+  acl    = "private"
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "crossfeed-lz-sync" {
+  bucket = aws_s3_bucket.crossfeed-lz-sync.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+
 # P&E DB Backups S3 bucket
 resource "aws_s3_bucket" "pe_db_backups_bucket" {
   bucket = var.pe_db_backups_bucket_name

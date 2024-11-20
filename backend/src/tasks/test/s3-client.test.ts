@@ -19,8 +19,8 @@ jest.mock('aws-sdk', () => ({
 describe('saveCSV', () => {
   test('gets url', async () => {
     const client = new S3Client();
-    const result = await client.saveCSV('data');
-    expect(result).toEqual('http://signed_url');
+    const { url } = await client.saveCSV('data');
+    expect(url).toEqual('http://signed_url');
     expect(putObject).toBeCalled();
   });
 });

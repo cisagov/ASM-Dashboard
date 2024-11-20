@@ -159,7 +159,12 @@ async function startLocalContainers(
           `SERVICE_TYPE=${scanType}`,
           `PE_API_URL=${process.env.PE_API_URL}`,
           `PE_API_KEY=${process.env.PE_API_KEY}`,
-          `CF_API_KEY=${process.env.CF_API_KEY}`
+          `CF_API_KEY=${process.env.CF_API_KEY}`,
+          `DMZ_API_KEY=${process.env.DMZ_API_KEY}`,
+          `MDL_SYNC_ENDPOINT=${process.env.MDL_SYNC_ENDPOINT}`,
+          `OLD_MDL_NAME=${process.env.OLD_MDL_NAME}`,
+          `OLD_MDL_USERNAME=${process.env.OLD_MDL_USERNAME}`,
+          `OLD_MDL_PASSWORD=${process.env.OLD_MDL_PASSWORD}`
         ]
       } as any);
       await container.start();

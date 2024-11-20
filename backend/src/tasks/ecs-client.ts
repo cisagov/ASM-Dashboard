@@ -116,7 +116,12 @@ class ECSClient {
             `AWS_ACCESS_KEY_ID=${process.env.AWS_ACCESS_KEY_ID}`,
             `AWS_SECRET_ACCESS_KEY=${process.env.AWS_SECRET_ACCESS_KEY}`,
             `LG_API_KEY=${process.env.LG_API_KEY}`,
-            `LG_WORKSPACE_NAME=${process.env.LG_WORKSPACE_NAME}`
+            `LG_WORKSPACE_NAME=${process.env.LG_WORKSPACE_NAME}`,
+            `DMZ_API_KEY=${process.env.DMZ_API_KEY}`,
+            `MDL_SYNC_ENDPOINT=${process.env.MDL_SYNC_ENDPOINT}`,
+            `OLD_MDL_NAME=${process.env.OLD_MDL_NAME}`,
+            `OLD_MDL_USERNAME=${process.env.OLD_MDL_USERNAME}`,
+            `OLD_MDL_PASSWORD=${process.env.OLD_MDL_PASSWORD}`
           ]
         } as any);
         await container.start();
