@@ -6,7 +6,7 @@ import subprocess
 def handler(event, context):
     """Lambda handler to trigger the Django syncdb management command."""
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
-    os.environ.setdefault("PYTHONPATH", "/var/task/src/xfd_django")
+    os.environ.setdefault("PYTHONPATH", "/var/task/src/xfd_django:/var/task:/var/task/.requirements")
 
     dangerouslyforce = event.get("dangerouslyforce", False)
     populate = event.get("populate", False)
