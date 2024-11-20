@@ -73,7 +73,6 @@ async def accept_terms(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-#  TODO: Add user context and permissions
 def delete_user(current_user, target_user_id):
     """
     Delete a user by ID.
@@ -86,9 +85,10 @@ def delete_user(current_user, target_user_id):
     Returns:
         JSONResponse: The result of the deletion.
     """
+    if not can_access_user(current_user, target_user_id):
+        return HTTPException(status_code=401, detail="Unauthorized")
 
     try:
-        # current_user = request.state.user
         target_user = User.objects.get(id=target_user_id)
         result = target_user.delete()
         return JSONResponse(status_code=200, content={"result": result})
@@ -274,20 +274,17 @@ async def update_user_v2(request: Request):
     Returns:
         User: The updated user.
     """
-    try:
-        current_user = request.state.user
-        target_user_id = request.path_params["user_id"]
-        if not can_access_user(current_user, target_user_id):
-            raise HTTPException(status_code=401, detail="Unauthorized")
+    current_user = request.state.user
+    target_user_id = request.path_params["user_id"]
+    if not can_access_user(current_user, target_user_id):
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
+    try:
         if not target_user_id or not User.objects.filter(id=target_user_id).exists():
             raise HTTPException(status_code=404, detail="User not found")
 
         body = await request.json()
         update_data = UpdateUserSchema(**body)
-
-        if not is_global_write_admin(current_user) and update_data.userType:
-            raise HTTPException(status_code=401, detail="Unauthorized to set userType")
 
         user = User.objects.get(id=target_user_id)
         user.firstName = update_data.firstName or user.firstName
@@ -315,7 +312,7 @@ async def update_user_v2(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def user_register_approve(user_id, current_user):
+def approve_user_registration(user_id, current_user):
     """Approve a registered user."""
     if not is_valid_uuid(user_id):
         raise HTTPException(status_code=404, detail="Invalid user ID.")
@@ -351,11 +348,12 @@ def user_register_approve(user_id, current_user):
 
 def deny_user_registration(user_id: str, current_user: User):
     """Deny a user's registration by user ID."""
-    try:
-        # Validate UUID format for the user_id
-        if not is_valid_uuid(user_id):
-            raise HTTPException(status_code=404, detail="User not found.")
 
+    # Validate UUID format for the user_id
+    if not is_valid_uuid(user_id):
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    try:
         # Retrieve the user object
         user = User.objects.filter(id=user_id).first()
         if not user:

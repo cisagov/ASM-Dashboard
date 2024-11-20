@@ -296,10 +296,22 @@ async def get_jwt_from_code(auth_code: str):
         pass
 
 
-def can_access_user(current_user, user_id: Optional[str]) -> bool:
-    return (
-        user_id and (current_user.id == user_id) or is_global_write_admin(current_user)
-    )
+def can_access_user(current_user, target_user_id) -> bool:
+    """Check if current user is allowed to modify.the target user."""
+
+    if not target_user_id:
+        return False
+
+    # Check if the current user is the target user or a global write admin
+    if current_user.id == target_user_id or is_global_write_admin(current_user):
+        return True
+
+    # Check if the user is a regional admin and the target user is in the same region
+    if is_regional_admin(current_user):
+        target_user = User.objects.get(id=target_user_id)
+        return current_user.regionId == target_user.regionId
+
+    return False
 
 
 def is_global_write_admin(current_user) -> bool:

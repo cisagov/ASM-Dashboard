@@ -1,11 +1,10 @@
 # Standard Python Libraries
 import os
-from typing import Optional
 
 # Third-Party Libraries
 import boto3
-from botocore.exceptions import BotoCoreError, ClientError
-from fastapi import HTTPException
+from botocore.exceptions import ClientError
+from django.conf import settings
 from jinja2 import Template
 
 from .s3_client import S3Client
@@ -13,8 +12,8 @@ from .s3_client import S3Client
 
 def send_invite_email(email, organization=None):
     """Send an invitation email to the specified address."""
-    frontend_domain = os.getenv("FRONTEND_DOMAIN")
-    reply_to = os.getenv("CROSSFEED_SUPPORT_EMAIL_REPLYTO")
+    frontend_domain = settings("FRONTEND_DOMAIN")
+    reply_to = settings("CROSSFEED_SUPPORT_EMAIL_REPLYTO")
 
     org_name_part = f"the {organization.name} organization on " if organization else ""
     message = f"""
@@ -41,8 +40,8 @@ def send_invite_email(email, organization=None):
 def send_email(recipient, subject, body):
     """Send an email using AWS SES."""
     ses_client = boto3.client("ses", region_name="us-east-1")
-    sender = os.getenv("CROSSFEED_SUPPORT_EMAIL_SENDER")
-    reply_to = os.getenv("CROSSFEED_SUPPORT_EMAIL_REPLYTO")
+    sender = settings("CROSSFEED_SUPPORT_EMAIL_SENDER")
+    reply_to = settings("CROSSFEED_SUPPORT_EMAIL_REPLYTO")
 
     email_params = {
         "Source": sender,
@@ -75,13 +74,13 @@ def send_registration_approved_email(
         data = {
             "firstName": first_name,
             "lastName": last_name,
-            "domain": os.getenv("FRONTEND_DOMAIN"),
+            "domain": settings("FRONTEND_DOMAIN"),
         }
         html_to_send = template.render(data)
 
         # Email configuration
-        sender = os.getenv("CROSSFEED_SUPPORT_EMAIL_SENDER")
-        reply_to = os.getenv("CROSSFEED_SUPPORT_EMAIL_REPLYTO")
+        sender = settings("CROSSFEED_SUPPORT_EMAIL_SENDER")
+        reply_to = settings("CROSSFEED_SUPPORT_EMAIL_REPLYTO")
 
         email_params = {
             "Source": sender,
@@ -93,7 +92,7 @@ def send_registration_approved_email(
             "ReplyToAddresses": [reply_to],
         }
         # SES client
-        if not os.getenv("IS_LOCAL"):
+        if not settings("IS_LOCAL"):
             ses_client = boto3.client("ses", region_name="us-east-1")
             # Send email
             ses_client.send_email(**email_params)
@@ -127,8 +126,8 @@ def send_registration_denied_email(
         html_to_send = template.render(data)
 
         # Email configuration
-        sender = os.getenv("CROSSFEED_SUPPORT_EMAIL_SENDER")
-        reply_to = os.getenv("CROSSFEED_SUPPORT_EMAIL_REPLYTO")
+        sender = settings("CROSSFEED_SUPPORT_EMAIL_SENDER")
+        reply_to = settings("CROSSFEED_SUPPORT_EMAIL_REPLYTO")
 
         email_params = {
             "Source": sender,
@@ -140,7 +139,7 @@ def send_registration_denied_email(
             "ReplyToAddresses": [reply_to],
         }
         # SES client
-        if not os.getenv("IS_LOCAL"):
+        if not settings("IS_LOCAL"):
             ses_client = boto3.client("ses", region_name="us-east-1")
             # Send email
             ses_client.send_email(**email_params)
