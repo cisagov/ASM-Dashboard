@@ -63,13 +63,15 @@ def apply_dynamic_migrations():
     """
     connection.prepare_database()  # Ensure the database is initialized
     executor = MigrationExecutor(connection)
-    executor.loader.build_graph()  # Load the migration graph
+    
+    # Reset migration state to force detection
+    executor.loader.build_graph(reset=True)
 
     # Detect unapplied migrations
     targets = executor.loader.graph.leaf_nodes()
-    print(targets)
+    print(f"Detected migration targets: {targets}")
     plan = executor.migration_plan(targets)
-    print(plan)
+    print(f"Migration plan: {plan}")
 
     if not plan:
         print("No migrations to apply.")
