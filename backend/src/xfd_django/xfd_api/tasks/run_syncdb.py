@@ -10,7 +10,7 @@ def handler(event, context):
     dangerouslyforce = event.get("dangerouslyforce", False)
     populate = event.get("populate", False)
 
-    command = ["python3", "manage.py", "syncdb"]
+    command = ["python3", "src/xfd_django/manage.py", "syncdb"]
     if dangerouslyforce:
         command.append("--dangerouslyforce")
     if populate:
