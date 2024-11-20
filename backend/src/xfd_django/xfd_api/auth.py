@@ -210,6 +210,9 @@ def get_current_active_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
         )
+    
+    # Attach email to request state for logging
+    request.state.user_email = user.email
     return user
 
 

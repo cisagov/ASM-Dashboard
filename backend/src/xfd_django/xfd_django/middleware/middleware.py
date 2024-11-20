@@ -1,34 +1,54 @@
-from fastapi import Request
+import logging
+from pythonjsonlogger import jsonlogger
 from starlette.middleware.base import BaseHTTPMiddleware
-import uuid
-from xfd_api.helpers.logger import logger
-
+from starlette.requests import Request
 
 class LoggingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        # Generate a unique request ID
-        request_id = str(uuid.uuid4())
-        
-        # Log request info
-        logger.info(
-            "Request received",
-            extra={
-                "request_id": request_id,
-                "method": request.method,
-                "url": str(request.url),
-                "headers": {k: v for k, v in request.headers.items() if k.lower() != "authorization"}
-            }
-        )
-        
-        # Process the request
-        response = await call_next(request)
+    def __init__(self, app):
+        super().__init__(app)
+        self.logger = self._configure_logger()
 
-        # Log response info
-        logger.info(
-            "Response sent",
-            extra={
-                "request_id": request_id,
-                "status_code": response.status_code
-            }
+    def _configure_logger(self):
+        logger = logging.getLogger("fastapi")
+        log_handler = logging.StreamHandler()
+        formatter = jsonlogger.JsonFormatter(
+            '%(levelname)s RequestId: %(request_id)s %(asctime)s Request Info: %(message)s'
         )
+        log_handler.setFormatter(formatter)
+        logger.addHandler(log_handler)
+        logger.setLevel(logging.INFO)
+        return logger
+
+    async def dispatch(self, request: Request, call_next):
+        # Extract headers and other relevant information
+        headers = dict(request.headers)
+        method = request.method
+        path = request.url.path
+        protocol = request.url.scheme
+        original_url = str(request.url)
+
+        # Get request ID from context (or use "undefined")
+        request_id = request.scope.get("aws.context", {}).get("aws_request_id", "undefined")
+
+        # Default to "undefined" for userEmail if not provided
+        user_email = request.state.user_email if hasattr(request.state, "user_email") else "undefined"
+
+        # Log the request details
+        log_info = {
+            "httpMethod": method,
+            "protocol": protocol,
+            "originalURL": original_url,
+            "path": path,
+            "headers": headers,
+            "userEmail": user_email,
+            "requestId": request_id
+        }
+        self.logger.info(log_info)
+
+        # Proceed with the request and capture the response
+        response = await call_next(request)
+        log_info["statusCode"] = response.status_code
+
+        # Log response with updated status code
+        self.logger.info(log_info)
         return response
