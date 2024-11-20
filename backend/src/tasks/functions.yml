@@ -22,7 +22,7 @@ syncmdl:
 
 bastion:
   timeout: 900
-  handler: src/tasks/bastion.handler
+  handler: src/xfd_django/xfd_api/tasks/bastion.handler
 
 makeGlobalAdmin:
   handler: src/tasks/makeGlobalAdmin.handler
