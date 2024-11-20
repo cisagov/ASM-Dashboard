@@ -101,7 +101,7 @@ def get_users(current_user):
     """
     Retrieve a list of all users.
     Args:
-        request : The HTTP request containing authorization information.
+        current_user : The user making the request.
 
     Raises:
         HTTPException: If the user is not authorized.

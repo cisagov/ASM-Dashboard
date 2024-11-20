@@ -358,19 +358,47 @@ async def callback_route(request: Request):
 # ========================================
 
 
+@api_router.post("/users/acceptTerms", tags=["Users"])
+async def call_accept_terms(request: Request):
+    """
+    Accept the latest terms of service.
+
+    Args:
+        request : The HTTP request containing the user and the terms version.
+
+    Returns:
+        User: The updated user.
+    """
+
+    return accept_terms(request)
+
+
 # GET Current User
-@api_router.get("/users/me", tags=["users"])
+@api_router.get("/users/me", tags=["Users"])
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
 
 
+@api_router.delete("/users/{userId}", tags=["Users"])
+async def call_delete_user(current_user, userId: str):
+    """
+    call delete_user()
+    Args:
+        userId: UUID of the user to delete.
+        Returns:
+        User: The user that was deleted.
+    """
+
+    return delete_user(current_user, userId)
+
+
 @api_router.get(
-    "/users/{regionId}",
+    "/users/",
     response_model=List[UserSchema],
-    # dependencies=[Depends(get_current_active_user)],
-    tags=["User"],
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Users"],
 )
-async def call_get_users(regionId):
+async def call_get_users(current_user: User = Depends(get_current_active_user)):
     """
     Call get_users()
 
@@ -383,7 +411,137 @@ async def call_get_users(regionId):
     Returns:
         List[User]: A list of users matching the filter criteria.
     """
-    return get_users(regionId)
+    return get_users(current_user)
+
+
+@api_router.get(
+    "/users/regionId/{regionId}",
+    response_model=List[UserSchema],
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Users"],
+)
+async def call_get_users_by_region_id(
+    regionId, current_user: User = Depends(get_current_active_user)
+):
+    """
+    Call get_users_by_region_id()
+    Args:
+        request : The HTTP request containing query parameters.
+
+    Raises:
+        HTTPException: If the user is not authorized or no users are found.
+
+    Returns:
+        List[User]: A list of users matching the filter criteria.
+    """
+    return get_users_by_region_id(regionId, current_user)
+
+
+@api_router.get(
+    "/users/state/{state}",
+    response_model=List[UserSchema],
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Users"],
+)
+async def call_get_users_by_state(
+    state, current_user: User = Depends(get_current_active_user)
+):
+    """
+    Call get_users_by_state()
+    Args:
+        request : The HTTP request containing query parameters.
+
+    Raises:
+        HTTPException: If the user is not authorized or no users are found.
+
+    Returns:
+        List[User]: A list of users matching the filter criteria.
+    """
+    return get_users_by_state(state, current_user)
+
+
+@api_router.get(
+    "/v2/users",
+    response_model=List[UserResponse],
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Users"],
+)
+async def call_get_users_v2(
+    state: Optional[str] = Query(None),
+    regionId: Optional[str] = Query(None),
+    invitePending: Optional[bool] = Query(None),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Call get_users_v2()
+    Args:
+        request : The HTTP request containing query parameters.
+
+    Raises:
+        HTTPException: If the user is not authorized or no users are found.
+
+    Returns:
+        List[User]: A list of users matching the filter criteria.
+    """
+    return get_users_v2(state, regionId, invitePending, current_user)
+
+
+@api_router.post("/users/{userId}", tags=["Users"])
+async def call_update_user(
+    userId, body, current_user: User = Depends(get_current_active_user)
+):
+    """
+    Update a user by ID.
+    Args:
+        userId : The ID of the user to update.
+        request : The HTTP request containing authorization and target for update.
+
+    Raises:
+        HTTPException: If the user is not authorized or the user is not found.
+
+    Returns:
+        JSONResponse: The result of the update.
+    """
+    return update_user(userId, body, current_user)
+
+
+@api_router.put(
+    "/users/{user_id}/register/approve",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=RegisterUserResponse,
+    tags=["Users"],
+)
+async def register_approve(
+    user_id: str, current_user: User = Depends(get_current_active_user)
+):
+    """Approve a registered user."""
+    return user.approve_user_registration(user_id, current_user)
+
+
+@api_router.put(
+    "/users/{user_id}/register/deny",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=RegisterUserResponse,
+    tags=["Users"],
+)
+async def register_deny(
+    user_id: str, current_user: User = Depends(get_current_active_user)
+):
+    """Deny a registered user."""
+    return user.deny_user_registration(user_id, current_user)
+
+
+@api_router.post(
+    "/users",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=NewUserResponseModel,
+    tags=["Users"],
+)
+async def invite_user(
+    new_user: NewUser, current_user: User = Depends(get_current_active_user)
+):
+    """Invite a user."""
+    return user.invite(new_user, current_user)
 
 
 # ========================================
