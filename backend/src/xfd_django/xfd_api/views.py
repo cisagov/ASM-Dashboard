@@ -57,12 +57,11 @@ from .auth import (
     is_global_view_admin,
 )
 from .login_gov import callback, login
-from .models import Assessment, Domain, Organization, User, Vulnerability
+from .models import Domain, Organization, User, Vulnerability
 from .schema_models import organization_schema as OrganizationSchema
 from .schema_models import scan as scanSchema
 from .schema_models import scan_tasks as scanTaskSchema
 from .schema_models.api_key import ApiKey as ApiKeySchema
-from .schema_models.assessment import Assessment as AssessmentSchema
 from .schema_models.by_org_item import ByOrgItem
 from .schema_models.cpe import Cpe as CpeSchema
 from .schema_models.cve import Cve as CveSchema
@@ -167,6 +166,47 @@ async def pe_proxy(
     return await proxy.proxy_request(request, os.getenv("PE_API_URL", ""), path)
 
 
+# ========================================
+#   Assessment Endpoints
+# ========================================
+
+
+# TODO: Uncomment checks for current_user once authentication is implemented
+@api_router.get(
+    "/assessments",
+    #  current_user: User = Depends(get_current_active_user),
+    tags=["ReadySetCyber"],
+)
+async def list_assessments():
+    """
+    Lists all assessments for the logged-in user.
+
+    Args:
+        current_user (User): The current authenticated user.
+
+    Raises:
+        HTTPException: If the user is not authorized or assessments are not found.
+
+    Returns:
+        List[Assessment]: A list of assessments for the logged-in user.
+    """
+    # Ensure the user is authenticated
+    # if not current_user:
+    #     raise HTTPException(status_code=401, detail="Unauthorized")
+
+    # Query the database for assessments belonging to the current user
+    # assessments = Assessment.objects.filter(user=current_user)
+    assessments = (
+        Assessment.objects.all()
+    )  # TODO: Remove this line once filtering by user is implemented
+
+    # Return assessments if found, or raise a 404 error if none exist
+    if not assessments.exists():
+        raise HTTPException(status_code=404, detail="No assessments found")
+
+    return list(assessments)
+
+
 @api_router.get(
     "/cpes/{cpe_id}",
     # dependencies=[Depends(get_current_active_user)],
@@ -221,7 +261,10 @@ async def call_get_cves_by_name(cve_name):
 async def call_search_domains(
     domain_search: DomainSearch, current_user: User = Depends(get_current_active_user)
 ):
-    return search_domains(domain_search, current_user)
+    try:
+        return search_domains(domain_search, current_user)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @api_router.post(
@@ -230,7 +273,10 @@ async def call_search_domains(
     tags=["Domains"],
 )
 async def call_export_domains(domain_search: DomainSearch):
-    return export_domains(domain_search)
+    try:
+        return export_domains(domain_search)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @api_router.get(
@@ -258,7 +304,10 @@ async def call_search_vulnerabilities(
     vulnerability_search: VulnerabilitySearch,
     current_user: User = Depends(get_current_active_user),
 ):
-    return search_vulnerabilities(vulnerability_search, current_user)
+    try:
+        return search_vulnerabilities(vulnerability_search, current_user)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @api_router.post("/vulnerabilities/export")
@@ -270,28 +319,28 @@ async def export_vulnerabilities():
 
 
 @api_router.get(
-    "/vulnerabilities/{vulnerability_id}",
-    dependencies=[Depends(get_current_active_user)],
+    "/vulnerabilities/{vulnerabilityId}",
+    # dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
-    tags=["Get vulnerability by id"],
+    tags="Get vulnerability by id",
 )
-async def call_get_vulnerability_by_id(vulnerability_id: str):
+async def call_get_vulnerability_by_id(vuln_id):
     """
     Get vulnerability by id.
     Returns:
         object: a single Vulnerability object.
     """
-    return get_vulnerability_by_id(vulnerability_id)
+    return get_vulnerability_by_id(vuln_id)
 
 
 @api_router.put(
-    "/vulnerabilities/{vulnerability_id}",
-    dependencies=[Depends(get_current_active_user)],
+    "/vulnerabilities/{vulnerabilityId}",
+    # dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
     tags="Update vulnerability",
 )
 async def call_update_vulnerability(
-    vulnerability_id,
+    vuln_id,
     data: VulnerabilitySchema,
     current_user: User = Depends(get_current_active_user),
 ):
@@ -301,7 +350,7 @@ async def call_update_vulnerability(
     Returns:
         object: a single vulnerability object that has been modified.
     """
-    return update_vulnerability(vulnerability_id, data, current_user)
+    return update_vulnerability(vuln_id, data, current_user)
 
 
 # ========================================
