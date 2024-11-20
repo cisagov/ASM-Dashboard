@@ -120,8 +120,7 @@ class Cve(models.Model):
 
     cpes = models.ManyToManyField(
         "Cpe",
-        related_name="cves",
-        db_table="cve_cpes_cpe",
+        related_name="cves"
     )
 
     class Meta:
@@ -291,8 +290,7 @@ class OrganizationTag(models.Model):
     name = models.CharField(max_length=255, unique=True)
     organizations = models.ManyToManyField(
         "Organization",
-        related_name="tags",
-        db_table="organization_tag_organizations_organization",
+        related_name="tags"
     )
 
     class Meta:
@@ -419,8 +417,7 @@ class Scan(models.Model):
     )
     organizations = models.ManyToManyField(
         "Organization",
-        related_name="granularScans",
-        db_table="scan_organizations_organization",
+        related_name="granularScans"
     )
 
     class Meta:
@@ -452,7 +449,6 @@ class ScanTask(models.Model):
     organizations = models.ManyToManyField(
         "Organization",
         related_name="allScanTasks",
-        db_table="scan_task_organizations_organization",
     )
 
     class Meta:
