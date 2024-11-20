@@ -8,7 +8,7 @@ from uuid import UUID
 # Third-Party Libraries
 from pydantic import BaseModel
 
-from .organization import Organization
+from .organization_schema import Organization
 from .organization_tag import OrganizationalTags
 
 

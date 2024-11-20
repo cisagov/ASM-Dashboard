@@ -1,6 +1,4 @@
 """Service schema."""
-# Third-Party Libraries
-# from pydantic.types import UUID1, UUID
 # Standard Python Libraries
 from datetime import datetime
 from typing import Any, Optional
@@ -8,6 +6,7 @@ from uuid import UUID
 
 # Third-Party Libraries
 from pydantic import BaseModel, Json
+from pydantic.types import UUID1
 
 
 class Service(BaseModel):
@@ -28,6 +27,14 @@ class Service(BaseModel):
     wappalyzerResults: Json[Any]
     domain: Optional[Any]
     discoveredBy: Optional[Any]
+
+    class Config:
+        from_attributes = True
+
+
+class ServicesStat(BaseModel):
+    id: UUID
+    value: int
 
     class Config:
         from_attributes = True

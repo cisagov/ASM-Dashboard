@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 # Standard Python Libraries
 import mimetypes
+import os
 
 # Python built-in
 from pathlib import Path
@@ -31,7 +32,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # TODO: GET THAT LATER
-SECRET_KEY = "django-insecure-255j80npx26z%x0@-7p@(qs9(yvtuuln#xuhxt_x$bbevvxnm!"
+SECRET_KEY = os.getenv("DJANGO_SECRET")
+
+# JWT Secret Key
+JWT_SECRET = os.getenv("JWT_SECRET")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
+JWT_TIMEOUT_HOURS = os.getenv("JWT_TIMEOUT_HOURS")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -107,6 +113,12 @@ DATABASES = {
         "PORT": "5432",
     }
 }
+
+# ElastiCache AWS
+ELASTICACHE_ENDPOINT = os.getenv("ELASTICACHE_ENDPOINT")
+
+# Elasticsearch
+ELASTICSEARCH_ENDPOINT = os.getenv("ELASTICSEARCH_ENDPOINT")
 
 
 # Password validation
