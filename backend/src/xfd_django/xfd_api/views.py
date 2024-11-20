@@ -73,6 +73,7 @@ from .schema_models.notification import Notification as NotificationSchema
 from .schema_models.ports_stats import PortsStats
 from .schema_models.role import Role as RoleSchema
 from .schema_models.saved_search import SavedSearch as SavedSearchSchema
+from .schema_models.saved_search import SavedSearchCreate, SavedSearchUpdate
 from .schema_models.search import SearchBody, SearchRequest, SearchResponse
 from .schema_models.service import ServicesStat
 from .schema_models.severity_count import SeverityCountSchema
@@ -410,17 +411,19 @@ async def delete_api_key(
     tags=["Saved Search"],
 )
 async def call_create_saved_search(
-    name: str,
-    search_term: str,
-    region_id: str,
+    saved_search: SavedSearchCreate,
     current_user: User = Depends(get_current_active_user),
 ):
     """Create a new saved search."""
 
     request = {
-        "name": name,
-        "searchTerm": search_term,
-        "regionId": region_id,
+        "name": saved_search.name,
+        "count": saved_search.count,
+        "sortDirection": saved_search.sortDirection,
+        "sortField": saved_search.sortField,
+        "searchTerm": saved_search.searchTerm,
+        "searchPath": saved_search.searchPath,
+        "filters": saved_search.filters,
         "createdById": current_user,
     }
 
@@ -434,9 +437,9 @@ async def call_create_saved_search(
     response_model=List[SavedSearchSchema],
     tags=["Saved Search"],
 )
-async def call_list_saved_searches():
+async def call_list_saved_searches(user: User = Depends(get_current_active_user)):
     """Retrieve a list of all saved searches."""
-    return list_saved_searches()
+    return list_saved_searches(user)
 
 
 # Get individual saved search by ID
@@ -446,33 +449,39 @@ async def call_list_saved_searches():
     response_model=SavedSearchSchema,
     tags=["Saved Search"],
 )
-async def call_get_saved_search(saved_search_id: str):
+async def call_get_saved_search(
+    saved_search_id: str, current_user: User = Depends(get_current_active_user)
+):
     """Retrieve a saved search by its ID."""
-    return get_saved_search(saved_search_id)
+    return get_saved_search(saved_search_id, current_user)
 
 
 # Update saved search by ID
 @api_router.put(
     "/saved-searches/{saved_search_id}",
     dependencies=[Depends(get_current_active_user)],
-    response_model=SavedSearchSchema,
+    response_model=SavedSearchUpdate,
     tags=["Saved Search"],
 )
 async def call_update_saved_search(
+    saved_search: SavedSearchUpdate,
     saved_search_id: str,
-    name: str,
-    search_term: str,
     current_user: User = Depends(get_current_active_user),
 ):
     """Update a saved search by its ID."""
 
     request = {
-        "name": name,
         "saved_search_id": saved_search_id,
-        "searchTerm": search_term,
+        "name": saved_search.name,
+        "count": saved_search.count,
+        "searchTerm": saved_search.searchTerm,
+        "sortDirection": saved_search.sortDirection,
+        "sortField": saved_search.sortField,
+        "searchPath": saved_search.searchPath,
+        "filters": saved_search.filters,
     }
 
-    return update_saved_search(request)
+    return update_saved_search(request, current_user)
 
 
 # Delete saved search by ID
@@ -481,9 +490,11 @@ async def call_update_saved_search(
     dependencies=[Depends(get_current_active_user)],
     tags=["Saved Search"],
 )
-async def call_delete_saved_search(saved_search_id: str):
+async def call_delete_saved_search(
+    saved_search_id: str, current_user: User = Depends(get_current_active_user)
+):
     """Delete a saved search by its ID."""
-    return delete_saved_search(saved_search_id)
+    return delete_saved_search(saved_search_id, current_user)
 
 
 # GET ALL
