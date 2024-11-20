@@ -16,6 +16,8 @@ custom:
     - If: '"${file(env.yml):${self:provider.stage}.ENDPOINT_TYPE}" == "REGIONAL"'
       Exclude:
         - provider.vpcEndpointIds
+  pythonRequirements:
+    dockerizePip: true
 
 provider:
   name: aws
