@@ -45,7 +45,7 @@ from .schema_models.domain import DomainFilters, DomainSearch
 from .schema_models.notification import Notification as NotificationSchema
 from .schema_models.role import Role as RoleSchema
 from .schema_models.saved_search import SavedSearch as SavedSearchSchema
-from .schema_models.saved_search import SavedSearchCreate
+from .schema_models.saved_search import SavedSearchCreate, SavedSearchUpdate
 from .schema_models.search import SearchBody, SearchRequest, SearchResponse
 from .schema_models.user import User as UserSchema
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
@@ -411,24 +411,28 @@ async def call_get_saved_search(
 @api_router.put(
     "/saved-searches/{saved_search_id}",
     dependencies=[Depends(get_current_active_user)],
-    response_model=SavedSearchSchema,
+    response_model=SavedSearchUpdate,
     tags=["Saved Search"],
 )
 async def call_update_saved_search(
+    saved_search: SavedSearchUpdate,
     saved_search_id: str,
-    name: str,
-    search_term: str,
     current_user: User = Depends(get_current_active_user),
 ):
     """Update a saved search by its ID."""
 
     request = {
-        "name": name,
         "saved_search_id": saved_search_id,
-        "searchTerm": search_term,
+        "name": saved_search.name,
+        "count": saved_search.count,
+        "searchTerm": saved_search.searchTerm,
+        "sortDirection": saved_search.sortDirection,
+        "sortField": saved_search.sortField,
+        "searchPath": saved_search.searchPath,
+        "filters": saved_search.filters,
     }
 
-    return update_saved_search(request)
+    return update_saved_search(request, current_user)
 
 
 # Delete saved search by ID

@@ -47,160 +47,186 @@ def test_create_saved_search_by_user():
 
 @pytest.mark.django_db(transaction=True)
 def test_update_saved_search_by_global_admin_fails():
-    pass
-    # user = User.objects.create(
-    #     firstName="",
-    #     lastName="",
-    #     email=f"{secrets.token_hex(4)}@example.com",
-    #     userType=UserType.GLOBAL_ADMIN,
-    #     createdAt=datetime.now(),
-    #     updatedAt=datetime.now(),
-    # )
-    # body = {
-    #     "name": f"test-{secrets.token_hex(4)}",
-    #     "count": 3,
-    #     "sortDirection": "",
-    #     "sortField": "",
-    #     "searchTerm": "",
-    #     "searchPath": "",
-    #     "filters": [],
-    # }
-    # search = SavedSearch.objects.create(**body)
-    # body["name"] = f"test-{secrets.token_hex(4)}"
-    # body["searchTerm"] = "123"
-    # response = client.put(
-    #     f"/saved-searches/{search.id}",
-    #     json=body,
-    #     headers={"Authorization": "Bearer " + create_jwt_token(user)},
-    # )
-    # assert response.status_code == 404
+    # pass
+    global_admin_user = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.GLOBAL_ADMIN,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+    standard_user = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+    body = {
+        "name": f"test-{secrets.token_hex(4)}",
+        "count": 3,
+        "sortDirection": "",
+        "sortField": "",
+        "searchTerm": "",
+        "searchPath": "",
+        "filters": [],
+        "updatedAt": datetime.now(),  # Include updatedAt field
+    }
+    search = SavedSearch.objects.create(**body, createdById=standard_user)
+    body["name"] = f"test-{secrets.token_hex(4)}"
+    body["searchTerm"] = "123"
+    body["updatedAt"] = datetime.now().isoformat()  # Update the timestamp
+
+    response = client.put(
+        f"/saved-searches/{search.id}",
+        json=body,
+        headers={"Authorization": "Bearer " + create_jwt_token(global_admin_user)},
+    )
+    assert response.status_code == 404
+
+    # Cleanup
+    global_admin_user.delete()
+    standard_user.delete()
+    search.delete()
 
 
 @pytest.mark.django_db(transaction=True)
 def test_update_saved_search_by_global_view_fails():
     """Ensure that a global view user cannot update a saved search."""
     # Create a standard user and a saved search
-    pass
-    # user = User.objects.create(
-    #     firstName="Test",
-    #     lastName="User",
-    #     email=f"{secrets.token_hex(4)}@example.com",
-    #     userType=UserType.STANDARD,
-    #     createdAt=datetime.now(),
-    #     updatedAt=datetime.now(),
-    # )
-    # saved_search = SavedSearch.objects.create(
-    #     name=f"test-search-{secrets.token_hex(4)}",
-    #     count=5,
-    #     sortDirection="asc",
-    #     sortField="name",
-    #     searchTerm="example",
-    #     searchPath="/example-path",
-    #     filters=[],
-    #     createdById=user,
-    # )
+    # pass
+    user = User.objects.create(
+        firstName="Test",
+        lastName="User",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+    body = {
+        "name": f"test-{secrets.token_hex(4)}",
+        "count": 3,
+        "sortDirection": "",
+        "sortField": "",
+        "searchTerm": "",
+        "searchPath": "",
+        "filters": [],
+        "updatedAt": datetime.now(),  # Include updatedAt field
+    }
+    saved_search = SavedSearch.objects.create(**body, createdById=user)
 
-    # # Create a global view user
-    # global_view_user = User.objects.create(
-    #     firstName="Global",
-    #     lastName="Viewer",
-    #     email=f"{secrets.token_hex(4)}@example.com",
-    #     userType=UserType.GLOBAL_VIEW,
-    #     createdAt=datetime.now(),
-    #     updatedAt=datetime.now(),
-    # )
+    # Create a global view user
+    global_view_user = User.objects.create(
+        firstName="Global",
+        lastName="Viewer",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.GLOBAL_VIEW,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
 
-    # # Attempt to update the saved search with the global view user
-    # updated_data = {
-    #     "name": "updated-search-name",
-    #     "sortDirection": "desc",
-    # }
-    # response = client.put(
-    #     f"/saved-searches/{saved_search.id}",
-    #     json=updated_data,
-    #     headers={"Authorization": "Bearer " + create_jwt_token(global_view_user)},
-    # )
+    # Attempt to update the saved search with the global view user
+    body["name"] = f"test-{secrets.token_hex(4)}"
+    body["searchTerm"] = "123"
+    body["updatedAt"] = datetime.now().isoformat()  # Update the timestamp
 
-    # # Assert that the response indicates failure (403 or 404)
-    # assert response.status_code == 404
-    # assert response.json()["detail"] == "Saved search not found"
+    response = client.put(
+        f"/saved-searches/{saved_search.id}",
+        json=body,
+        headers={"Authorization": "Bearer " + create_jwt_token(global_view_user)},
+    )
 
-    # # Cleanup
-    # user.delete()
-    # global_view_user.delete()
-    # saved_search.delete()
+    print(saved_search)
+    print(response.json())
+
+    # Assert that the response indicates failure (403 or 404)
+    assert response.status_code == 404
+
+    # Cleanup
+    user.delete()
+    global_view_user.delete()
+    saved_search.delete()
 
 
 @pytest.mark.django_db(transaction=True)
 def test_update_saved_search_by_standard_user_with_access():
-    pass
-    # user = User.objects.create(
-    #     firstName="",
-    #     lastName="",
-    #     email=f"{secrets.token_hex(4)}@example.com",
-    #     userType=UserType.STANDARD,
-    #     createdAt=datetime.now(),
-    #     updatedAt=datetime.now(),
-    # )
-    # body = {
-    #     "name": f"test-{secrets.token_hex(4)}",
-    #     "count": 3,
-    #     "sortDirection": "",
-    #     "sortField": "",
-    #     "searchTerm": "",
-    #     "searchPath": "",
-    #     "filters": [],
-    # }
-    # search = SavedSearch.objects.create(**body, createdById=user)
-    # body["name"] = f"test-{secrets.token_hex(4)}"
-    # body["searchTerm"] = "123"
-    # response = client.put(
-    #     f"/saved-searches/{search.id}",
-    #     json=body,
-    #     headers={"Authorization": "Bearer " + create_jwt_token(user)},
-    # )
-    # assert response.status_code == 200
-    # data = response.json()
-    # assert data["name"] == body["name"]
-    # assert data["searchTerm"] == body["searchTerm"]
+    # pass
+    user = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+    body = {
+        "name": f"test-{secrets.token_hex(4)}",
+        "count": 3,
+        "sortDirection": "",
+        "sortField": "",
+        "searchTerm": "",
+        "searchPath": "",
+        "filters": [],
+        "updatedAt": datetime.now(),  # Include updatedAt field
+    }
+    search = SavedSearch.objects.create(**body, createdById=user)
+    body["name"] = f"test-{secrets.token_hex(4)}"
+    body["searchTerm"] = "123"
+    body["updatedAt"] = datetime.now().isoformat()  # Update the timestamp
+
+    response = client.put(
+        f"/saved-searches/{search.id}",
+        json=body,
+        headers={"Authorization": "Bearer " + create_jwt_token(user)},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == body["name"]
+    assert data["searchTerm"] == body["searchTerm"]
+
+    # Cleanup
+    search.delete()
+    user.delete()
 
 
 @pytest.mark.django_db(transaction=True)
 def test_update_saved_search_by_standard_user_without_access_fails():
-    pass
-    # user = User.objects.create(
-    #     firstName="",
-    #     lastName="",
-    #     email=f"{secrets.token_hex(4)}@example.com",
-    #     userType=UserType.STANDARD,
-    #     createdAt=datetime.now(),
-    #     updatedAt=datetime.now(),
-    # )
-    # user1 = User.objects.create(
-    #     firstName="",
-    #     lastName="",
-    #     email=f"{secrets.token_hex(4)}@example.com",
-    #     userType=UserType.STANDARD,
-    #     createdAt=datetime.now(),
-    #     updatedAt=datetime.now(),
-    # )
-    # body = {
-    #     "name": f"test-{secrets.token_hex(4)}",
-    #     "count": 3,
-    #     "sortDirection": "",
-    #     "sortField": "",
-    #     "searchTerm": "",
-    #     "searchPath": "",
-    #     "filters": [],
-    #     "createdById": user,
-    # }
-    # search = SavedSearch.objects.create(**body)
-    # response = client.put(
-    #     f"/saved-searches/{search.id}",
-    #     json=body,
-    #     headers={"Authorization": "Bearer " + create_jwt_token(user1)},
-    # )
-    # assert response.status_code == 404
+    # pass
+    user = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+    user1 = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+    body = {
+        "name": f"test-{secrets.token_hex(4)}",
+        "count": 3,
+        "sortDirection": "",
+        "sortField": "",
+        "searchTerm": "",
+        "searchPath": "",
+        "filters": [],
+        "updatedAt": str(datetime.now()),  # Include updatedAt field
+    }
+    search = SavedSearch.objects.create(**body, createdById=user)
+    response = client.put(
+        f"/saved-searches/{search.id}",
+        json=body,
+        headers={"Authorization": "Bearer " + create_jwt_token(user1)},
+    )
+    assert response.status_code == 404
 
 
 @pytest.mark.django_db(transaction=True)
@@ -238,6 +264,11 @@ def test_delete_saved_search_by_global_admin_fails():
         headers={"Authorization": "Bearer " + create_jwt_token(global_admin_user)},
     )
     assert response.status_code == 404
+
+    global_admin_user.delete()
+    standard_user.delete()
+    if search:
+        search.delete()
 
 
 @pytest.mark.django_db(transaction=True)
