@@ -27,8 +27,12 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         protocol = request.url.scheme
         original_url = str(request.url)
 
-        # Get request ID from context (or use "undefined")
-        request_id = request.scope.get("aws.context", {}).get("aws_request_id", "undefined")
+         # Get request ID from scope
+        aws_context = request.scope.get("aws.context", None)
+        print("aws_context")
+        print(request.scope)
+        print(aws_context)
+        request_id = getattr(aws_context, "aws_request_id", "undefined") if aws_context else "undefined"
 
         # Default to "undefined" for userEmail if not provided
         user_email = request.state.user_email if hasattr(request.state, "user_email") else "undefined"
