@@ -26,9 +26,8 @@ def validate_name(value: str):
 
 
 def create_saved_search(request):
+    validate_name(request.get("name"))
     try:
-        validate_name(request.get("name"))
-
         search = SavedSearch.objects.create(
             name=request.get("name"),
             count=request.get("count", 0),  # Default to 0 if count does not exist
@@ -105,11 +104,10 @@ def get_saved_search(saved_search_id, user):
         raise HTTPException(
             status_code=404, detail="Global View users cannot retrieve saved searches."
         )
+    if not uuid.UUID(saved_search_id):
+        raise HTTPException({"error": "Invalid UUID"}, status=404)
 
     try:
-        if not uuid.UUID(saved_search_id):
-            raise HTTPException({"error": "Invalid UUID"}, status=404)
-
         saved_search = SavedSearch.objects.get(id=saved_search_id)
 
         if saved_search.createdById.id != user.id:
@@ -138,10 +136,9 @@ def get_saved_search(saved_search_id, user):
 
 
 def update_saved_search(request, user):
+    if not uuid.UUID(request["saved_search_id"]):
+        raise HTTPException(status_code=404, detail={"error": "Invalid UUID"})
     try:
-        if not uuid.UUID(request["saved_search_id"]):
-            raise HTTPException(status_code=404, detail={"error": "Invalid UUID"})
-
         saved_search = SavedSearch.objects.get(id=request["saved_search_id"])
         if saved_search.createdById.id != user.id:
             raise HTTPException(status_code=404, detail="Saved search not found")
@@ -174,10 +171,9 @@ def update_saved_search(request, user):
 
 def delete_saved_search(saved_search_id, user):
     """Delete saved search by id."""
-
+    if not uuid.UUID(saved_search_id):
+        raise HTTPException(status_code=404, detail={"error": "Invalid UUID"})
     try:
-        if not uuid.UUID(saved_search_id):
-            raise HTTPException(status_code=404, detail={"error": "Invalid UUID"})
         search = SavedSearch.objects.get(id=saved_search_id)
         if search.createdById.id != user.id:
             raise HTTPException(status_code=404, detail="Saved search not found")
