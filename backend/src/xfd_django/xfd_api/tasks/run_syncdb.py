@@ -63,20 +63,28 @@ def apply_dynamic_migrations():
     """
     connection.prepare_database()  # Ensure the database is initialized
     executor = MigrationExecutor(connection)
-    
-    # Reset migration state to force detection
-    executor.loader.build_graph(reset=True)
 
-    # Detect unapplied migrations
-    targets = executor.loader.graph.leaf_nodes()
-    print(f"Detected migration targets: {targets}")
-    plan = executor.migration_plan(targets)
-    print(f"Migration plan: {plan}")
+    # Get the current project state
+    current_state = executor.loader.project_state()
 
-    if not plan:
-        print("No migrations to apply.")
-        return
+    # Generate migration plans
+    migration_plan = []
+    for app_label in current_state.apps:
+        app_models = current_state.apps.get_models(app_label=app_label)
+        for model in app_models:
+            # Generate migrations for each model in memory
+            migration = migrations.CreateModel(
+                name=model.__name__,
+                fields=model._meta.fields,
+                options=model._meta.options,
+                bases=model._meta.parents,
+            )
+            migration_plan.append(migration)
 
-    # Apply migrations dynamically
-    print(f"Applying migrations: {targets}")
-    executor.migrate(targets)
+    # Apply each migration dynamically
+    for migration in migration_plan:
+        print(f"Applying migration for model: {migration.name}")
+        executor.apply_migration(migration)
+        print(f"Migration applied: {migration.name}")
+
+    print("Migrations applied successfully.")
