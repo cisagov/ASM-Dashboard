@@ -153,8 +153,6 @@ def update_saved_search(request, user):
 
         saved_search.save()
         response = {
-            # "id": saved_search.id,
-            # "createdAt": saved_search.createdAt,
             "name": saved_search.name,
             "updatedAt": saved_search.updatedAt,
             "searchTerm": saved_search.searchTerm,
@@ -163,7 +161,6 @@ def update_saved_search(request, user):
             "count": saved_search.count,
             "filters": saved_search.filters,
             "searchPath": saved_search.searchPath,
-            # "createdById": saved_search.createdById.id,
         }
     except User.DoesNotExist:
         raise HTTPException(status_code=404, detail="User not found")
@@ -182,7 +179,6 @@ def delete_saved_search(saved_search_id, user):
         if not uuid.UUID(saved_search_id):
             raise HTTPException(status_code=404, detail={"error": "Invalid UUID"})
         search = SavedSearch.objects.get(id=saved_search_id)
-        print("Comparison fields", search.createdById.id, user.id)
         if search.createdById.id != user.id:
             raise HTTPException(status_code=404, detail="Saved search not found")
         search.delete()
