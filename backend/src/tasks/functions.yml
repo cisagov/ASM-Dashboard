@@ -16,10 +16,6 @@ pesyncdb:
   timeout: 900
   handler: src/tasks/pesyncdb.handler
 
-syncmdl:
-  timeout: 900
-  handler: src/tasks/syncmdl.handler
-
 bastion:
   timeout: 900
   handler: src/xfd_django/xfd_api/tasks/bastion.handler
