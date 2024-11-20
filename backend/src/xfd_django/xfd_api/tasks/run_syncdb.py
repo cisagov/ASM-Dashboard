@@ -3,6 +3,14 @@ import os
 
 # Third-Party Libraries
 import django
+
+# Set the Django settings module
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
+os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
+
+# Initialize Django
+django.setup()
+
 from django.core.management import call_command
 from xfd_api.management.commands.syncdb import (
     populate_sample_data,
@@ -14,12 +22,6 @@ def handler(event, context):
     """
     Lambda handler to trigger syncdb.
     """
-    # Set the Django settings module
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
-    os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
-
-    # Initialize Django
-    django.setup()
 
     # Parse arguments from the event
     dangerouslyforce = event.get("dangerouslyforce", False)
