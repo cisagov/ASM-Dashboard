@@ -14,7 +14,7 @@ import os
 import django
 from django.apps import apps
 from django.conf import settings
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 from xfd_django.middleware.middleware import LoggingMiddleware
@@ -26,6 +26,51 @@ django.setup()
 # Ensure apps are populated
 apps.populate(settings.INSTALLED_APPS)
 
+# Define the CSP policy
+CSP_POLICY = {
+    "default-src": ["'self'"],
+    "connect-src": [
+        "'self'",
+        os.getenv("COGNITO_URL"),
+        os.getenv("BACKEND_DOMAIN"),
+    ],
+    "frame-src": ["'self'", "https://www.dhs.gov/ntas/"],
+    "img-src": [
+        "'self'",
+        "data:",
+        os.getenv("FRONTEND_DOMAIN"),
+        "https://www.ssa.gov",
+        "https://www.dhs.gov",
+    ],
+    "object-src": ["'none'"],
+    "script-src": [
+        "'self'",
+        os.getenv("BACKEND_DOMAIN"),
+        "https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js",
+        "https://www.ssa.gov/accessibility/andi/fandi.js",
+        "https://www.ssa.gov/accessibility/andi/andi.js",
+        "https://www.dhs.gov",
+    ],
+    "style-src": ["'self'", "'unsafe-inline'"],
+    "frame-ancestors": ["'none'"],
+}
+
+def set_security_headers(response: Response):
+    """
+    Apply security headers to the HTTP response.
+    """
+    # Set Content Security Policy
+    csp_value = "; ".join(
+        [f"{key} {' '.join(value)}" for key, value in CSP_POLICY.items()]
+    )
+    response.headers["Content-Security-Policy"] = csp_value
+    response.headers["Strict-Transport-Security"] = "max-age=31536000"
+    response.headers["X-XSS-Protection"] = "0"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+
+    return response
 
 def get_application() -> FastAPI:
     """get_application function."""
@@ -42,6 +87,14 @@ def get_application() -> FastAPI:
         allow_headers=["*"],
     )
     app.add_middleware(LoggingMiddleware)
+
+    # Add security headers middleware
+    @app.middleware("http")
+    async def security_headers_middleware(request: Request, call_next):
+        response = await call_next(request)
+        return set_security_headers(response)
+    
+
     app.include_router(api_router)
     return app
 

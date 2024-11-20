@@ -29,9 +29,6 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
          # Get request ID from scope
         aws_context = request.scope.get("aws.context", None)
-        print("aws_context")
-        print(request.scope)
-        print(aws_context)
         request_id = getattr(aws_context, "aws_request_id", "undefined") if aws_context else "undefined"
 
         # Default to "undefined" for userEmail if not provided
@@ -47,7 +44,6 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             "userEmail": user_email,
             "requestId": request_id
         }
-        self.logger.info(log_info)
 
         # Proceed with the request and capture the response
         response = await call_next(request)
