@@ -1,27 +1,40 @@
 # Standard Python Libraries
 import os
-import subprocess
 
+# Third-Party Libraries
+import django
+from django.core.management import call_command
 
 def handler(event, context):
-    """Lambda handler to trigger the Django syncdb management command."""
+    """
+    Lambda handler to trigger syncdb.
+    """
+    # Set the Django settings module
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
-    os.environ.setdefault("PYTHONPATH", "/var/task/src/xfd_django:/var/task:/var/task/.requirements")
+    os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 
+    # Initialize Django
+    django.setup()
+
+    # Parse arguments from the event
     dangerouslyforce = event.get("dangerouslyforce", False)
     populate = event.get("populate", False)
 
-    command = ["python3", "src/xfd_django/manage.py", "syncdb"]
+    command_args = []
     if dangerouslyforce:
-        command.append("--dangerouslyforce")
+        command_args.append("--dangerouslyforce")
     if populate:
-        command.append("--populate")
+        command_args.append("--populate")
 
     try:
-        subprocess.run(command, check=True)
+        # Run the custom syncdb management command
+        call_command("syncdb", *command_args)
         return {
             "statusCode": 200,
             "body": "Database synchronization completed successfully.",
         }
-    except subprocess.CalledProcessError as e:
-        return {"statusCode": 500, "body": f"Database synchronization failed: {str(e)}"}
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": f"Database synchronization failed: {str(e)}",
+        }
