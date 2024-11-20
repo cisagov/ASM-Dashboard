@@ -3,13 +3,14 @@ import os
 from typing import Any, Dict, List, Optional
 
 # Third-Party Libraries
+from django.conf import settings
 from elasticsearch import AsyncElasticsearch
 
 from ..schema_models.search import SearchRequest
 
 # Elasticsearch client
 es = AsyncElasticsearch(
-    hosts=[os.getenv("ELASTICSEARCH_ENDPOINT")],
+    hosts=[settings.ELASTICSEARCH_ENDPOINT],
     headers={"Content-Type": "application/json"},  # Set correct Content-Type header
 )
 
