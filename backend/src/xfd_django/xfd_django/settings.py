@@ -41,7 +41,7 @@ ALLOWED_HOSTS = [
     ".execute-api.us-east-1.amazonaws.com",
     os.getenv('BACKEND_DOMAIN'),
     os.getenv('REACT_APP_API_URL'),
-    "http://localhost",
+    os.getenv('FRONTEND_DOMAIN'),
 ]
 
 MESSAGE_TAGS = {
