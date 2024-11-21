@@ -4,7 +4,6 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from datetime import datetime
 
-
 class LoggingMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
         super().__init__(app)
@@ -23,7 +22,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         return logger
 
     async def dispatch(self, request: Request, call_next):
-        # Extract headers and other relevant information
+        # Extract relevant request details
         headers = dict(request.headers)
         method = request.method
         path = request.url.path
@@ -37,10 +36,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         # Default to "undefined" for userEmail if not provided
         user_email = request.state.user_email if hasattr(request.state, "user_email") else "undefined"
 
-        # Proceed with the request and capture the response
-        response = await call_next(request)
-
-        # Log details in the desired format
+        # Prepare log details
         log_info = {
             "httpMethod": method,
             "protocol": protocol,
@@ -48,9 +44,12 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             "path": path,
             "headers": headers,
             "userEmail": user_email,
-            "requestId": request_id,
-            "statusCode": response.status_code,
+            "timestamp": datetime.utcnow().isoformat(),
         }
-        # Log in the desired format
-        self.logger.info("", extra={"request_id": request_id, "asctime": datetime.utcnow().isoformat(), "message": log_info})
+
+        # Log the request
+        self.logger.info(log_info)
+
+        # Proceed with the request
+        response = await call_next(request)
         return response
