@@ -419,6 +419,24 @@ async def get_jwt_from_code(auth_code: str):
         pass
 
 
+def can_access_user(current_user, target_user_id) -> bool:
+    """Check if current user is allowed to modify.the target user."""
+
+    if not target_user_id:
+        return False
+
+    # Check if the current user is the target user or a global write admin
+    if current_user.id == target_user_id or is_global_write_admin(current_user):
+        return True
+
+    # Check if the user is a regional admin and the target user is in the same region
+    if is_regional_admin(current_user):
+        target_user = User.objects.get(id=target_user_id)
+        return current_user.regionId == target_user.regionId
+
+    return False
+
+
 def is_global_write_admin(current_user) -> bool:
     """Check if the user has global write admin permissions."""
     return current_user and current_user.userType == "globalAdmin"
@@ -501,8 +519,8 @@ def matches_user_region(current_user, user_region_id: str) -> bool:
         return True
 
     # Ensure the user has a region associated with them
-    if not current_user.region_id or not user_region_id:
+    if not current_user.regionId or not user_region_id:
         return False
 
     # Compare the region IDs
-    return user_region_id == current_user.region_id
+    return user_region_id == current_user.regionId

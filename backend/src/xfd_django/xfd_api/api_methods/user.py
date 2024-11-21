@@ -3,16 +3,45 @@ User API.
 
 """
 # Standard Python Libraries
-from typing import List, Optional
+from datetime import datetime
+import os
+from typing import List
+import uuid
 
 # Third-Party Libraries
-from fastapi import HTTPException, Query
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Prefetch
-from django.forms.models import model_to_dict
+from django.forms import model_to_dict
+from fastapi import HTTPException, Request
+from fastapi.responses import JSONResponse
 
-from ..models import User, Role
+from ..auth import (
+    can_access_user,
+    is_global_view_admin,
+    is_global_write_admin,
+    is_org_admin,
+    is_regional_admin,
+    matches_user_region,
+)
+from ..helpers.email import (
+    send_invite_email,
+    send_registration_approved_email,
+    send_registration_denied_email,
+)
+from ..helpers.regionStateMap import REGION_STATE_MAP
+from ..models import Organization, Role, User
+from ..schema_models.user import NewUser as NewUserSchema
+from ..schema_models.user import UpdateUser as UpdateUserSchema
 from ..schema_models.user import User as UserSchema
 
+
+def is_valid_uuid(val: str) -> bool:
+    """Check if the given string is a valid UUID."""
+    try:
+        uuid_obj = uuid.UUID(val, version=4)
+    except ValueError:
+        return False
+    return str(uuid_obj) == val
 
 def get_me(current_user):
     """Get current user."""
@@ -42,21 +71,440 @@ def get_me(current_user):
     return user_dict
 
 
-def get_users(regionId):
+async def accept_terms(request: Request):
+    """
+    Accept the latest terms of service.
+    Args:
+        request : The HTTP request containing the user and the terms version.
+
+    Returns:
+        User: The updated user.
+    """
+    try:
+        current_user = request.state.user
+        if not current_user:
+            raise HTTPException(status_code=401, detail="User not authenticated.")
+
+        body = await request.json()
+        version = body.get("version")
+        if not version:
+            raise HTTPException(
+                status_code=400, detail="Missing version in request body."
+            )
+
+        current_user.dateAcceptedTerms = datetime.now()
+        current_user.acceptedTermsVersion = version
+        current_user.save()
+
+        return UserSchema.model_validate(current_user)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def delete_user(current_user, target_user_id):
+    """
+    Delete a user by ID.
+    Args:
+        request : The HTTP request containing authorization and target for deletion..
+
+    Raises:
+        HTTPException: If the user is not authorized or the user is not found.
+
+    Returns:
+        JSONResponse: The result of the deletion.
+    """
+    if not can_access_user(current_user, target_user_id):
+        return HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        target_user = User.objects.get(id=target_user_id)
+        result = target_user.delete()
+        return JSONResponse(status_code=200, content={"result": result})
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def get_users(current_user):
+    """
+    Retrieve a list of all users.
+    Args:
+        current_user : The user making the request.
+
+    Raises:
+        HTTPException: If the user is not authorized.
+
+    Returns:
+        List[User]: A list of all users.
+    """
+    try:
+        if not (is_global_view_admin(current_user)):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        users = User.objects.all().prefetch_related("roles", "roles.organization")
+        return [UserSchema.model_validate(user) for user in users]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def get_users_by_region_id(current_user, region_id):
+    """
+    List users with specific regionId.
+    Args:
+        request : The HTTP request containing the regionId.
+
+    Returns:
+        JSONResponse: The list of users with the specified regionId.
+    """
+    try:
+        if not is_regional_admin(current_user):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        if not region_id:
+            raise HTTPException(
+                status_code=400, detail="Missing regionId in path parameters"
+            )
+
+        users = User.objects.filter(regionId=region_id).prefetch_related(
+            "roles", "roles.organization"
+        )
+        if users:
+            return JSONResponse(
+                status_code=200,
+                content=[UserSchema.model_validate(user) for user in users],
+            )
+        else:
+            raise HTTPException(
+                status_code=404, detail="No users found for the specified regionId"
+            )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def get_users_by_state(state, current_user):
+    """
+    List users with specific state.
+    Args:
+        request : The HTTP request containing the state.
+
+    Returns:
+        JSONResponse: The list of users with the specified state.
+    """
+    try:
+        if not is_regional_admin(current_user):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        if not state:
+            raise HTTPException(
+                status_code=400, detail="Missing state in path parameters"
+            )
+
+        users = User.objects.filter(state=state).prefetch_related(
+            "roles", "roles.organization"
+        )
+        if users:
+            return JSONResponse(
+                status_code=200,
+                content=[UserSchema.model_validate(user) for user in users],
+            )
+        else:
+            raise HTTPException(
+                status_code=404, detail="No users found for the specified state"
+            )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def get_users_v2(state, regionId, invitePending, current_user):
     """
     Retrieve a list of users based on optional filter parameters.
-
     Args:
-        regionId : Region ID to filter users by.
+        request : The HTTP request containing query parameters.
+
     Raises:
         HTTPException: If the user is not authorized or no users are found.
 
     Returns:
         List[User]: A list of users matching the filter criteria.
     """
-
     try:
-        users = User.objects.filter(regionId=regionId).prefetch_related("roles")
-        return [UserSchema.from_orm(user) for user in users]
+        filters = {}
+
+        if state:
+            filters["state"] = state
+        if regionId:
+            filters["regionId"] = regionId
+        if invitePending:
+            filters["invitePending"] = invitePending
+
+        users = User.objects.filter(**filters).prefetch_related("roles")
+        return [model_to_dict(user) for user in users]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+async def update_user(target_user_id, body, current_user):
+    """
+    Update a particular user.
+    Args:
+        request: The HTTP request containing the update data.
+
+    Raises:
+        HTTPException: If the user is not authorized or the user is not found.
+
+    Returns:
+        User: The updated user.
+    """
+    try:
+        if not can_access_user(current_user, target_user_id):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        if not target_user_id or not User.objects.filter(id=target_user_id).exists():
+            raise HTTPException(status_code=404, detail="User not found")
+
+        update_data = NewUserSchema(**body)
+
+        if not is_global_write_admin(current_user) and update_data.userType:
+            raise HTTPException(status_code=401, detail="Unauthorized to set userType")
+
+        user = User.objects.get(id=target_user_id)
+        user.firstName = update_data.firstName or user.firstName
+        user.lastName = update_data.lastName or user.lastName
+        user.fullName = f"{user.firstName} {user.lastName}"
+        user.userType = update_data.userType or user.userType
+        user.state = update_data.state or user.state
+        user.regionId = update_data.regionId or user.regionId
+        user.email = update_data.email or user.email
+        user.organization = update_data.organization or user.organization
+        user.organizationAdmin = (
+            update_data.organizationAdmin
+            if update_data.organizationAdmin is not None
+            else user.organizationAdmin
+        )
+
+        user.save()
+
+        return UserSchema.model_validate(user)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def update_user_v2(request: Request):
+    """
+    Update a particular user.
+    Args:
+        request: The HTTP request containing the update data.
+
+    Raises:
+        HTTPException: If the user is not authorized or the user is not found.
+
+    Returns:
+        User: The updated user.
+    """
+    current_user = request.state.user
+    target_user_id = request.path_params["user_id"]
+    if not can_access_user(current_user, target_user_id):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        if not target_user_id or not User.objects.filter(id=target_user_id).exists():
+            raise HTTPException(status_code=404, detail="User not found")
+
+        body = await request.json()
+        update_data = UpdateUserSchema(**body)
+
+        user = User.objects.get(id=target_user_id)
+        user.firstName = update_data.firstName or user.firstName
+        user.lastName = update_data.lastName or user.lastName
+        user.fullName = f"{user.firstName} {user.lastName}"
+        user.userType = update_data.userType or user.userType
+        user.state = update_data.state or user.state
+        user.regionId = update_data.regionId or user.regionId
+        user.invitePending = (
+            update_data.invitePending
+            if update_data.invitePending is not None
+            else user.invitePending
+        )
+        user.loginBlockedByMaintenance = (
+            update_data.loginBlockedByMaintenance
+            if update_data.loginBlockedByMaintenance is not None
+            else user.loginBlockedByMaintenance
+        )
+        user.organization = update_data.organization or user.organization
+
+        user.save()
+
+        return UserSchema.model_validate(user)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def approve_user_registration(user_id, current_user):
+    """Approve a registered user."""
+    if not is_valid_uuid(user_id):
+        raise HTTPException(status_code=404, detail="Invalid user ID.")
+
+    try:
+        # Retrieve the user by ID
+        user = User.objects.get(id=user_id)
+    except ObjectDoesNotExist:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    # Ensure authorizer's region matches the user's region
+    if not matches_user_region(current_user, user.regionId):
+        raise HTTPException(status_code=403, detail="Unauthorized region access.")
+
+    # Send email notification
+    try:
+        send_registration_approved_email(
+            user.email,
+            subject="CyHy Dashboard Registration Approved",
+            first_name=user.firstName,
+            last_name=user.lastName,
+            template="crossfeed_approval_notification.html",
+        )
+
+    except HTTPException as http_exc:
+        raise http_exc
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+
+    return {"statusCode": 200, "body": "User registration approved."}
+
+
+def deny_user_registration(user_id: str, current_user: User):
+    """Deny a user's registration by user ID."""
+
+    # Validate UUID format for the user_id
+    if not is_valid_uuid(user_id):
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    try:
+        # Retrieve the user object
+        user = User.objects.filter(id=user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+
+        # Ensure authorizer's region matches the user's region
+        if not matches_user_region(current_user, user.regionId):
+            raise HTTPException(status_code=403, detail="Unauthorized region access.")
+
+        # Send registration denial email to the user
+        send_registration_denied_email(
+            user.email,
+            subject="CyHy Dashboard Registration Denied",
+            first_name=user.firstName,
+            last_name=user.lastName,
+            template="crossfeed_denial_notification.html",
+        )
+
+        return {"statusCode": 200, "body": "User registration denied."}
+
+    except HTTPException as http_exc:
+        raise http_exc
+    except ObjectDoesNotExist:
+        raise HTTPException(status_code=404, detail="User not found.")
+    except Exception as e:
+        print(f"Error denying registration: {e}")
+        raise HTTPException(
+            status_code=500, detail="Error processing registration denial."
+        )
+
+
+def invite(new_user_data, current_user):
+    """Invite a user."""
+
+    try:
+        # Validate permissions
+        if new_user_data.organization:
+            if not is_org_admin(current_user, new_user_data.organization):
+                raise HTTPException(status_code=403, detail="Unauthorized access.")
+        else:
+            if not is_global_write_admin(current_user):
+                raise HTTPException(status_code=403, detail="Unauthorized access.")
+
+        # Non-global admins cannot set userType
+        if not is_global_write_admin(current_user) and new_user_data.userType:
+            raise HTTPException(status_code=403, detail="Unauthorized access.")
+
+        # Lowercase the email for consistency
+        new_user_data.email = new_user_data.email.lower()
+
+        # Map state to region ID if state is provided
+        if new_user_data.state:
+            new_user_data.regionId = REGION_STATE_MAP.get(new_user_data.state)
+
+        # Check if the user already exists
+        user = User.objects.filter(email=new_user_data.email).first()
+        organization = (
+            Organization.objects.filter(id=new_user_data.organization).first()
+            if new_user_data.organization
+            else None
+        )
+
+        if not user:
+            # Create a new user if they do not exist
+            user = User.objects.create(
+                invitePending=True,
+                **new_user_data.dict(
+                    exclude_unset=True,
+                    exclude={"organizationAdmin", "organization", "userType"},
+                ),
+            )
+            if not os.getenv("IS_LOCAL"):
+                send_invite_email(user.email, organization)
+        elif not user.firstName and not user.lastName:
+            # Update first and last name if the user exists but has no name set
+            user.firstName = new_user_data.firstName
+            user.lastName = new_user_data.lastName
+            user.save()
+
+        # Always update userType if specified
+        if new_user_data.userType:
+            user.userType = new_user_data.userType
+            user.save()
+
+        # Assign role if an organization is specified
+        if organization:
+            Role.objects.update_or_create(
+                user=user,
+                organization=organization,
+                defaults={
+                    "approved": True,
+                    "createdBy": current_user,
+                    "approvedBy": current_user,
+                    "role": "admin" if new_user_data.organizationAdmin else "user",
+                },
+            )
+        # Return the updated user with relevant details
+        return {
+            "id": str(user.id),
+            "firstName": user.firstName,
+            "lastName": user.lastName,
+            "email": user.email,
+            "userType": user.userType,
+            "roles": [
+                {
+                    "id": str(role.id),
+                    "role": role.role,
+                    "approved": role.approved,
+                    "organization": {
+                        "id": str(role.organization.id),
+                        "name": role.organization.name,
+                    }
+                    if role.organization
+                    else {},
+                }
+                for role in user.roles.select_related("organization").all()
+            ],
+            "invitePending": user.invitePending,
+        }
+
+    except HTTPException as http_exc:
+        raise http_exc
+
+    except Exception as e:
+        print(f"Error inviting user: {e}")
+        raise HTTPException(status_code=500, detail="Error inviting user.")
