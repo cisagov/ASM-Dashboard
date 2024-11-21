@@ -152,3 +152,8 @@ class RegisterUserResponse(BaseModel):
 
     statusCode: int
     body: str
+
+class VersionModel(BaseModel):
+    """Version model."""
+
+    version: str

@@ -86,7 +86,7 @@ from .schema_models.saved_search import SavedSearchCreate, SavedSearchUpdate, Sa
 from .schema_models.search import SearchBody, SearchRequest, SearchResponse
 from .schema_models.service import ServicesStat
 from .schema_models.severity_count import SeverityCountSchema
-from .schema_models.user import NewUser, NewUserResponseModel, RegisterUserResponse
+from .schema_models.user import NewUser, NewUserResponseModel, RegisterUserResponse, VersionModel
 from .schema_models.user import User as UserSchema
 from .schema_models.user import UserResponse
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
@@ -291,7 +291,7 @@ async def export_vulnerabilities():
 
 @api_router.get(
     "/vulnerabilities/{vulnerabilityId}",
-    # dependencies=[Depends(get_current_active_user)],
+    dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
     tags=["Vulnerabilities"],
 )
@@ -306,7 +306,7 @@ async def call_get_vulnerability_by_id(vuln_id):
 
 @api_router.put(
     "/vulnerabilities/{vulnerabilityId}",
-    # dependencies=[Depends(get_current_active_user)],
+    dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
     tags="Update vulnerability",
 )
@@ -360,19 +360,11 @@ async def callback_route(request: Request):
 # ========================================
 
 
-@api_router.post("/users/me/acceptTerms", tags=["Users"])
-async def call_accept_terms(request: Request):
-    """
-    Accept the latest terms of service.
+@api_router.post("/users/me/acceptTerms", response_model=UserSchema, dependencies=[Depends(get_current_active_user)], tags=["Users"])
+async def call_accept_terms(version_data: VersionModel, current_user: User = Depends(get_current_active_user)):
+    """Accept the latest terms of service."""
 
-    Args:
-        request : The HTTP request containing the user and the terms version.
-
-    Returns:
-        User: The updated user.
-    """
-
-    return accept_terms(request)
+    return accept_terms(version_data, current_user)
 
 
 # GET Current User

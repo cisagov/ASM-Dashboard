@@ -71,22 +71,10 @@ def get_me(current_user):
     return user_dict
 
 
-async def accept_terms(request: Request):
-    """
-    Accept the latest terms of service.
-    Args:
-        request : The HTTP request containing the user and the terms version.
-
-    Returns:
-        User: The updated user.
-    """
+def accept_terms(version_data, current_user):
+    """Accept the latest terms of service."""
     try:
-        current_user = request.state.user
-        if not current_user:
-            raise HTTPException(status_code=401, detail="User not authenticated.")
-
-        body = await request.json()
-        version = body.get("version")
+        version = version_data.version
         if not version:
             raise HTTPException(
                 status_code=400, detail="Missing version in request body."
@@ -96,7 +84,26 @@ async def accept_terms(request: Request):
         current_user.acceptedTermsVersion = version
         current_user.save()
 
-        return UserSchema.model_validate(current_user)
+        return {
+            "id": str(current_user.id),
+            "cognitoId": current_user.cognitoId,
+            "oktaId": current_user.oktaId,
+            "loginGovId": current_user.loginGovId,
+            "createdAt": current_user.createdAt.isoformat() if current_user.createdAt else None,
+            "updatedAt": current_user.updatedAt.isoformat() if current_user.updatedAt else None,
+            "firstName": current_user.firstName,
+            "lastName": current_user.lastName,
+            "fullName": current_user.fullName,
+            "email": current_user.email,
+            "invitePending": current_user.invitePending,
+            "loginBlockedByMaintenance": current_user.loginBlockedByMaintenance,
+            "dateAcceptedTerms": current_user.dateAcceptedTerms.isoformat() if current_user.dateAcceptedTerms else None,
+            "acceptedTermsVersion": current_user.acceptedTermsVersion,
+            "lastLoggedIn": current_user.lastLoggedIn.isoformat() if current_user.lastLoggedIn else None,
+            "userType": current_user.userType,
+            "regionId": current_user.regionId,
+            "state": current_user.state,
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
