@@ -1,9 +1,7 @@
 
 # Third-Party Libraries
-from django.core.management import call_command
 from django.core.management.base import BaseCommand
-from backend.src.xfd_django.xfd_api.tasks.syncdb_helpers import manage_elasticsearch_indices, populate_sample_data
-from xfd_api.tasks.run_syncdb import drop_all_tables, synchronize
+from xfd_api.tasks.syncdb_helpers import manage_elasticsearch_indices, populate_sample_data, drop_all_tables, synchronize, sync_es_organizations
 
 class Command(BaseCommand):
     help = "Synchronizes and populates the database with optional sample data, and manages Elasticsearch indices."
@@ -43,3 +41,6 @@ class Command(BaseCommand):
             self.stdout.write("Populating the database with sample data...")
             populate_sample_data()
             self.stdout.write("Sample data population complete.")
+
+        # Step 4: Sync organizations in ES
+        sync_es_organizations()

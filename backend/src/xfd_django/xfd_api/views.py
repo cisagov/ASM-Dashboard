@@ -867,6 +867,18 @@ async def list_organizations_v2(
     return organization.list_organizations_v2(state, regionId, current_user)
 
 
+@api_router.post(
+    "/search/organizations",
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Organizations"],
+)
+async def search_organizations(
+    search_body: OrganizationSchema.OrganizationSearchBody,
+    current_user: User = Depends(get_current_active_user),
+):
+    """Search for organizations in Elasticsearch."""
+    return organization.search_organizations_task(search_body, current_user)
+
 # ========================================
 #   Search Endpoints
 # ========================================

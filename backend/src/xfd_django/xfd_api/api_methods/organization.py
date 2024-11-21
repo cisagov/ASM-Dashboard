@@ -20,6 +20,7 @@ from ..auth import (
 from ..helpers.regionStateMap import REGION_STATE_MAP
 from ..models import Organization, OrganizationTag, Role, Scan, ScanTask, User
 from ..schema_models import organization as organization_schemas
+from ..tasks.es_client import ESClient
 
 
 def is_valid_uuid(val: str) -> bool:
@@ -984,3 +985,48 @@ def list_organizations_v2(state, regionId, current_user):
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def search_organizations_task(search_body, current_user: User):
+    """
+    Handles the logic for searching organizations in Elasticsearch.
+    """
+    try:
+        # Initialize Elasticsearch client
+        client = ESClient()
+
+        # Construct the Elasticsearch query
+        query_body = {
+            "query": {
+                "bool": {
+                    "must": [],
+                    "filter": []
+                }
+            }
+        }
+
+        # Use match_all if searchTerm is empty
+        if search_body.searchTerm.strip():
+            query_body["query"]["bool"]["must"].append({
+                "wildcard": {"name": f"*{search_body.searchTerm}*"}
+            })
+        else:
+            query_body["query"]["bool"]["must"].append({"match_all": {}})
+
+        # Add region filters if provided
+        if search_body.regions:
+            query_body["query"]["bool"]["filter"].append({
+                "terms": {"regionId": search_body.regions}
+            })
+
+        # Log the query for debugging
+        print(f"Query body: {query_body}")
+
+        # Execute the search
+        search_results = client.search_organizations(query_body)
+
+        return {"body":search_results}
+
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="An error occurred while searching organizations.")

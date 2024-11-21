@@ -201,3 +201,9 @@ class GenericPostResponseModel(BaseModel):
 
     statusCode: int
     body: Any
+
+
+class OrganizationSearchBody(BaseModel):
+    """Elastic search orgnaization model."""
+    regions: Optional[List[str]]
+    searchTerm: str
