@@ -1,16 +1,6 @@
 """Pydantic models used by FastAPI."""
-# Standard Python Libraries
-from collections import UserDict
-from datetime import date, datetime
-from decimal import Decimal
 
-# from pydantic.types import UUID1, UUID
-from typing import Any, Dict, List, Optional, Tuple
-from uuid import UUID
-
-# Third-Party Libraries
-from matplotlib.text import OffsetFrom
-from pydantic import UUID4, BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel
 
 # from pygments.lexers.configs import UnixConfigLexer
 

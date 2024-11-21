@@ -15,9 +15,7 @@ import django
 from django.apps import apps
 from django.conf import settings
 from fastapi import FastAPI, Request, Response
-from django.core.wsgi import get_wsgi_application
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.wsgi import WSGIMiddleware
 from mangum import Mangum
 from xfd_django.middleware.middleware import LoggingMiddleware
 from redis import asyncio as aioredis
@@ -100,7 +98,6 @@ def get_application() -> FastAPI:
 
     app.include_router(api_router)
 
-    app.mount("/", WSGIMiddleware(get_wsgi_application()))
 
     @app.on_event("startup")
     async def startup():

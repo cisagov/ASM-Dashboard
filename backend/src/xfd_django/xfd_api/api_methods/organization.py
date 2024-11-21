@@ -23,15 +23,6 @@ from ..helpers.regionStateMap import REGION_STATE_MAP
 from ..models import Organization, OrganizationTag, Role, Scan, ScanTask, User
 from ..tasks.es_client import ESClient
 from ..schema_models import organization_schema
-from .auth import (
-    get_current_active_user,
-    get_tag_organization_ids,
-    get_user_domains,
-    get_user_organization_ids,
-    get_user_ports,
-    get_user_service_ids,
-    is_global_view_admin,
-)
 
 
 def is_valid_uuid(val: str) -> bool:

@@ -3,14 +3,11 @@
 # from pydantic.types import UUID1, UUID
 # Standard Python Libraries
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, Optional
 from uuid import UUID
 
 # Third-Party Libraries
 from pydantic import BaseModel
-
-from ..schema_models.service import Service
-from ..schema_models.vulnerability import Vulnerability
 
 
 class Domain(BaseModel):
