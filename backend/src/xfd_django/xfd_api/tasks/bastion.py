@@ -39,7 +39,8 @@ def handle_db_query(query):
         cursor.execute(query)
         result = cursor.fetchall()
 
-    return {"statusCode": 200, "body": {"result": result}}
+    print(str(result))
+    return {"statusCode": 200, "body": str(result)}
 
 
 def handle_es_query(query):
