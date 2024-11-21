@@ -82,7 +82,7 @@ from .schema_models.notification import Notification as NotificationSchema
 from .schema_models.ports_stats import PortsStats
 from .schema_models.role import Role as RoleSchema
 from .schema_models.saved_search import SavedSearch as SavedSearchSchema
-from .schema_models.saved_search import SavedSearchCreate, SavedSearchUpdate
+from .schema_models.saved_search import SavedSearchCreate, SavedSearchUpdate, SavedSearchList
 from .schema_models.search import SearchBody, SearchRequest, SearchResponse
 from .schema_models.service import ServicesStat
 from .schema_models.severity_count import SeverityCountSchema
@@ -603,7 +603,7 @@ async def call_create_saved_search(
 @api_router.get(
     "/saved-searches",
     dependencies=[Depends(get_current_active_user)],
-    response_model=List[SavedSearchSchema],
+    response_model=SavedSearchList,
     tags=["Saved Search"],
 )
 async def call_list_saved_searches(user: User = Depends(get_current_active_user)):

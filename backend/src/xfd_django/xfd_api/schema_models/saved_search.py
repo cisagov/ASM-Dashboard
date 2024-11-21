@@ -51,3 +51,9 @@ class SavedSearch(BaseModel):
     filters: List[SavedSearchFilters]
     searchPath: str
     createdById: UUID
+
+class SavedSearchList(BaseModel):
+    """SavedSearchList schema."""
+
+    result: List[SavedSearch]
+    count: int
