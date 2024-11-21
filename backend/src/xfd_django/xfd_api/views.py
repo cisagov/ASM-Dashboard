@@ -25,7 +25,7 @@ from .api_methods.saved_search import (
     update_saved_search,
 )
 from .api_methods.search import export, search_post
-from .api_methods.user import get_users
+from .api_methods.user import get_users, get_me
 from .api_methods.vulnerability import (
     get_vulnerability_by_id,
     search_vulnerabilities,
@@ -302,7 +302,7 @@ async def callback_route(request: Request):
 # GET Current User
 @api_router.get("/users/me", tags=["users"])
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
-    return current_user
+    return get_me(current_user)
 
 
 @api_router.get(

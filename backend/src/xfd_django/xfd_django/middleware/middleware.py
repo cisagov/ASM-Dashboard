@@ -36,6 +36,9 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         # Default to "undefined" for userEmail if not provided
         user_email = request.state.user_email if hasattr(request.state, "user_email") else "undefined"
 
+        # Proceed with the request
+        response = await call_next(request)
+
         # Prepare log details
         log_info = {
             "httpMethod": method,
@@ -44,12 +47,11 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             "path": path,
             "headers": headers,
             "userEmail": user_email,
+            "statusCode": response.status_code,
             "timestamp": datetime.utcnow().isoformat(),
+            "requestId": request_id
         }
 
-        # Log the request
+        # Log in JSON format 
         self.logger.info(log_info)
-
-        # Proceed with the request
-        response = await call_next(request)
         return response

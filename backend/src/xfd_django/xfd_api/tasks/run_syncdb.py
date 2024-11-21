@@ -15,7 +15,7 @@ os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 # Initialize Django
 django.setup()
 
-from xfd_api.tasks.syndb_helpers import manage_elasticsearch_indices, populate_sample_data
+from backend.src.xfd_django.xfd_api.tasks.syncdb_helpers import manage_elasticsearch_indices, populate_sample_data
 
 
 def handler(event, context):
@@ -29,7 +29,7 @@ def handler(event, context):
         # Drop and recreate the database if dangerouslyforce is true
         if dangerouslyforce:
             print("Dropping and recreating the database...")
-            call_command("flush", "--noinput")
+            drop_all_tables()
 
         # Generate and apply migrations dynamically
         print("Applying migrations dynamically...")
@@ -154,7 +154,10 @@ def process_m2m_tables(schema_editor: BaseDatabaseSchemaEditor, cursor):
 
             if not table_exists:
                 print(f"Creating Many-to-Many table: {m2m_table_name}")
-                schema_editor.create_model(model)
+                schema_editor.create_model(field.remote_field.through)
+            else:
+                print(f"Many-to-Many table {m2m_table_name} already exists. Skipping.")
+
 
 
 def update_table(schema_editor: BaseDatabaseSchemaEditor, model):
@@ -209,3 +212,25 @@ def cleanup_stale_tables(cursor):
             cursor.execute(f"DROP TABLE {table} CASCADE;")
         except Exception as e:
             print(f"Error dropping stale table {table}: {e}")
+            
+def drop_all_tables():
+    """
+    Drops all tables in the database. Used with `dangerouslyforce`.
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            DO $$ DECLARE
+                r RECORD;
+            BEGIN
+                FOR r IN (
+                    SELECT tablename
+                    FROM pg_tables
+                    WHERE schemaname = 'public'
+                ) LOOP
+                    EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+                END LOOP;
+            END $$;
+            """
+        )
+    print("All tables dropped successfully.")
