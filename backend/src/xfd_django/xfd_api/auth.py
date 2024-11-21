@@ -64,7 +64,7 @@ def create_jwt_token(user):
     payload = {
         "id": str(user.id),
         "email": user.email,
-        "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_TIMEOUT_HOURS),
+        "exp": datetime.now(timezone.utc) + timedelta(hours=int(JWT_TIMEOUT_HOURS)),
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
@@ -364,7 +364,7 @@ async def process_user(decoded_token, access_token, refresh_token):
             {
                 "id": str(user.id),
                 "email": user.email,
-                "exp": datetime.utcnow() + timedelta(hours=JWT_TIMEOUT_HOURS),
+                "exp": datetime.utcnow() + timedelta(hours=int(JWT_TIMEOUT_HOURS)),
             },
             JWT_SECRET,
             algorithm=JWT_ALGORITHM,
