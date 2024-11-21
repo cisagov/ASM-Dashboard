@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 # Standard Python Libraries
 import os
 import mimetypes
+import os
 
 # Python built-in
 from pathlib import Path
@@ -33,6 +34,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 # TODO: GET THAT LATER
 SECRET_KEY = os.getenv("DJANGO_KEY")
+
+# JWT Secret Key
+JWT_SECRET = os.getenv("JWT_SECRET")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
+JWT_TIMEOUT_HOURS = os.getenv("JWT_TIMEOUT_HOURS")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -83,6 +89,12 @@ DATABASES = {
         }
     }
 }
+
+# ElastiCache AWS
+ELASTICACHE_ENDPOINT = os.getenv("ELASTICACHE_ENDPOINT")
+
+# Elasticsearch
+ELASTICSEARCH_ENDPOINT = os.getenv("ELASTICSEARCH_ENDPOINT")
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/

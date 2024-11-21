@@ -1,13 +1,17 @@
 """This module defines the API endpoints for the FastAPI application."""
 # Standard Python Libraries
+import json
 import os
 from typing import List, Optional
 from uuid import UUID
 
 # Third-Party Libraries
+from asgiref.sync import sync_to_async
 from django.shortcuts import render
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse
+from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
+from redis import asyncio as aioredis
 
 # from .schemas import Cpe
 from .api_methods import api_key as api_key_methods
@@ -16,7 +20,13 @@ from .api_methods import notification as notification_methods
 from .api_methods import organization, proxy, scan, scan_tasks
 from .api_methods.cpe import get_cpes_by_id
 from .api_methods.cve import get_cves_by_id, get_cves_by_name
-from .api_methods.domain import export_domains, get_domain_by_id, search_domains
+from .api_methods.domain import (
+    export_domains,
+    get_domain_by_id,
+    search_domains,
+    stats_total_domains,
+)
+from .api_methods.organization import stats_get_org_count_by_id
 from .api_methods.saved_search import (
     create_saved_search,
     delete_saved_search,
@@ -25,33 +35,64 @@ from .api_methods.saved_search import (
     update_saved_search,
 )
 from .api_methods.search import export, search_post
+from .api_methods.stats_ports import get_user_ports_cache
+from .api_methods.stats_services import get_user_services_count
 from .api_methods.user import get_users, get_me
 from .api_methods.vulnerability import (
+    get_num_vulns,
     get_vulnerability_by_id,
     search_vulnerabilities,
+    stats_latest_vulns,
+    stats_most_common_vulns,
+    stats_vuln_count,
     update_vulnerability,
 )
-from .auth import get_current_active_user
+from .auth import (
+    get_current_active_user,
+    get_tag_organization_ids,
+    get_user_domains,
+    get_user_organization_ids,
+    get_user_ports,
+    get_user_service_ids,
+    is_global_view_admin,
+)
 from .login_gov import callback, login
-from .models import Domain, User, Vulnerability
-from .schema_models import organization as OrganizationSchema
+from .models import Domain, Organization, User, Vulnerability
+from .schema_models import organization_schema as OrganizationSchema
 from .schema_models import scan as scanSchema
 from .schema_models import scan_tasks as scanTaskSchema
 from .schema_models.api_key import ApiKey as ApiKeySchema
+from .schema_models.by_org_item import ByOrgItem
 from .schema_models.cpe import Cpe as CpeSchema
 from .schema_models.cve import Cve as CveSchema
 from .schema_models.domain import Domain as DomainSchema
-from .schema_models.domain import DomainFilters, DomainSearch
+from .schema_models.domain import DomainFilters, DomainSearch, TotalDomainsResponse
+from .schema_models.latest_vuln import LatestVulnerabilitySchema
+from .schema_models.most_common_vuln import MostCommonVulnerabilitySchema
 from .schema_models.notification import Notification as NotificationSchema
+from .schema_models.ports_stats import PortsStats
 from .schema_models.role import Role as RoleSchema
 from .schema_models.saved_search import SavedSearch as SavedSearchSchema
+from .schema_models.saved_search import SavedSearchCreate, SavedSearchUpdate
 from .schema_models.search import SearchBody, SearchRequest, SearchResponse
+from .schema_models.service import ServicesStat
+from .schema_models.severity_count import SeverityCountSchema
 from .schema_models.user import User as UserSchema
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
-from .schema_models.vulnerability import VulnerabilitySearch
+from .schema_models.vulnerability import VulnerabilitySearch, VulnerabilityStat
 
 # Define API router
 api_router = APIRouter()
+
+
+async def default_identifier(request):
+    """Return default identifier."""
+    return request.headers.get("X-Real-IP", request.client.host)
+
+
+async def get_redis_client(request: Request):
+    """Get the Redis client from the application state."""
+    return request.app.state.redis
 
 
 # Healthcheck endpoint
@@ -180,7 +221,10 @@ async def call_get_cves_by_name(cve_name):
 async def call_search_domains(
     domain_search: DomainSearch, current_user: User = Depends(get_current_active_user)
 ):
-    return search_domains(domain_search, current_user)
+    try:
+        return search_domains(domain_search, current_user)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @api_router.post(
@@ -189,7 +233,10 @@ async def call_search_domains(
     tags=["Domains"],
 )
 async def call_export_domains(domain_search: DomainSearch):
-    return export_domains(domain_search)
+    try:
+        return export_domains(domain_search)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @api_router.get(
@@ -217,7 +264,10 @@ async def call_search_vulnerabilities(
     vulnerability_search: VulnerabilitySearch,
     current_user: User = Depends(get_current_active_user),
 ):
-    return search_vulnerabilities(vulnerability_search, current_user)
+    try:
+        return search_vulnerabilities(vulnerability_search, current_user)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @api_router.post("/vulnerabilities/export")
@@ -229,28 +279,28 @@ async def export_vulnerabilities():
 
 
 @api_router.get(
-    "/vulnerabilities/{vulnerability_id}",
-    dependencies=[Depends(get_current_active_user)],
+    "/vulnerabilities/{vulnerabilityId}",
+    # dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
-    tags=["Get vulnerability by id"],
+    tags="Get vulnerability by id",
 )
-async def call_get_vulnerability_by_id(vulnerability_id: str):
+async def call_get_vulnerability_by_id(vuln_id):
     """
     Get vulnerability by id.
     Returns:
         object: a single Vulnerability object.
     """
-    return get_vulnerability_by_id(vulnerability_id)
+    return get_vulnerability_by_id(vuln_id)
 
 
 @api_router.put(
-    "/vulnerabilities/{vulnerability_id}",
-    dependencies=[Depends(get_current_active_user)],
+    "/vulnerabilities/{vulnerabilityId}",
+    # dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
     tags="Update vulnerability",
 )
 async def call_update_vulnerability(
-    vulnerability_id,
+    vuln_id,
     data: VulnerabilitySchema,
     current_user: User = Depends(get_current_active_user),
 ):
@@ -260,7 +310,7 @@ async def call_update_vulnerability(
     Returns:
         object: a single vulnerability object that has been modified.
     """
-    return update_vulnerability(vulnerability_id, data, current_user)
+    return update_vulnerability(vuln_id, data, current_user)
 
 
 # ========================================
@@ -361,17 +411,19 @@ async def delete_api_key(
     tags=["Saved Search"],
 )
 async def call_create_saved_search(
-    name: str,
-    search_term: str,
-    region_id: str,
+    saved_search: SavedSearchCreate,
     current_user: User = Depends(get_current_active_user),
 ):
     """Create a new saved search."""
 
     request = {
-        "name": name,
-        "searchTerm": search_term,
-        "regionId": region_id,
+        "name": saved_search.name,
+        "count": saved_search.count,
+        "sortDirection": saved_search.sortDirection,
+        "sortField": saved_search.sortField,
+        "searchTerm": saved_search.searchTerm,
+        "searchPath": saved_search.searchPath,
+        "filters": saved_search.filters,
         "createdById": current_user,
     }
 
@@ -385,9 +437,9 @@ async def call_create_saved_search(
     response_model=List[SavedSearchSchema],
     tags=["Saved Search"],
 )
-async def call_list_saved_searches():
+async def call_list_saved_searches(user: User = Depends(get_current_active_user)):
     """Retrieve a list of all saved searches."""
-    return list_saved_searches()
+    return list_saved_searches(user)
 
 
 # Get individual saved search by ID
@@ -397,33 +449,39 @@ async def call_list_saved_searches():
     response_model=SavedSearchSchema,
     tags=["Saved Search"],
 )
-async def call_get_saved_search(saved_search_id: str):
+async def call_get_saved_search(
+    saved_search_id: str, current_user: User = Depends(get_current_active_user)
+):
     """Retrieve a saved search by its ID."""
-    return get_saved_search(saved_search_id)
+    return get_saved_search(saved_search_id, current_user)
 
 
 # Update saved search by ID
 @api_router.put(
     "/saved-searches/{saved_search_id}",
     dependencies=[Depends(get_current_active_user)],
-    response_model=SavedSearchSchema,
+    response_model=SavedSearchUpdate,
     tags=["Saved Search"],
 )
 async def call_update_saved_search(
+    saved_search: SavedSearchUpdate,
     saved_search_id: str,
-    name: str,
-    search_term: str,
     current_user: User = Depends(get_current_active_user),
 ):
     """Update a saved search by its ID."""
 
     request = {
-        "name": name,
         "saved_search_id": saved_search_id,
-        "searchTerm": search_term,
+        "name": saved_search.name,
+        "count": saved_search.count,
+        "searchTerm": saved_search.searchTerm,
+        "sortDirection": saved_search.sortDirection,
+        "sortField": saved_search.sortField,
+        "searchPath": saved_search.searchPath,
+        "filters": saved_search.filters,
     }
 
-    return update_saved_search(request)
+    return update_saved_search(request, current_user)
 
 
 # Delete saved search by ID
@@ -432,9 +490,11 @@ async def call_update_saved_search(
     dependencies=[Depends(get_current_active_user)],
     tags=["Saved Search"],
 )
-async def call_delete_saved_search(saved_search_id: str):
+async def call_delete_saved_search(
+    saved_search_id: str, current_user: User = Depends(get_current_active_user)
+):
     """Delete a saved search by its ID."""
-    return delete_saved_search(saved_search_id)
+    return delete_saved_search(saved_search_id, current_user)
 
 
 # GET ALL
@@ -610,6 +670,126 @@ async def invoke_scheduler(current_user: User = Depends(get_current_active_user)
     """Manually invoke the scan scheduler."""
     response = await scan.invoke_scheduler(current_user)
     return response
+
+
+# ========================================
+#   Stats Endpoints
+# ========================================
+
+
+@api_router.get(
+    "/services/",
+    tags=["Retrieve Stats"],
+)
+async def get_services(
+    current_user: User = Depends(get_current_active_user),
+    redis_client=Depends(get_redis_client),
+):
+    """Retrieve services from Elasticache filtered by user."""
+    get_user_services_count(current_user, redis_client)
+
+
+@api_router.get(
+    "/ports/",
+    response_model=List[PortsStats],  # Expecting a list of Stats objects
+    tags=["Retrieve Stats"],
+)
+async def get_Ports(
+    current_user: User = Depends(get_current_active_user),
+    redis_client=Depends(get_redis_client),
+):
+    """Retrieve Port Stats from Elasticache."""
+    get_user_ports_cache(current_user, redis_client)
+
+
+@api_router.get(
+    "/num-vulnerabilities/",
+    response_model=List[VulnerabilityStat],  # Expecting a list of Stats objects
+    tags=["Retrieve Stats"],
+)
+async def get_NumVulnerabilities(
+    current_user: User = Depends(get_current_active_user),
+    redis_client: aioredis.Redis = Depends(get_redis_client),
+):
+    """
+    Retrieve number of vulnerabilities stats from ElastiCache (Redis) filtered by user.
+    """
+    get_num_vulns(current_user, redis_client)
+
+
+@api_router.get(
+    "/latest-vulnerabilities/",
+    response_model=List[LatestVulnerabilitySchema],
+    tags=["Retrieve Stats"],
+)
+async def get_latest_vulnerabilities(
+    organization: str = Query(None, description="Filter by organization ID"),
+    tag: Optional[str] = None,
+    current_user: User = Depends(get_current_active_user),
+    redis_client: aioredis.Redis = Depends(get_redis_client),
+):
+    stats_latest_vulns(organization, tag, current_user, redis_client)
+
+
+@api_router.get(
+    "/most-common-vulnerabilities/",
+    response_model=List[MostCommonVulnerabilitySchema],
+    tags=["Retrieve Stats"],
+)
+async def get_most_common_vulnerabilities(
+    organization: str = Query(None, description="Filter by organization ID"),
+    tag: str = Query(None, description="Filter by tag"),
+    current_user: User = Depends(get_current_active_user),
+    redis_client: aioredis.Redis = Depends(get_redis_client),
+):
+    stats_most_common_vulns(organization, tag, current_user, redis_client)
+
+
+@api_router.get(
+    "/severity-counts/",
+    response_model=List[SeverityCountSchema],
+    tags=["Retrieve Stats"],
+)
+async def get_severity_counts(
+    organization: str = Query(None, description="Filter by organization ID"),
+    tag: str = Query(None, description="Filter by tag"),
+    current_user: User = Depends(get_current_active_user),
+    redis_client: aioredis.Redis = Depends(get_redis_client),
+):
+    """
+    Retrieves the count of open vulnerabilities grouped by severity from Redis.
+    """
+    stats_vuln_count(organization, tag, current_user, redis_client)
+
+
+@api_router.get(
+    "/domains/total/",
+    response_model=TotalDomainsResponse,
+    tags=["Retrieve Stats"],
+)
+async def get_total_domains(
+    organization: str = Query(None, description="Filter by organization ID"),
+    tag: str = Query(None, description="Filter by tag"),
+    current_user: User = Depends(get_current_active_user),
+):
+    stats_total_domains(organization, tag, current_user)
+
+
+@api_router.get(
+    "/by-org/",
+    response_model=List[ByOrgItem],
+    tags=["Retrieve Stats"],
+)
+async def get_by_org(
+    organization: str = Query(None, description="Filter by organization ID"),
+    tag: str = Query(None, description="Filter by tag"),
+    current_user: User = Depends(get_current_active_user),
+    redis_client: aioredis.Redis = Depends(get_redis_client),
+):
+    """
+    Retrieves the count of open vulnerabilities grouped by organization from Redis.
+    """
+    stats_get_org_count_by_id(organization, tag, current_user, redis_client)
 
 
 # ========================================
@@ -893,7 +1073,6 @@ async def search_organizations(
 async def search(request: SearchRequest):
     try:
         search_post(request)
-
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)

@@ -3,7 +3,7 @@
 import json
 
 # Third-Party Libraries
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Security, status
 from fastapi.responses import JSONResponse
 from xfd_api.auth import get_jwt_from_code, process_user
 

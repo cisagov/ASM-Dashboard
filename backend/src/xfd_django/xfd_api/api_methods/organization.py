@@ -3,13 +3,15 @@
 # Standard Python Libraries
 from typing import List
 import uuid
+import json
 
 # Third-Party Libraries
 from django.db.models import Q
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 
 from ..auth import (
     get_org_memberships,
+    get_user_organization_ids,
     is_global_view_admin,
     is_global_write_admin,
     is_org_admin,
@@ -19,8 +21,17 @@ from ..auth import (
 )
 from ..helpers.regionStateMap import REGION_STATE_MAP
 from ..models import Organization, OrganizationTag, Role, Scan, ScanTask, User
-from ..schema_models import organization as organization_schemas
 from ..tasks.es_client import ESClient
+from ..schema_models import organization_schema
+from .auth import (
+    get_current_active_user,
+    get_tag_organization_ids,
+    get_user_domains,
+    get_user_organization_ids,
+    get_user_ports,
+    get_user_service_ids,
+    is_global_view_admin,
+)
 
 
 def is_valid_uuid(val: str) -> bool:
@@ -331,7 +342,7 @@ def get_all_regions(current_user):
 
 
 def find_or_create_tags(
-    tags: List[organization_schemas.TagSchema],
+    tags: List[organization_schema.TagSchema],
 ) -> List[OrganizationTag]:
     """Find or create organization tags."""
     final_tags = []
@@ -988,9 +999,7 @@ def list_organizations_v2(state, regionId, current_user):
 
 
 def search_organizations_task(search_body, current_user: User):
-    """
-    Handles the logic for searching organizations in Elasticsearch.
-    """
+    """Handles the logic for searching organizations in Elasticsearch."""
     try:
         # Initialize Elasticsearch client
         client = ESClient()
@@ -1030,3 +1039,86 @@ def search_organizations_task(search_body, current_user: User):
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail="An error occurred while searching organizations.")
+    
+async def stats_get_org_count_by_id(organization, tag, current_user, redis_client):
+    """Get stats org count."""
+    try:
+        # Retrieve data from Redis
+        json_data = await redis_client.get("vulnerabilities_by_org")
+
+        if json_data is None:
+            raise HTTPException(status_code=404, detail="Data not found in cache.")
+
+        vulnerabilities_data = json.loads(json_data)
+
+        # Get user's organization IDs
+        user_org_ids = await get_user_organization_ids(current_user)
+        if not user_org_ids:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User does not belong to any organizations.",
+            )
+
+        # Check if user is a global admin
+        is_admin = is_global_view_admin(current_user)
+
+        # Determine accessible organizations
+        if is_admin:
+            accessible_org_ids = None
+        else:
+            accessible_org_ids = set(user_org_ids)
+
+        # Apply filters
+        if organization:
+            if (
+                accessible_org_ids is not None
+                and organization not in accessible_org_ids
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="User does not have access to the specified organization.",
+                )
+            accessible_org_ids = {organization}
+        elif tag:
+            tag_org_ids = get_tag_organization_ids(tag)
+            if accessible_org_ids is not None:
+                accessible_org_ids = accessible_org_ids.intersection(tag_org_ids)
+            else:
+                accessible_org_ids = set(tag_org_ids)
+            if not accessible_org_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="No accessible organizations found for the specified tag.",
+                )
+
+        # Filter vulnerabilities
+        if accessible_org_ids is not None:
+            filtered_vulnerabilities = [
+                vuln
+                for vuln in vulnerabilities_data
+                if vuln["orgId"] in accessible_org_ids
+            ]
+        else:
+            filtered_vulnerabilities = vulnerabilities_data
+
+        # Aggregate counts by organization
+        org_counts = {}
+        for vuln in filtered_vulnerabilities:
+            org_id = vuln["orgId"]
+            org_name = vuln["orgName"]
+            if org_id not in org_counts:
+                org_counts[org_id] = {
+                    "id": org_name,
+                    "orgId": org_id,
+                    "value": 0,
+                    "label": org_name,
+                }
+            org_counts[org_id]["value"] += 1
+
+        # Convert to list and sort
+        results = sorted(org_counts.values(), key=lambda x: x["value"], reverse=True)
+
+        return results
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
