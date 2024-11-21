@@ -360,7 +360,7 @@ async def callback_route(request: Request):
 # ========================================
 
 
-@api_router.post("/users/acceptTerms", tags=["Users"])
+@api_router.post("/users/me/acceptTerms", tags=["Users"])
 async def call_accept_terms(request: Request):
     """
     Accept the latest terms of service.
