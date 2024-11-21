@@ -1,117 +1,121 @@
 # Standard Python Libraries
-import csv
 from datetime import datetime
 import os
-from random import randint
+import random
+from urllib.parse import urlparse
 
 # Third-Party Libraries
 import boto3
-import boto3.s3
-from django.core.paginator import Paginator
-from django.http import HttpResponse
-from fastapi import HTTPException
-from minio import Minio
+from botocore.exceptions import ClientError
 
 
-def get_minio_client():
-    return Minio(
-        "localhost:9000",
-        access_key=os.environ["MINIO_ACCESS_KEY"],
-        secret_key=os.environ["MINIO_SECRET_KEY"],
-        secure=False,
-    )
+class S3Client:
+    def __init__(self, is_local=None):
+        self.is_local = (
+            is_local
+            if is_local is not None
+            else bool(os.getenv("IS_OFFLINE") or os.getenv("IS_LOCAL"))
+        )
 
-
-async def save_minio(data, key: str):
-    client = get_minio_client()
-    try:
-        if not client.bucket_exists(os.environ["EXPORT_BUCKET_NAME"]):
-            client.make_bucket(os.environ["EXPORT_BUCKET_NAME"])
-
-        client.put_object(os.environ["EXPORT_BUCKET_NAME"], data, key)
-        print("File uploaded successfully")
-    except Exception as e:
-        print(f"Error uploading file to Minio: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-async def export_to_csv(pages: Paginator, queryset, name, is_local: bool = True):
-    try:
-        filename = f"{randint(0, 1000000000)}/{name}-{datetime.now()}.csv"
-        response = HttpResponse(content_type="text/csv")
-        response["Content-Disposition"] = f"attachment; filename={filename}"
-
-        writer = csv.writer(response)
-        if queryset.count() > 0:
-            writer.writerow(
-                [
-                    "id",
-                    "createdAt",
-                    "updatedAt",
-                    "syncedAt",
-                    "ip",
-                    "fromRootDomain",
-                    "subdomainSource",
-                    "ipOnly",
-                    "reverseName",
-                    "name",
-                    "screenshot",
-                    "country",
-                    "asn",
-                    "cloudHosted",
-                    "ssl",
-                    "censysCertificatesResults",
-                    "trustymailResults",
-                    "discoveredBy_id",
-                    "organization_id",
-                ]
+        if self.is_local:
+            self.s3 = boto3.client(
+                "s3",
+                endpoint_url="http://minio:9000",
+                config=boto3.session.Config(s3={"addressing_style": "path"}),
+            )
+        else:
+            self.s3 = boto3.client(
+                "s3",
+                config=boto3.session.Config(
+                    s3={"addressing_style": "virtual"},
+                    retries={"max_attempts": 3},
+                    http={"keep_alive": False},
+                ),
             )
 
-        for page_number in pages.page_range:
-            page = pages.page(page_number)
-            for obj in page.object_list:
-                print(obj)
-                writer.writerow(
-                    [
-                        obj.id,
-                        obj.createdAt,
-                        obj.updatedAt,
-                        obj.syncedAt,
-                        obj.ip,
-                        obj.fromRootDomain,
-                        obj.subdomainSource,
-                        obj.ipOnly,
-                        obj.reverseName,
-                        obj.name,
-                        obj.screnshot,
-                        obj.country,
-                        obj.asn,
-                        obj.cloudHosted,
-                        obj.ssl,
-                        obj.censysCertificatesResults,
-                        obj.trustymailResults,
-                        obj.discoveredBy_id,
-                        obj.organization_id,
-                    ]
-                )
-            # if not is_local:
-            #    s3_client = boto3.client("s3")
-            #    s3_client.put_object(
-            #        Body=response.content,
-            #        Bucket=os.environ['EXPORT_BUCKET_NAME'],
-            #        Key=filename
-            #    )
-            # else:
-            #    client = get_minio_client()
-            #    csv_values = response.getvalue()
-            #    if not client.bucket_exists(os.environ['EXPORT_BUCKET_NAME']):
-            #        client.make_bucket(os.environ['EXPORT_BUCKET_NAME'])
-            #    client.put_object(
-            #        os.environ['EXPORT_BUCKET_NAME'],
-            #        filename,
-            #        len(csv_values),
-            #        content_type='text/csv'
-            #         )
-        return response
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    def save_csv(self, body, name=""):
+        """Saves a CSV file in S3 and returns a temporary URL for access"""
+        try:
+            key = f"{random.random()}/{name}-{datetime.utcnow().isoformat()}.csv"
+            bucket = os.getenv("EXPORT_BUCKET_NAME")
+
+            # Save CSV to S3
+            self.s3.put_object(
+                Bucket=bucket, Key=key, Body=body, ContentType="text/csv"
+            )
+
+            # Generate signed URL
+            url = self.s3.generate_presigned_url(
+                ClientMethod="get_object",
+                Params={"Bucket": bucket, "Key": key},
+                ExpiresIn=60 * 5,
+            )
+            return url.replace("minio:9000", "localhost:9000") if self.is_local else url
+        except ClientError as e:
+            print("Error saving CSV to S3: %s", e)
+            raise
+
+    def export_report(self, report_name, org_id):
+        """Generates a presigned URL for a report"""
+        try:
+            key = f"{org_id}/{report_name}"
+            bucket = os.getenv("REPORTS_BUCKET_NAME")
+
+            url = self.s3.generate_presigned_url(
+                ClientMethod="get_object",
+                Params={"Bucket": bucket, "Key": key},
+                ExpiresIn=60 * 5,
+            )
+            return url.replace("minio:9000", "localhost:9000") if self.is_local else url
+        except ClientError as e:
+            print("Error exporting report from S3: %s", e)
+            raise
+
+    def list_reports(self, org_id):
+        """Lists all reports in a specified organization's folder"""
+        try:
+            bucket = os.getenv("REPORTS_BUCKET_NAME")
+            prefix = f"{org_id}/"
+
+            response = self.s3.list_objects_v2(
+                Bucket=bucket, Prefix=prefix, Delimiter=""
+            )
+            return response.get("Contents", [])
+        except ClientError as e:
+            print("Error listing reports from S3: %s", e)
+            raise
+
+    def pull_daily_vs(self, filename):
+        """Retrieves a specified daily VS file from S3"""
+        bucket = os.getenv("VS_BUCKET_NAME", "vs-extracts")
+
+        try:
+            response = self.s3.head_object(Bucket=bucket, Key=filename)
+            if response:
+                print(f"File '{filename}' exists in bucket {bucket}.")
+        except self.s3.exceptions.NoSuchKey:
+            print(f"File '{filename}' does not exist in bucket {bucket}.")
+            return None
+        except ClientError as e:
+            print("Error checking for file in S3: %s", e)
+            raise
+
+        try:
+            response = self.s3.get_object(Bucket=bucket, Key=filename)
+            return response["Body"].read() if "Body" in response else None
+        except ClientError as e:
+            print("Error downloading file from S3: %s", e)
+            raise
+
+    def get_email_asset(self, file_name):
+        """Retrieves an email template asset from S3"""
+        bucket = os.getenv("EMAIL_BUCKET_NAME")
+
+        try:
+            response = self.s3.get_object(Bucket=bucket, Key=file_name)
+            return (
+                response["Body"].read().decode("utf-8") if "Body" in response else None
+            )
+        except ClientError as e:
+            print("Error retrieving email asset from S3: %s", e)
+            raise

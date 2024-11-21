@@ -2,14 +2,23 @@
 
 # Standard Python Libraries
 from datetime import datetime
-from typing import List, Optional
+from enum import Enum
+from typing import List, Literal, Optional
 from uuid import UUID
 
 # Third-Party Libraries
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .api_key import ApiKey
 from .role import Role
+
+
+class UserType(Enum):
+    GLOBAL_ADMIN = "globalAdmin"
+    GLOBAL_VIEW = "globalView"
+    REGIONAL_ADMIN = "regionalAdmin"
+    READY_SET_CYBER = "readySetCyber"
+    STANDARD = "standard"
 
 
 class User(BaseModel):
@@ -29,7 +38,29 @@ class User(BaseModel):
     dateAcceptedTerms: Optional[datetime]
     acceptedTermsVersion: Optional[str]
     lastLoggedIn: Optional[datetime]
-    userType: str
+    userType: UserType
+    regionId: Optional[str]
+    state: Optional[str]
+    oktaId: Optional[str]
+    roles: Optional[List[Role]] = []
+    apiKeys: Optional[List[ApiKey]] = []
+
+
+class UserResponse(BaseModel):
+    """User response schema."""
+
+    cognitoId: Optional[str]
+    loginGovId: Optional[str]
+    firstName: str
+    lastName: str
+    fullName: str
+    email: str
+    invitePending: bool
+    loginBlockedByMaintenance: bool
+    dateAcceptedTerms: Optional[datetime]
+    acceptedTermsVersion: Optional[str]
+    lastLoggedIn: Optional[datetime]
+    userType: UserType
     regionId: Optional[str]
     state: Optional[str]
     oktaId: Optional[str]
@@ -58,3 +89,66 @@ class User(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class UserRoleOrg(BaseModel):
+    """User role organization schema."""
+
+    id: str
+    name: str
+
+
+class UserRole(BaseModel):
+    """User role schema."""
+
+    id: str
+    role: str
+    approved: bool
+    organization: Optional[UserRoleOrg] = None
+
+
+class NewUser(BaseModel):
+    """New user schema."""
+
+    email: str
+    firstName: str
+    lastName: str
+    organization: Optional[str] = None
+    organizationAdmin: Optional[bool] = None
+    regionId: Optional[str] = None
+    state: Optional[str] = None
+    userType: Optional[UserType] = None
+
+
+class NewUserResponseModel(BaseModel):
+    """New user response schema."""
+
+    id: str
+    firstName: str
+    lastName: str
+    email: str
+    invitePending: bool
+    userType: UserType
+    roles: Optional[List[UserRole]] = []
+
+
+class UpdateUser(BaseModel):
+    """Update user schema."""
+
+    firstName: Optional[str]
+    fullName: Optional[str]
+    invitePending: Optional[bool]
+    lastName: Optional[str]
+    loginBlockedByMaintenance: Optional[bool]
+    organization: Optional[str]
+    regionId: Optional[str]
+    role: Optional[str]
+    state: Optional[str]
+    userType: Optional[UserType]
+
+
+class RegisterUserResponse(BaseModel):
+    """Register or deny user response."""
+
+    statusCode: int
+    body: str
