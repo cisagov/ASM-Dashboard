@@ -160,25 +160,30 @@ export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
 
   return (
     <Root aria-live="polite" aria-atomic="true">
-      {filtersByColumn.map((filter, idx) => (
+      {filtersByColumn.length === 0 ? (
         <Chip
-          key={idx}
-          disabled={disabledFilters?.includes(filter.label)}
-          color={'primary'}
+          color="primary"
           classes={{ root: classes.chip }}
-          label={`${filter.label}: ${filter.value}`}
-          onDelete={() => {
-            if (filter.onClear) {
-              console.log('custom clear');
-              filter.onClear();
-              return;
-            }
-            filter.values.forEach((val) => {
-              removeFilter(filter.field, val, filter.type);
-            });
-          }}
+          label="No Filters Applied"
         />
-      ))}
+      ) : (
+        filtersByColumn.map((filter, idx) => (
+          <Chip
+            key={idx}
+            disabled={disabledFilters?.includes(filter.label)}
+            color="primary"
+            classes={{ root: classes.chip }}
+            label={`${filter.label}: ${filter.value}`}
+            onDelete={() => {
+              filter.onClear
+                ? filter.onClear()
+                : filter.values.forEach((val) =>
+                    removeFilter(filter.field, val, filter.type)
+                  );
+            }}
+          />
+        ))
+      )}
     </Root>
   );
 };
