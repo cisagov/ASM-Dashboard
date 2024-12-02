@@ -164,7 +164,7 @@ export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
         <Chip
           color="primary"
           classes={{ root: classes.chip }}
-          label="No Filters Applied"
+          label="No Filter(s) Applied"
         />
       ) : (
         filtersByColumn.map((filter, idx) => (
