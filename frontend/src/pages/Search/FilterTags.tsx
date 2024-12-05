@@ -112,7 +112,14 @@ const FIELD_TO_LABEL_MAP: FieldToLabelMap = {
     labelAccessor: (t) => {
       return 'Port';
     },
-    filterValueAccssor(t) {
+    filterValueAccssor: (t) => {
+      if (Array.isArray(t)) {
+        return t.sort((a: any, b: any) => {
+          const aValue = typeof a === 'number' ? a : Number(a);
+          const bValue = typeof b === 'number' ? b : Number(b);
+          return aValue - bValue;
+        });
+      }
       return t;
     },
     trimAfter: 6
