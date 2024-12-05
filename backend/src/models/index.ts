@@ -1,6 +1,4 @@
 export * from './api-key';
-export * from './assessment';
-export * from './category';
 export * from './connection';
 export * from './cpe';
 export * from './cve';
@@ -9,9 +7,6 @@ export * from './organization';
 export * from './organization-tag';
 export * from './material-views';
 export * from './notification';
-export * from './question';
-export * from './resource';
-export * from './response';
 export * from './role';
 export * from './saved-search';
 export * from './scan';
