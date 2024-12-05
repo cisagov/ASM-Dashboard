@@ -39,9 +39,19 @@ const FIELD_TO_LABEL_MAP: FieldToLabelMap = {
       return 'Region';
     },
     filterValueAccssor: (t) => {
+      if (Array.isArray(t)) {
+        return t.sort((a: any, b: any) => {
+          const aValue = typeof a === 'string' ? a : String(a);
+          const bValue = typeof b === 'string' ? b : String(b);
+          return aValue.localeCompare(bValue);
+        });
+      }
       return t;
     },
     trimAfter: 10
+    //   return t;
+    // },
+    // trimAfter: 10
   },
   'vulnerabilities.severity': {
     labelAccessor: (t) => {
@@ -136,6 +146,9 @@ export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
   const filtersByColumn: FlatFilters = useMemo(() => {
     return filters.reduce((acc, nextFilter) => {
       const fieldAccessors = FIELD_TO_LABEL_MAP[nextFilter.field] ?? null;
+      const sortedValues = fieldAccessors
+        ? fieldAccessors.filterValueAccssor(nextFilter.values)
+        : nextFilter.values;
       const value = fieldAccessors
         ? ellipsisPastIndex(
             nextFilter.values.map((item: any) =>
@@ -143,7 +156,7 @@ export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
             ),
             fieldAccessors.trimAfter ? fieldAccessors.trimAfter - 1 : null
           ).join(', ')
-        : nextFilter.values.join(', ');
+        : sortedValues.join(', ');
       const label = fieldAccessors
         ? fieldAccessors.labelAccessor(nextFilter)
         : nextFilter.field.split('.').pop();
@@ -158,7 +171,7 @@ export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
     }, []);
   }, [filters]);
 
-  console.log('filtersByColumn', filtersByColumn);
+  // console.log('filtersByColumn', filtersByColumn);
 
   return (
     <Root aria-live="polite" aria-atomic="true">
