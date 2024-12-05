@@ -158,6 +158,8 @@ export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
     }, []);
   }, [filters]);
 
+  console.log('filtersByColumn', filtersByColumn);
+
   return (
     <Root aria-live="polite" aria-atomic="true">
       {filtersByColumn.map((filter, idx) => (
