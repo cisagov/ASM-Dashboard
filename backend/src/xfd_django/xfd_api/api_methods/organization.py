@@ -528,7 +528,9 @@ def upsert_organization(organization_data, current_user):
                 "firstName": organization.createdBy.firstName,
                 "lastName": organization.createdBy.lastName,
                 "email": organization.createdBy.email,
-            },
+            }
+            if organization.createdBy
+            else None,
             "tags": [
                 {
                     "id": str(tag.id),
@@ -634,7 +636,9 @@ def update_organization(organization_id: str, organization_data, current_user):
                 "firstName": organization.createdBy.firstName,
                 "lastName": organization.createdBy.lastName,
                 "email": organization.createdBy.email,
-            },
+            }
+            if organization.createdBy
+            else None,
             "tags": [
                 {
                     "id": str(tag.id),
