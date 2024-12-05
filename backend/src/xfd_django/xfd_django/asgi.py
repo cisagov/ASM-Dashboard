@@ -34,6 +34,7 @@ CSP_POLICY = {
         "'self'",
         os.getenv("COGNITO_URL"),
         os.getenv("BACKEND_DOMAIN"),
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js"
     ],
     "frame-src": ["'self'", "https://www.dhs.gov/ntas/"],
     "img-src": [
@@ -42,6 +43,7 @@ CSP_POLICY = {
         os.getenv("FRONTEND_DOMAIN"),
         "https://www.ssa.gov",
         "https://www.dhs.gov",
+        "https://fastapi.tiangolo.com/img/favicon.png"
     ],
     "object-src": ["'none'"],
     "script-src": [
@@ -50,9 +52,15 @@ CSP_POLICY = {
         "https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js",
         "https://www.ssa.gov/accessibility/andi/fandi.js",
         "https://www.ssa.gov/accessibility/andi/andi.js",
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js",
+        "'sha256-QOOQu4W1oxGqd2nbXbxiA1Di6OHQOLQD+o+G9oWL8YY='",
         "https://www.dhs.gov",
     ],
-    "style-src": ["'self'", "'unsafe-inline'"],
+    "style-src": [
+        "'self'",
+        "'unsafe-inline'",
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui.css"
+        ],
     "frame-ancestors": ["'none'"],
 }
 
