@@ -35,6 +35,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # TODO: GET THAT LATER
 SECRET_KEY = os.getenv("DJANGO_KEY")
 
+IS_LOCAL = os.getenv("IS_LOCAL")
+
 # JWT Secret Key
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")

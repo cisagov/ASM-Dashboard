@@ -694,7 +694,7 @@ def add_user_to_org_v2(organization_id: str, user_data, current_user):
             raise HTTPException(status_code=404, detail="User not found.")
 
         # Check if the current user's region matches the user's region
-        if not matches_user_region(current_user, user.region_id):
+        if not matches_user_region(current_user, user.regionId):
             raise HTTPException(
                 status_code=403, detail="Unauthorized access due to region mismatch."
             )
@@ -714,8 +714,6 @@ def add_user_to_org_v2(organization_id: str, user_data, current_user):
 
         # Return the created role in the response
         return {
-            "statusCode": 200,
-            "body": {
                 "id": str(new_role.id),
                 "user": {
                     "id": str(new_role.user.id),
@@ -737,8 +735,7 @@ def add_user_to_org_v2(organization_id: str, user_data, current_user):
                     "id": str(new_role.createdBy.id),
                     "email": new_role.createdBy.email,
                 },
-            },
-        }
+            }
 
     except HTTPException as http_exc:
         raise http_exc

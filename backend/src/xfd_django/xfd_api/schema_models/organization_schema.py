@@ -196,13 +196,6 @@ class GenericMessageResponseModel(BaseModel):
     message: str
 
 
-class GenericPostResponseModel(BaseModel):
-    """Generic response model."""
-
-    statusCode: int
-    body: Any
-
-
 class OrganizationSearchBody(BaseModel):
     """Elastic search orgnaization model."""
     regions: Optional[List[str]]

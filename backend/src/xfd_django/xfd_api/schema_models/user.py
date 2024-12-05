@@ -3,7 +3,7 @@
 # Standard Python Libraries
 from datetime import datetime
 from enum import Enum
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, Dict, Any
 from uuid import UUID
 
 # Third-Party Libraries
@@ -84,7 +84,7 @@ class UserResponse(BaseModel):
         """Override model_dump to handle UUID serialization."""
         data = super().model_dump(**kwargs)
         if isinstance(data.get("id"), UUID):
-            data["id"] = str(data["id"])  # Convert UUID to string
+            data["id"] = str(data["id"])
         return data
 
     class Config:
@@ -146,6 +146,14 @@ class UpdateUser(BaseModel):
     state: Optional[str]
     userType: Optional[UserType]
 
+class UpdateUserV2(BaseModel):
+    """Schema for updating a user."""
+    firstName: Optional[str] = None
+    lastName: Optional[str] = None
+    email: Optional[str] = None
+    state: Optional[str] = None
+    userType: Optional[str] = None
+    invitePending: Optional[bool] = False
 
 class RegisterUserResponse(BaseModel):
     """Register or deny user response."""
@@ -157,3 +165,19 @@ class VersionModel(BaseModel):
     """Version model."""
 
     version: str
+
+
+class UserResponseV2(BaseModel):
+    """Schema for returning user data."""
+    id: str
+    createdAt: str
+    updatedAt: str
+    firstName: str
+    lastName: str
+    fullName: str
+    email: str
+    lastLoggedIn: Optional[datetime] = None
+    regionId: Optional[str] = None
+    state: Optional[str] = None
+    userType: Optional[str] = None
+    roles: List[Dict[str, Optional[Any]]]
