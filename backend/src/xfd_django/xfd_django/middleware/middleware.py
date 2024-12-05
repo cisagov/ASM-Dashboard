@@ -1,8 +1,12 @@
+# Standard Python Libraries
+from datetime import datetime
 import logging
+
+# Third-Party Libraries
 from pythonjsonlogger import jsonlogger
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from datetime import datetime
+
 
 class LoggingMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
@@ -14,7 +18,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         if not logger.handlers:  # Avoid duplicate handlers
             log_handler = logging.StreamHandler()
             formatter = jsonlogger.JsonFormatter(
-                '%(levelname)s RequestId: %(request_id)s %(asctime)s Request Info: %(message)s'
+                "%(levelname)s RequestId: %(request_id)s %(asctime)s Request Info: %(message)s"
             )
             log_handler.setFormatter(formatter)
             logger.addHandler(log_handler)
@@ -31,10 +35,18 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
         # Get request ID from scope or set it to "undefined"
         aws_context = request.scope.get("aws.context", None)
-        request_id = getattr(aws_context, "aws_request_id", "undefined") if aws_context else "undefined"
+        request_id = (
+            getattr(aws_context, "aws_request_id", "undefined")
+            if aws_context
+            else "undefined"
+        )
 
         # Default to "undefined" for userEmail if not provided
-        user_email = request.state.user_email if hasattr(request.state, "user_email") else "undefined"
+        user_email = (
+            request.state.user_email
+            if hasattr(request.state, "user_email")
+            else "undefined"
+        )
 
         # Proceed with the request
         response = await call_next(request)
@@ -49,9 +61,9 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             "userEmail": user_email,
             "statusCode": response.status_code,
             "timestamp": datetime.utcnow().isoformat(),
-            "requestId": request_id
+            "requestId": request_id,
         }
 
-        # Log in JSON format 
+        # Log in JSON format
         self.logger.info(log_info)
         return response

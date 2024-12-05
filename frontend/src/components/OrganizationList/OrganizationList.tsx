@@ -25,7 +25,7 @@ export const OrganizationList: React.FC<{
     if (user?.userType === 'regionalAdmin') {
       return `/organizations/regionId/${regionId}`;
     } else {
-      return `/v2/organizations/`;
+      return `/v2/organizations`;
     }
   };
 

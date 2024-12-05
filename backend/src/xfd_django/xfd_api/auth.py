@@ -317,7 +317,7 @@ def get_current_active_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
         )
-    
+
     # Attach email to request state for logging
     request.state.user_email = user.email
     return user
@@ -413,7 +413,9 @@ def can_access_user(current_user, target_user_id) -> bool:
         return False
 
     # Check if the current user is the target user or a global write admin
-    if str(current_user.id) == str(target_user_id) or is_global_write_admin(current_user):
+    if str(current_user.id) == str(target_user_id) or is_global_write_admin(
+        current_user
+    ):
         return True
 
     # Check if the user is a regional admin and the target user is in the same region

@@ -11,7 +11,14 @@ os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 # Initialize Django
 django.setup()
 
-from xfd_api.tasks.syncdb_helpers import manage_elasticsearch_indices, populate_sample_data, drop_all_tables, synchronize, sync_es_organizations
+# Third-Party Libraries
+from xfd_api.tasks.syncdb_helpers import (
+    drop_all_tables,
+    manage_elasticsearch_indices,
+    populate_sample_data,
+    sync_es_organizations,
+    synchronize,
+)
 
 
 def handler(event, context):
@@ -39,7 +46,7 @@ def handler(event, context):
             print("Populating the database with sample data...")
             populate_sample_data()
             print("Sample data population complete.")
-        
+
         # Step 4: Sync organizations in ES
 
         sync_es_organizations()

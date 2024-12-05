@@ -14,7 +14,7 @@ export const Organizations: React.FC = () => {
   const fetchOrganizations = useCallback(async () => {
     setIsLoading(true);
     try {
-      const rows = await apiGet<Organization[]>('/v2/organizations/');
+      const rows = await apiGet<Organization[]>('/v2/organizations');
       setOrganizations(rows);
     } catch (e) {
       console.error(e);

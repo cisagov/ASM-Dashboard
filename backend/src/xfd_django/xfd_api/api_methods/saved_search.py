@@ -91,7 +91,10 @@ def list_saved_searches(user):
                 "createdById": search.createdById.id,
             }
             saved_search_list.append(response)
-        return {"result": list(saved_search_list), "count": len(list(saved_search_list))}
+        return {
+            "result": list(saved_search_list),
+            "count": len(list(saved_search_list)),
+        }
     except User.DoesNotExist:
         raise HTTPException(status_code=404, detail="User not found")
 

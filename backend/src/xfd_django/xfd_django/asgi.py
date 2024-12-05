@@ -17,8 +17,8 @@ from django.conf import settings
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
-from xfd_django.middleware.middleware import LoggingMiddleware
 from redis import asyncio as aioredis
+from xfd_django.middleware.middleware import LoggingMiddleware
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
@@ -56,13 +56,18 @@ CSP_POLICY = {
     "frame-ancestors": ["'none'"],
 }
 
+
 def set_security_headers(response: Response):
     """
     Apply security headers to the HTTP response.
     """
     # Set Content Security Policy
     csp_value = "; ".join(
-        [f"{key} {' '.join(value)}" for key, value in CSP_POLICY.items()]
+        [
+            f"{key} {' '.join(map(str, value))}"
+            for key, value in CSP_POLICY.items()
+            if isinstance(value, (list, tuple))
+        ]
     )
     response.headers["Content-Security-Policy"] = csp_value
     response.headers["Strict-Transport-Security"] = "max-age=31536000"
@@ -72,6 +77,7 @@ def set_security_headers(response: Response):
     response.headers["Access-Control-Allow-Credentials"] = "true"
 
     return response
+
 
 def get_application() -> FastAPI:
     """get_application function."""
@@ -94,10 +100,8 @@ def get_application() -> FastAPI:
     async def security_headers_middleware(request: Request, call_next):
         response = await call_next(request)
         return set_security_headers(response)
-    
 
     app.include_router(api_router)
-
 
     @app.on_event("startup")
     async def startup():

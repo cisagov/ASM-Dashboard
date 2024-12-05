@@ -3,7 +3,7 @@
 # Standard Python Libraries
 from datetime import datetime
 from enum import Enum
-from typing import List, Literal, Optional, Dict, Any
+from typing import Any, Dict, List, Literal, Optional
 from uuid import UUID
 
 # Third-Party Libraries
@@ -146,8 +146,10 @@ class UpdateUser(BaseModel):
     state: Optional[str]
     userType: Optional[UserType]
 
+
 class UpdateUserV2(BaseModel):
     """Schema for updating a user."""
+
     firstName: Optional[str] = None
     lastName: Optional[str] = None
     email: Optional[str] = None
@@ -155,11 +157,13 @@ class UpdateUserV2(BaseModel):
     userType: Optional[str] = None
     invitePending: Optional[bool] = False
 
+
 class RegisterUserResponse(BaseModel):
     """Register or deny user response."""
 
     statusCode: int
     body: str
+
 
 class VersionModel(BaseModel):
     """Version model."""
@@ -169,6 +173,7 @@ class VersionModel(BaseModel):
 
 class UserResponseV2(BaseModel):
     """Schema for returning user data."""
+
     id: str
     createdAt: str
     updatedAt: str

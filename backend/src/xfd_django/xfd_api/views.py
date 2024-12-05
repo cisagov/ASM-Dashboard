@@ -39,14 +39,14 @@ from .api_methods.stats_ports import get_user_ports_cache
 from .api_methods.stats_services import get_user_services_count
 from .api_methods.user import (
     accept_terms,
-    get_me,
     delete_user,
+    get_me,
     get_users,
     get_users_by_region_id,
     get_users_by_state,
     get_users_v2,
     update_user,
-    update_user_v2
+    update_user_v2,
 )
 from .api_methods.vulnerability import (
     get_num_vulns,
@@ -82,13 +82,23 @@ from .schema_models.most_common_vuln import MostCommonVulnerabilitySchema
 from .schema_models.notification import Notification as NotificationSchema
 from .schema_models.ports_stats import PortsStats
 from .schema_models.role import Role as RoleSchema
+from .schema_models.saved_search import (
+    SavedSearchCreate,
+    SavedSearchList,
+    SavedSearchUpdate,
+)
 from .schema_models.saved_search import SavedSearch as SavedSearchSchema
-from .schema_models.saved_search import SavedSearchCreate, SavedSearchUpdate, SavedSearchList
 from .schema_models.search import SearchBody, SearchRequest, SearchResponse
 from .schema_models.service import ServicesStat
 from .schema_models.severity_count import SeverityCountSchema
-from .schema_models.user import NewUser, NewUserResponseModel, RegisterUserResponse, VersionModel, UpdateUserV2, UserResponse, UserResponseV2
+from .schema_models.user import (
+    NewUser,
+    NewUserResponseModel,
+    RegisterUserResponse,
+    UpdateUserV2,
+)
 from .schema_models.user import User as UserSchema
+from .schema_models.user import UserResponse, UserResponseV2, VersionModel
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
 from .schema_models.vulnerability import VulnerabilitySearch, VulnerabilityStat
 
@@ -360,8 +370,15 @@ async def callback_route(request: Request):
 # ========================================
 
 
-@api_router.post("/users/me/acceptTerms", response_model=UserSchema, dependencies=[Depends(get_current_active_user)], tags=["Users"])
-async def call_accept_terms(version_data: VersionModel, current_user: User = Depends(get_current_active_user)):
+@api_router.post(
+    "/users/me/acceptTerms",
+    response_model=UserSchema,
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Users"],
+)
+async def call_accept_terms(
+    version_data: VersionModel, current_user: User = Depends(get_current_active_user)
+):
     """Accept the latest terms of service."""
 
     return accept_terms(version_data, current_user)
@@ -466,7 +483,7 @@ async def call_get_users_v2(
     invitePending: Optional[bool] = Query(None),
     current_user: User = Depends(get_current_active_user),
 ):
-    """Get users with filter. """
+    """Get users with filter."""
     return get_users_v2(state, regionId, invitePending, current_user)
 
 
@@ -1223,6 +1240,7 @@ async def search_organizations(
 ):
     """Search for organizations in Elasticsearch."""
     return organization.search_organizations_task(search_body, current_user)
+
 
 # ========================================
 #   Search Endpoints

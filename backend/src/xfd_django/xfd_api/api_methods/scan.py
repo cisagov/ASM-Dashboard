@@ -11,6 +11,7 @@ from ..models import Organization, OrganizationTag, Scan
 from ..schema_models.scan import SCAN_SCHEMA, NewScan
 from ..tasks.lambda_client import LambdaClient
 
+
 # GET: /scans
 def list_scans(current_user):
     """List scans."""
@@ -67,6 +68,7 @@ def list_scans(current_user):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # GET: /granularScans
 def list_granular_scans(current_user):
     """List granular scans."""
@@ -89,6 +91,7 @@ def list_granular_scans(current_user):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # POST: /scans
 def create_scan(scan_data: NewScan, current_user):
@@ -144,6 +147,7 @@ def create_scan(scan_data: NewScan, current_user):
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # GET: /scans/{scan_id}
 def get_scan(scan_id: str, current_user):
     """Get a scan by its ID."""
@@ -190,6 +194,7 @@ def get_scan(scan_id: str, current_user):
         "schema": dict(SCAN_SCHEMA[scan.name]),
         "organizations": list(all_organizations),
     }
+
 
 # PUT: /scans/{scan_id}
 def update_scan(scan_id: str, scan_data: NewScan, current_user):
@@ -248,6 +253,7 @@ def update_scan(scan_id: str, scan_data: NewScan, current_user):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # DELETE: /scans/{scan_id}
 def delete_scan(scan_id: str, current_user):
     """Delete a scan by its ID."""
@@ -272,6 +278,7 @@ def delete_scan(scan_id: str, current_user):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # POST: /scans/{scan_id}/run
 def run_scan(scan_id: str, current_user):
     """Mark a scan as manually triggered to run."""
@@ -295,6 +302,7 @@ def run_scan(scan_id: str, current_user):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # POST: /scheduler/invoke
 async def invoke_scheduler(current_user):

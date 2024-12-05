@@ -1,9 +1,9 @@
 """API methods to support Organization endpoints."""
 
 # Standard Python Libraries
-from typing import List
-import uuid
 import json
+from typing import Any, Dict, List
+import uuid
 
 # Third-Party Libraries
 from django.db.models import Q
@@ -21,8 +21,8 @@ from ..auth import (
 )
 from ..helpers.regionStateMap import REGION_STATE_MAP
 from ..models import Organization, OrganizationTag, Role, Scan, ScanTask, User
-from ..tasks.es_client import ESClient
 from ..schema_models import organization_schema
+from ..tasks.es_client import ESClient
 
 
 def is_valid_uuid(val: str) -> bool:
@@ -32,6 +32,7 @@ def is_valid_uuid(val: str) -> bool:
     except ValueError:
         return False
     return str(uuid_obj) == val
+
 
 # GET: /organizations
 def list_organizations(current_user):
@@ -99,6 +100,7 @@ def list_organizations(current_user):
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # GET: /organizations/tags
 def get_tags(current_user):
     """Fetches all possible organization tags."""
@@ -115,6 +117,7 @@ def get_tags(current_user):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # GET: /organizations/{organization_id}
 def get_organization(organization_id, current_user):
@@ -177,7 +180,9 @@ def get_organization(organization_id, current_user):
                 "firstName": organization.createdBy.firstName,
                 "lastName": organization.createdBy.lastName,
                 "email": organization.createdBy.email,
-            } if organization.createdBy else None,
+            }
+            if organization.createdBy
+            else None,
             "userRoles": [
                 {
                     "id": str(role.id),
@@ -248,6 +253,7 @@ def get_organization(organization_id, current_user):
         print(f"An error occurred: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # GET: /organizations/state/{state}
 def get_by_state(state, current_user):
     """List organizations with specific state."""
@@ -284,6 +290,7 @@ def get_by_state(state, current_user):
     # Return the serialized list of organizations
     return list(organizations)
 
+
 # GET: /organizations/regionId/{region_id}
 def get_by_region(regionId, current_user):
     """List organizations with specific regionId."""
@@ -319,6 +326,7 @@ def get_by_region(regionId, current_user):
 
     # Return the serialized list of organizations
     return list(organizations)
+
 
 # GET: /regions
 def get_all_regions(current_user):
@@ -363,6 +371,7 @@ def find_or_create_tags(
             final_tags.append(created_tag)
 
     return final_tags
+
 
 # POST: /organizations
 def create_organization(organization_data, current_user):
@@ -442,6 +451,7 @@ def create_organization(organization_data, current_user):
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # POST: /organizations_upsert
 def upsert_organization(organization_data, current_user):
@@ -524,6 +534,7 @@ def upsert_organization(organization_data, current_user):
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # PUT: /organizations/{organization_id}
 def update_organization(organization_id: str, organization_data, current_user):
@@ -643,6 +654,7 @@ def update_organization(organization_id: str, organization_data, current_user):
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # DELETE: /organizations/{organization_id}
 def delete_organization(id: str, current_user):
     """Delete a particular organization."""
@@ -675,6 +687,7 @@ def delete_organization(id: str, current_user):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # POST: /v2/organizations/{organization_id}/users
 def add_user_to_org_v2(organization_id: str, user_data, current_user):
@@ -726,28 +739,28 @@ def add_user_to_org_v2(organization_id: str, user_data, current_user):
 
         # Return the created role in the response
         return {
-                "id": str(new_role.id),
-                "user": {
-                    "id": str(new_role.user.id),
-                    "email": new_role.user.email,
-                    "firstName": new_role.user.firstName,
-                    "lastName": new_role.user.lastName,
-                },
-                "organization": {
-                    "id": str(new_role.organization.id),
-                    "name": new_role.organization.name,
-                },
-                "role": new_role.role,
-                "approved": new_role.approved,
-                "approvedBy": {
-                    "id": str(new_role.approvedBy.id),
-                    "email": new_role.approvedBy.email,
-                },
-                "createdBy": {
-                    "id": str(new_role.createdBy.id),
-                    "email": new_role.createdBy.email,
-                },
-            }
+            "id": str(new_role.id),
+            "user": {
+                "id": str(new_role.user.id),
+                "email": new_role.user.email,
+                "firstName": new_role.user.firstName,
+                "lastName": new_role.user.lastName,
+            },
+            "organization": {
+                "id": str(new_role.organization.id),
+                "name": new_role.organization.name,
+            },
+            "role": new_role.role,
+            "approved": new_role.approved,
+            "approvedBy": {
+                "id": str(new_role.approvedBy.id),
+                "email": new_role.approvedBy.email,
+            },
+            "createdBy": {
+                "id": str(new_role.createdBy.id),
+                "email": new_role.createdBy.email,
+            },
+        }
 
     except HTTPException as http_exc:
         raise http_exc
@@ -755,6 +768,7 @@ def add_user_to_org_v2(organization_id: str, user_data, current_user):
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # POST: /organizations/{organization_id}/roles/{role_id}/approve
 def approve_role(organization_id: str, role_id, current_user):
@@ -791,6 +805,7 @@ def approve_role(organization_id: str, role_id, current_user):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # POST: /organizations/{organization_id}/roles/{role_id}/remove
 def remove_role(organization_id: str, role_id, current_user):
     """Remove a role within an organization."""
@@ -824,6 +839,7 @@ def remove_role(organization_id: str, role_id, current_user):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # POST: /organizations/{organization_id}/granularScans/{scan_id}/update
 def update_org_scan(organization_id: str, scan_id, scan_data, current_user):
@@ -924,6 +940,7 @@ def update_org_scan(organization_id: str, scan_id, scan_data, current_user):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # GET: /v2/organizations
 def list_organizations_v2(state, regionId, current_user):
     """List organizations that the user is a member of or has access to."""
@@ -997,6 +1014,7 @@ def list_organizations_v2(state, regionId, current_user):
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # POST: /search/organizations
 def search_organizations_task(search_body, current_user: User):
     """Handles the logic for searching organizations in Elasticsearch."""
@@ -1005,28 +1023,21 @@ def search_organizations_task(search_body, current_user: User):
         client = ESClient()
 
         # Construct the Elasticsearch query
-        query_body = {
-            "query": {
-                "bool": {
-                    "must": [],
-                    "filter": []
-                }
-            }
-        }
+        query_body: Dict[str, Any] = {"query": {"bool": {"must": [], "filter": []}}}
 
         # Use match_all if searchTerm is empty
         if search_body.searchTerm.strip():
-            query_body["query"]["bool"]["must"].append({
-                "wildcard": {"name": f"*{search_body.searchTerm}*"}
-            })
+            query_body["query"]["bool"]["must"].append(
+                {"wildcard": {"name": f"*{search_body.searchTerm}*"}}
+            )
         else:
             query_body["query"]["bool"]["must"].append({"match_all": {}})
 
         # Add region filters if provided
         if search_body.regions:
-            query_body["query"]["bool"]["filter"].append({
-                "terms": {"regionId": search_body.regions}
-            })
+            query_body["query"]["bool"]["filter"].append(
+                {"terms": {"regionId": search_body.regions}}
+            )
 
         # Log the query for debugging
         print(f"Query body: {query_body}")
@@ -1034,11 +1045,14 @@ def search_organizations_task(search_body, current_user: User):
         # Execute the search
         search_results = client.search_organizations(query_body)
 
-        return {"body":search_results}
+        return {"body": search_results}
 
     except Exception as e:
         print(e)
-        raise HTTPException(status_code=500, detail="An error occurred while searching organizations.")
+        raise HTTPException(
+            status_code=500, detail="An error occurred while searching organizations."
+        )
+
 
 # GET: /by-org/
 async def stats_get_org_count_by_id(organization, tag, current_user, redis_client):

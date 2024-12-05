@@ -43,36 +43,44 @@ def is_valid_uuid(val: str) -> bool:
         return False
     return str(uuid_obj) == val
 
+
 # GET: /users/me
 def get_me(current_user):
     """Get current user."""
     # Fetch the user and related objects from the database
     user = User.objects.prefetch_related(
-        Prefetch('roles', queryset=Role.objects.select_related('organization')),
-        Prefetch('apiKeys')
+        Prefetch("roles", queryset=Role.objects.select_related("organization")),
+        Prefetch("apiKeys"),
     ).get(id=str(current_user.id))
 
     # Convert the user object to a dictionary
     user_dict = model_to_dict(user)
 
     # Add id: model_to_dict does not automatically include
-    user_dict['id'] = str(user.id)
+    user_dict["id"] = str(user.id)
 
     # Include roles with their related organization
-    user_dict['roles'] = [
+    user_dict["roles"] = [
         {
             "id": role.id,
             "role": role.role,
             "approved": role.approved,
-            "organization": model_to_dict(role.organization) if role.organization else None
+            "organization": model_to_dict(role.organization)
+            if role.organization
+            else None,
         }
         for role in user.roles.all()
     ]
 
     # Include API keys
-    user_dict['apiKeys'] = list(user.apiKeys.values('id', 'createdAt', 'updatedAt', 'lastUsed', 'hashedKey', 'lastFour'))
+    user_dict["apiKeys"] = list(
+        user.apiKeys.values(
+            "id", "createdAt", "updatedAt", "lastUsed", "hashedKey", "lastFour"
+        )
+    )
 
     return user_dict
+
 
 # POST: /users/me/acceptTerms
 def accept_terms(version_data, current_user):
@@ -93,17 +101,25 @@ def accept_terms(version_data, current_user):
             "cognitoId": current_user.cognitoId,
             "oktaId": current_user.oktaId,
             "loginGovId": current_user.loginGovId,
-            "createdAt": current_user.createdAt.isoformat() if current_user.createdAt else None,
-            "updatedAt": current_user.updatedAt.isoformat() if current_user.updatedAt else None,
+            "createdAt": current_user.createdAt.isoformat()
+            if current_user.createdAt
+            else None,
+            "updatedAt": current_user.updatedAt.isoformat()
+            if current_user.updatedAt
+            else None,
             "firstName": current_user.firstName,
             "lastName": current_user.lastName,
             "fullName": current_user.fullName,
             "email": current_user.email,
             "invitePending": current_user.invitePending,
             "loginBlockedByMaintenance": current_user.loginBlockedByMaintenance,
-            "dateAcceptedTerms": current_user.dateAcceptedTerms.isoformat() if current_user.dateAcceptedTerms else None,
+            "dateAcceptedTerms": current_user.dateAcceptedTerms.isoformat()
+            if current_user.dateAcceptedTerms
+            else None,
             "acceptedTermsVersion": current_user.acceptedTermsVersion,
-            "lastLoggedIn": current_user.lastLoggedIn.isoformat() if current_user.lastLoggedIn else None,
+            "lastLoggedIn": current_user.lastLoggedIn.isoformat()
+            if current_user.lastLoggedIn
+            else None,
             "userType": current_user.userType,
             "regionId": current_user.regionId,
             "state": current_user.state,
@@ -136,6 +152,7 @@ def delete_user(current_user, target_user_id):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # GET: /users
 def get_users(current_user):
     """
@@ -158,6 +175,7 @@ def get_users(current_user):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # GET: /users/regionId/{regionId}
 def get_users_by_region_id(current_user, region_id):
@@ -193,6 +211,7 @@ def get_users_by_region_id(current_user, region_id):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # GET: /users/state/{state}
 async def get_users_by_state(state, current_user):
     """
@@ -227,6 +246,7 @@ async def get_users_by_state(state, current_user):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # GET: /v2/users
 def get_users_v2(state, regionId, invitePending, current_user):
     """Retrieve a list of users based on optional filter parameters."""
@@ -234,7 +254,7 @@ def get_users_v2(state, regionId, invitePending, current_user):
         # Check if user is a regional admin or global admin
         if not is_regional_admin(current_user):
             raise HTTPException(status_code=401, detail="Unauthorized")
-        
+
         filters = {}
 
         if state is not None:
@@ -266,7 +286,9 @@ def get_users_v2(state, regionId, invitePending, current_user):
                         "organization": {
                             "id": str(role.organization.id),
                             "name": role.organization.name,
-                        } if role.organization else None,
+                        }
+                        if role.organization
+                        else None,
                     }
                     for role in user.roles.all()
                 ],
@@ -275,6 +297,7 @@ def get_users_v2(state, regionId, invitePending, current_user):
         ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # POST: /users/{userId}
 async def update_user(target_user_id, body, current_user):
@@ -322,6 +345,7 @@ async def update_user(target_user_id, body, current_user):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # PUT: /v2/users/{user_id}
 def update_user_v2(user_id, user_data, current_user):
     """Update a particular user."""
@@ -342,7 +366,9 @@ def update_user_v2(user_id, user_data, current_user):
 
         # Global admins only can update the userType
         if not is_global_write_admin(current_user) and user_data.userType:
-            raise HTTPException(status_code=403, detail="Only global admins can update userType.")
+            raise HTTPException(
+                status_code=403, detail="Only global admins can update userType."
+            )
 
         # Update fields
         if user_data.state:
@@ -359,7 +385,9 @@ def update_user_v2(user_id, user_data, current_user):
         user.save()
 
         # Fetch updated user with roles and related data
-        updated_user = User.objects.prefetch_related("roles__organization").get(id=user_id)
+        updated_user = User.objects.prefetch_related("roles__organization").get(
+            id=user_id
+        )
 
         # Return the updated user details
         return {
@@ -380,7 +408,9 @@ def update_user_v2(user_id, user_data, current_user):
                     "organization": {
                         "id": str(role.organization.id),
                         "name": role.organization.name,
-                    } if role.organization else None,
+                    }
+                    if role.organization
+                    else None,
                 }
                 for role in updated_user.roles.all()
             ],
@@ -390,6 +420,7 @@ def update_user_v2(user_id, user_data, current_user):
     except Exception as e:
         print(f"Error updating user: {e}")
         raise HTTPException(status_code=500, detail="An unexpected error occurred.")
+
 
 # PUT: /users/{user_id}/register/approve
 def approve_user_registration(user_id, current_user):
@@ -464,6 +495,7 @@ def deny_user_registration(user_id: str, current_user: User):
         raise HTTPException(
             status_code=500, detail="Error processing registration denial."
         )
+
 
 # POST: /users
 def invite(new_user_data, current_user):

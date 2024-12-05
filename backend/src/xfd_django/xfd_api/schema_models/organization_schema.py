@@ -198,5 +198,6 @@ class GenericMessageResponseModel(BaseModel):
 
 class OrganizationSearchBody(BaseModel):
     """Elastic search orgnaization model."""
+
     regions: Optional[List[str]]
     searchTerm: str

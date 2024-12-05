@@ -1,7 +1,13 @@
-
 # Third-Party Libraries
 from django.core.management.base import BaseCommand
-from xfd_api.tasks.syncdb_helpers import manage_elasticsearch_indices, populate_sample_data, drop_all_tables, synchronize, sync_es_organizations
+from xfd_api.tasks.syncdb_helpers import (
+    drop_all_tables,
+    manage_elasticsearch_indices,
+    populate_sample_data,
+    sync_es_organizations,
+    synchronize,
+)
+
 
 class Command(BaseCommand):
     help = "Synchronizes and populates the database with optional sample data, and manages Elasticsearch indices."
