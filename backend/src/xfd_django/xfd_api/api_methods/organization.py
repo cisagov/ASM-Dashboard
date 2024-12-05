@@ -33,7 +33,7 @@ def is_valid_uuid(val: str) -> bool:
         return False
     return str(uuid_obj) == val
 
-
+# GET: /organizations
 def list_organizations(current_user):
     """List organizations that the user is a member of or has access to."""
     try:
@@ -99,7 +99,7 @@ def list_organizations(current_user):
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# GET: /organizations/tags
 def get_tags(current_user):
     """Fetches all possible organization tags."""
     try:
@@ -116,7 +116,7 @@ def get_tags(current_user):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# GET: /organizations/{organization_id}
 def get_organization(organization_id, current_user):
     """Get information about a particular organization."""
     try:
@@ -146,6 +146,13 @@ def get_organization(organization_id, current_user):
             .order_by("-createdAt")[:10]
         )
 
+        if isinstance(organization.pendingDomains, str):
+            pending_domains = json.loads(organization.pendingDomains)
+        elif isinstance(organization.pendingDomains, list):
+            pending_domains = organization.pendingDomains
+        else:
+            pending_domains = []
+
         # Serialize organization details along with scan tasks
         org_data = {
             "id": str(organization.id),
@@ -156,7 +163,7 @@ def get_organization(organization_id, current_user):
             "rootDomains": organization.rootDomains,
             "ipBlocks": organization.ipBlocks,
             "isPassive": organization.isPassive,
-            "pendingDomains": organization.pendingDomains,
+            "pendingDomains": pending_domains,
             "country": organization.country,
             "state": organization.state,
             "regionId": organization.regionId,
@@ -165,7 +172,12 @@ def get_organization(organization_id, current_user):
             "county": organization.county,
             "countyFips": organization.countyFips,
             "type": organization.type,
-            "createdBy": organization.createdBy,
+            "createdBy": {
+                "id": str(organization.createdBy.id),
+                "firstName": organization.createdBy.firstName,
+                "lastName": organization.createdBy.lastName,
+                "email": organization.createdBy.email,
+            } if organization.createdBy else None,
             "userRoles": [
                 {
                     "id": str(role.id),
@@ -236,7 +248,7 @@ def get_organization(organization_id, current_user):
         print(f"An error occurred: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# GET: /organizations/state/{state}
 def get_by_state(state, current_user):
     """List organizations with specific state."""
     # Check if the current user is a regional admin
@@ -272,7 +284,7 @@ def get_by_state(state, current_user):
     # Return the serialized list of organizations
     return list(organizations)
 
-
+# GET: /organizations/regionId/{region_id}
 def get_by_region(regionId, current_user):
     """List organizations with specific regionId."""
     # Check if the current user is a regional admin
@@ -308,7 +320,7 @@ def get_by_region(regionId, current_user):
     # Return the serialized list of organizations
     return list(organizations)
 
-
+# GET: /regions
 def get_all_regions(current_user):
     """Get all regions."""
     try:
@@ -352,7 +364,7 @@ def find_or_create_tags(
 
     return final_tags
 
-
+# POST: /organizations
 def create_organization(organization_data, current_user):
     """Create a new organization."""
     try:
@@ -431,7 +443,7 @@ def create_organization(organization_data, current_user):
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# POST: /organizations_upsert
 def upsert_organization(organization_data, current_user):
     """Create a new organization or update it if it already exists."""
     try:
@@ -513,7 +525,7 @@ def upsert_organization(organization_data, current_user):
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# PUT: /organizations/{organization_id}
 def update_organization(organization_id: str, organization_data, current_user):
     """Update an organization by its ID."""
     try:
@@ -631,7 +643,7 @@ def update_organization(organization_id: str, organization_data, current_user):
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# DELETE: /organizations/{organization_id}
 def delete_organization(id: str, current_user):
     """Delete a particular organization."""
     try:
@@ -664,7 +676,7 @@ def delete_organization(id: str, current_user):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# POST: /v2/organizations/{organization_id}/users
 def add_user_to_org_v2(organization_id: str, user_data, current_user):
     """Add a user to a particular organization."""
     try:
@@ -744,7 +756,7 @@ def add_user_to_org_v2(organization_id: str, user_data, current_user):
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# POST: /organizations/{organization_id}/roles/{role_id}/approve
 def approve_role(organization_id: str, role_id, current_user):
     """Approve a role within an organization."""
 
@@ -779,7 +791,7 @@ def approve_role(organization_id: str, role_id, current_user):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# POST: /organizations/{organization_id}/roles/{role_id}/remove
 def remove_role(organization_id: str, role_id, current_user):
     """Remove a role within an organization."""
 
@@ -813,7 +825,7 @@ def remove_role(organization_id: str, role_id, current_user):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# POST: /organizations/{organization_id}/granularScans/{scan_id}/update
 def update_org_scan(organization_id: str, scan_id, scan_data, current_user):
     """Enable or disable a scan for a particular organization."""
 
@@ -912,7 +924,7 @@ def update_org_scan(organization_id: str, scan_id, scan_data, current_user):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# GET: /v2/organizations
 def list_organizations_v2(state, regionId, current_user):
     """List organizations that the user is a member of or has access to."""
     try:
@@ -985,7 +997,7 @@ def list_organizations_v2(state, regionId, current_user):
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# POST: /search/organizations
 def search_organizations_task(search_body, current_user: User):
     """Handles the logic for searching organizations in Elasticsearch."""
     try:
@@ -1027,7 +1039,8 @@ def search_organizations_task(search_body, current_user: User):
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail="An error occurred while searching organizations.")
-    
+
+# GET: /by-org/
 async def stats_get_org_count_by_id(organization, tag, current_user, redis_client):
     """Get stats org count."""
     try:
