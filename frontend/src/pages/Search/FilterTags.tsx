@@ -40,10 +40,8 @@ const FIELD_TO_LABEL_MAP: FieldToLabelMap = {
     },
     filterValueAccssor: (t) => {
       if (Array.isArray(t)) {
-        return t.sort((a: any, b: any) => {
-          const aValue = typeof a === 'string' ? a : String(a);
-          const bValue = typeof b === 'string' ? b : String(b);
-          return aValue.localeCompare(bValue);
+        return t.sort((a: string, b: string) => {
+          return a.localeCompare(b);
         });
       }
       return t;
