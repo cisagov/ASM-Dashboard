@@ -405,6 +405,13 @@ def create_organization(organization_data, current_user):
             tags = find_or_create_tags(organization_data.tags)
             organization.tags.add(*tags)
 
+        if isinstance(organization.pendingDomains, str):
+            pending_domains = json.loads(organization.pendingDomains)
+        elif isinstance(organization.pendingDomains, list):
+            pending_domains = organization.pendingDomains
+        else:
+            pending_domains = []
+
         # Return the organization details in response
         return {
             "id": str(organization.id),
@@ -415,7 +422,7 @@ def create_organization(organization_data, current_user):
             "rootDomains": organization.rootDomains,
             "ipBlocks": organization.ipBlocks,
             "isPassive": organization.isPassive,
-            "pendingDomains": organization.pendingDomains,
+            "pendingDomains": pending_domains,
             "country": organization.country,
             "state": organization.state,
             "regionId": organization.regionId,
@@ -490,6 +497,13 @@ def upsert_organization(organization_data, current_user):
             tags = find_or_create_tags(organization_data.tags)
             organization.tags.add(*tags)
 
+        if isinstance(organization.pendingDomains, str):
+            pending_domains = json.loads(organization.pendingDomains)
+        elif isinstance(organization.pendingDomains, list):
+            pending_domains = organization.pendingDomains
+        else:
+            pending_domains = []
+
         # Return the organization details in response
         return {
             "id": str(organization.id),
@@ -500,7 +514,7 @@ def upsert_organization(organization_data, current_user):
             "rootDomains": organization.rootDomains,
             "ipBlocks": organization.ipBlocks,
             "isPassive": organization.isPassive,
-            "pendingDomains": organization.pendingDomains,
+            "pendingDomains": pending_domains,
             "country": organization.country,
             "state": organization.state,
             "regionId": organization.regionId,
@@ -509,7 +523,12 @@ def upsert_organization(organization_data, current_user):
             "county": organization.county,
             "countyFips": organization.countyFips,
             "type": organization.type,
-            "createdBy": organization.createdBy,
+            "createdBy": {
+                "id": str(organization.createdBy.id),
+                "firstName": organization.createdBy.firstName,
+                "lastName": organization.createdBy.lastName,
+                "email": organization.createdBy.email,
+            },
             "tags": [
                 {
                     "id": str(tag.id),
@@ -584,6 +603,13 @@ def update_organization(organization_id: str, organization_data, current_user):
         # Save the updated organization object
         organization.save()
 
+        if isinstance(organization.pendingDomains, str):
+            pending_domains = json.loads(organization.pendingDomains)
+        elif isinstance(organization.pendingDomains, list):
+            pending_domains = organization.pendingDomains
+        else:
+            pending_domains = []
+
         # Return the updated organization details in response
         return {
             "id": str(organization.id),
@@ -594,7 +620,7 @@ def update_organization(organization_id: str, organization_data, current_user):
             "rootDomains": organization.rootDomains,
             "ipBlocks": organization.ipBlocks,
             "isPassive": organization.isPassive,
-            "pendingDomains": organization.pendingDomains,
+            "pendingDomains": pending_domains,
             "country": organization.country,
             "state": organization.state,
             "regionId": organization.regionId,
@@ -603,7 +629,12 @@ def update_organization(organization_id: str, organization_data, current_user):
             "county": organization.county,
             "countyFips": organization.countyFips,
             "type": organization.type,
-            "createdBy": organization.createdBy,
+            "createdBy": {
+                "id": str(organization.createdBy.id),
+                "firstName": organization.createdBy.firstName,
+                "lastName": organization.createdBy.lastName,
+                "email": organization.createdBy.email,
+            },
             "tags": [
                 {
                     "id": str(tag.id),
@@ -897,6 +928,13 @@ def update_org_scan(organization_id: str, scan_id, scan_data, current_user):
         # Save the updated organization
         organization.save()
 
+        if isinstance(organization.pendingDomains, str):
+            pending_domains = json.loads(organization.pendingDomains)
+        elif isinstance(organization.pendingDomains, list):
+            pending_domains = organization.pendingDomains
+        else:
+            pending_domains = []
+
         # Return a success response
         return {
             "id": str(organization.id),
@@ -907,7 +945,7 @@ def update_org_scan(organization_id: str, scan_id, scan_data, current_user):
             "rootDomains": organization.rootDomains,
             "ipBlocks": organization.ipBlocks,
             "isPassive": organization.isPassive,
-            "pendingDomains": organization.pendingDomains,
+            "pendingDomains": pending_domains,
             "country": organization.country,
             "state": organization.state,
             "regionId": organization.regionId,
