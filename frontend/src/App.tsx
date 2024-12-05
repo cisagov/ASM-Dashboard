@@ -35,9 +35,6 @@ import {
 import { LayoutWithSearch, RouteGuard } from 'components';
 import './styles.scss';
 import { Authenticator } from '@aws-amplify/ui-react';
-import { RSCDashboard } from 'components/ReadySetCyber/RSCDashboard';
-import { RSCDetail } from 'components/ReadySetCyber/RSCDetail';
-import { RSCLogin } from 'components/ReadySetCyber/RSCLogin';
 import { RiskWithSearch } from 'pages/Risk/Risk';
 import { StaticsContextProvider } from 'context/StaticsContextProvider';
 import { SavedSearchContextProvider } from 'context/SavedSearchContextProvider';
@@ -220,35 +217,6 @@ const App: React.FC = () => (
                         path="/region-admin-dashboard"
                         component={RegionUsers}
                         permissions={['regionalAdmin', 'globalView']}
-                      />
-                      <RouteGuard
-                        exact
-                        path="/readysetcyber"
-                        unauth={RSCLogin}
-                        component={RSCDashboard}
-                      />
-                      <RouteGuard
-                        exact
-                        path="/readysetcyber/dashboard"
-                        component={RSCDashboard}
-                        permissions={[
-                          'globalView',
-                          'readySetCyber',
-                          'regionalAdmin',
-                          'standard'
-                        ]}
-                        unauth={RSCLogin}
-                      />
-                      <RouteGuard
-                        path="/readysetcyber/result/:id"
-                        component={RSCDetail}
-                        permissions={[
-                          'globalView',
-                          'readySetCyber',
-                          'regionalAdmin',
-                          'standard'
-                        ]}
-                        unauth={RSCLogin}
                       />
                     </Switch>
                   </LayoutWithSearch>

@@ -13,8 +13,6 @@ import { useUserActivityTimeout } from 'hooks/useUserActivityTimeout';
 import { useAuthContext } from 'context/AuthContext';
 import UserInactiveModal from './UserInactivityModal/UserInactivityModal';
 import { CrossfeedFooter } from './Footer';
-import { RSCFooter } from './ReadySetCyber/RSCFooter';
-import { RSCHeader } from './ReadySetCyber/RSCHeader';
 import { SkipToMainContent } from './SkipToMainContent/index';
 import { matchPath } from 'utils/matchPath';
 import { drawerWidth, FilterDrawerV2 } from './FilterDrawerV2';
@@ -162,65 +160,57 @@ export const Layout: React.FC<PropsWithChildren<ContextType>> = ({
           <GovBanner />
           <SkipToMainContent />
         </div>
-        {!pathname.includes('/readysetcyber') ? (
-          <>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'row',
-                height: '100vh'
-              }}
-            >
-              {userLevel > 0 ? (
-                <FilterDrawerV2
-                  setIsFilterDrawerOpen={setIsFilterDrawerOpen}
-                  isFilterDrawerOpen={isFilterDrawerOpen}
-                  isMobile={isMobile}
-                  initialFilters={initialFilters}
-                />
-              ) : (
-                <Drawer
-                  variant="persistent"
-                  id="dummy-drawer-does-not-offer-functionality"
-                  sx={{ width: drawerWidth }}
-                  PaperProps={{ style: { position: 'unset' } }}
-                >
-                  <Box width={drawerWidth} />
-                </Drawer>
-              )}
-              <Main open={isFilterDrawerOpen} user={!!user}>
-                <Header
-                  isFilterDrawerOpen={isFilterDrawerOpen}
-                  setIsFilterDrawerOpen={setIsFilterDrawerOpen}
-                />
-                <div className="main-content" id="main-content" tabIndex={-1} />
+        <>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              height: '100vh'
+            }}
+          >
+            {userLevel > 0 ? (
+              <FilterDrawerV2
+                setIsFilterDrawerOpen={setIsFilterDrawerOpen}
+                isFilterDrawerOpen={isFilterDrawerOpen}
+                isMobile={isMobile}
+                initialFilters={initialFilters}
+              />
+            ) : (
+              <Drawer
+                variant="persistent"
+                id="dummy-drawer-does-not-offer-functionality"
+                sx={{ width: drawerWidth }}
+                PaperProps={{ style: { position: 'unset' } }}
+              >
+                <Box width={drawerWidth} />
+              </Drawer>
+            )}
+            <Main open={isFilterDrawerOpen} user={!!user}>
+              <Header
+                isFilterDrawerOpen={isFilterDrawerOpen}
+                setIsFilterDrawerOpen={setIsFilterDrawerOpen}
+              />
+              <div className="main-content" id="main-content" tabIndex={-1} />
 
-                <Box
-                  display="block"
-                  position="relative"
-                  flex="1"
-                  height="calc(100vh - 64px - 72px - 24px)"
-                  overflow="scroll"
-                  sx={{
-                    '&::-webkit-scrollbar': {
-                      display: 'none'
-                    }
-                  }}
-                  zIndex={16}
-                >
-                  {children}
-                </Box>
-                <CrossfeedFooter />
-              </Main>
-            </div>
-          </>
-        ) : (
-          <>
-            <RSCHeader />
-            <div className={classes.content}>{children}</div>
-            <RSCFooter />
-          </>
-        )}
+              <Box
+                display="block"
+                position="relative"
+                flex="1"
+                height="calc(100vh - 64px - 72px - 24px)"
+                overflow="scroll"
+                sx={{
+                  '&::-webkit-scrollbar': {
+                    display: 'none'
+                  }
+                }}
+                zIndex={16}
+              >
+                {children}
+              </Box>
+              <CrossfeedFooter />
+            </Main>
+          </div>
+        </>
       </div>
     </StyledScopedCssBaseline>
   );
