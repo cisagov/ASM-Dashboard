@@ -151,7 +151,9 @@ export const DrawerInterior: React.FC<Props> = (props) => {
   );
 
   const portFacet: any[] = facets['services.port']
-    ? facets['services.port'][0].data
+    ? facets['services.port'][0].data.sort(
+        (a: { value: number }, b: { value: number }) => a.value - b.value
+      )
     : [];
 
   const fromDomainFacet: any[] = facets['fromRootDomain']
@@ -159,7 +161,10 @@ export const DrawerInterior: React.FC<Props> = (props) => {
     : [];
 
   const cveFacet: any[] = facets['vulnerabilities.cve']
-    ? facets['vulnerabilities.cve'][0].data
+    ? facets['vulnerabilities.cve'][0].data.sort(
+        (a: { value: string }, b: { value: string }) =>
+          a.value.localeCompare(b.value)
+      )
     : [];
 
   const severityFacet: any[] = facets['vulnerabilities.severity']
@@ -167,7 +172,7 @@ export const DrawerInterior: React.FC<Props> = (props) => {
     : [];
 
   // Always show all severities
-  for (const value of ['Critical', 'High', 'Medium', 'Low']) {
+  for (const value of ['Low', 'Medium', 'High', 'Critical']) {
     if (!severityFacet.find((severity) => value === severity.value))
       severityFacet.push({ value, count: 0 });
   }
