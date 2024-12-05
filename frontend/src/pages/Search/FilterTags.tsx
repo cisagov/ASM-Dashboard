@@ -49,17 +49,23 @@ const FIELD_TO_LABEL_MAP: FieldToLabelMap = {
       return t;
     },
     trimAfter: 10
-    //   return t;
-    // },
-    // trimAfter: 10
   },
   'vulnerabilities.severity': {
     labelAccessor: (t) => {
       return 'Severity';
     },
     filterValueAccssor(t) {
+      const severityLevels = ['Low', 'Medium', 'High', 'Critical'];
+      if (Array.isArray(t)) {
+        return t.sort((a: any, b: any) => {
+          const aValue = severityLevels.indexOf(a);
+          const bValue = severityLevels.indexOf(b);
+          return aValue - bValue;
+        });
+      }
       return t;
-    }
+    },
+    trimAfter: 3
   },
   ip: {
     labelAccessor: (t) => {
@@ -116,9 +122,16 @@ const FIELD_TO_LABEL_MAP: FieldToLabelMap = {
       return 'CVE';
     },
     filterValueAccssor(t) {
+      if (Array.isArray(t)) {
+        return t.sort((a: any, b: any) => {
+          const aValue = typeof a === 'string' ? a : String(a);
+          const bValue = typeof b === 'string' ? b : String(b);
+          return aValue.localeCompare(bValue);
+        });
+      }
       return t;
     },
-    trimAfter: 3
+    trimAfter: 10
   }
 };
 
@@ -170,8 +183,6 @@ export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
       ];
     }, []);
   }, [filters]);
-
-  // console.log('filtersByColumn', filtersByColumn);
 
   return (
     <Root aria-live="polite" aria-atomic="true">
