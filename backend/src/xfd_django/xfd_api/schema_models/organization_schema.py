@@ -39,6 +39,7 @@ class UserRoleSchema(BaseModel):
     id: UUID
     role: str
     approved: bool
+    user: dict
 
 
 class TagSchema(BaseModel):

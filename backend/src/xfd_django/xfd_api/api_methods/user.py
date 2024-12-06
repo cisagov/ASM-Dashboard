@@ -129,25 +129,24 @@ def accept_terms(version_data, current_user):
 
 
 # DELETE: /users/{userId}
-def delete_user(current_user, target_user_id):
-    """
-    Delete a user by ID.
-    Args:
-        request : The HTTP request containing authorization and target for deletion..
+def delete_user(target_user_id, current_user):
+    """Delete a user by ID."""
+    # Validate that the user ID is a valid UUID
+    if not target_user_id:
+        raise HTTPException(status_code=404, detail="User not found")
 
-    Raises:
-        HTTPException: If the user is not authorized or the user is not found.
-
-    Returns:
-        JSONResponse: The result of the deletion.
-    """
+    # Check if the current user has permission to access/update this user
     if not can_access_user(current_user, target_user_id):
-        return HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(status_code=403, detail="Unauthorized access.")
 
     try:
         target_user = User.objects.get(id=target_user_id)
-        result = target_user.delete()
-        return JSONResponse(status_code=200, content={"result": result})
+        target_user.delete()
+        # Return success response
+        return {
+            "status": "success",
+            "message": f"User {target_user_id} has been deleted successfully.",
+        }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -155,24 +154,46 @@ def delete_user(current_user, target_user_id):
 
 # GET: /users
 def get_users(current_user):
-    """
-    Retrieve a list of all users.
-    Args:
-        current_user : The user making the request.
-
-    Raises:
-        HTTPException: If the user is not authorized.
-
-    Returns:
-        List[User]: A list of all users.
-    """
+    """Retrieve a list of all users."""
     try:
+        # Check if user is a regional admin or global admin
         if not (is_global_view_admin(current_user)):
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        users = User.objects.all().prefetch_related("roles", "roles.organization")
-        return [UserSchema.model_validate(user) for user in users]
+        users = User.objects.all().prefetch_related("roles__organization")
 
+        # Return the updated user details
+        return [
+            {
+                "id": str(user.id),
+                "createdAt": user.createdAt.isoformat(),
+                "updatedAt": user.updatedAt.isoformat(),
+                "firstName": user.firstName,
+                "lastName": user.lastName,
+                "fullName": user.fullName,
+                "email": user.email,
+                "regionId": user.regionId,
+                "state": user.state,
+                "userType": user.userType,
+                "lastLoggedIn": user.lastLoggedIn,
+                "acceptedTermsVersion": user.acceptedTermsVersion,
+                "roles": [
+                    {
+                        "id": str(role.id),
+                        "approved": role.approved,
+                        "role": role.role,
+                        "organization": {
+                            "id": str(role.organization.id),
+                            "name": role.organization.name,
+                        }
+                        if role.organization
+                        else None,
+                    }
+                    for role in user.roles.all()
+                ],
+            }
+            for user in users
+        ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -280,9 +301,12 @@ def get_users_v2(state, regionId, invitePending, current_user):
                 "state": user.state,
                 "userType": user.userType,
                 "lastLoggedIn": user.lastLoggedIn,
+                "acceptedTermsVersion": user.acceptedTermsVersion,
                 "roles": [
                     {
                         "id": str(role.id),
+                        "approved": role.approved,
+                        "role": role.role,
                         "organization": {
                             "id": str(role.organization.id),
                             "name": role.organization.name,
@@ -402,9 +426,12 @@ def update_user_v2(user_id, user_data, current_user):
             "state": updated_user.state,
             "userType": updated_user.userType,
             "lastLoggedIn": user.lastLoggedIn,
+            "acceptedTermsVersion": user.acceptedTermsVersion,
             "roles": [
                 {
                     "id": str(role.id),
+                    "approved": role.approved,
+                    "role": role.role,
                     "organization": {
                         "id": str(role.organization.id),
                         "name": role.organization.name,
@@ -548,7 +575,7 @@ def invite(new_user_data, current_user):
 
         # Always update userType if specified
         if new_user_data.userType:
-            user.userType = new_user_data.userType
+            user.userType = new_user_data.userType.value
             user.save()
 
         # Assign role if an organization is specified

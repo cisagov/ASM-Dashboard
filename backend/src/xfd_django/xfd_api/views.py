@@ -384,44 +384,32 @@ async def call_accept_terms(
     return accept_terms(version_data, current_user)
 
 
-# GET Current User
 @api_router.get("/users/me", tags=["Users"])
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return get_me(current_user)
 
 
-@api_router.delete("/users/{userId}", tags=["Users"])
-async def call_delete_user(current_user, userId: str):
-    """
-    call delete_user()
-    Args:
-        userId: UUID of the user to delete.
-        Returns:
-        User: The user that was deleted.
-    """
-
-    return delete_user(current_user, userId)
+@api_router.delete(
+    "/users/{userId}",
+    response_model=OrganizationSchema.GenericMessageResponseModel,
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Users"],
+)
+async def call_delete_user(
+    userId: str, current_user: User = Depends(get_current_active_user)
+):
+    """Delete user."""
+    return delete_user(userId, current_user)
 
 
 @api_router.get(
     "/users",
-    response_model=List[UserSchema],
+    response_model=List[UserResponseV2],
     dependencies=[Depends(get_current_active_user)],
     tags=["Users"],
 )
 async def call_get_users(current_user: User = Depends(get_current_active_user)):
-    """
-    Call get_users()
-
-    Args:
-        regionId: Region IDs to filter users by.
-
-    Raises:
-        HTTPException: If the user is not authorized or no users are found.
-
-    Returns:
-        List[User]: A list of users matching the filter criteria.
-    """
+    """Get all users."""
     return get_users(current_user)
 
 

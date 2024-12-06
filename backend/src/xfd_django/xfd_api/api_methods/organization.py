@@ -193,6 +193,7 @@ def get_organization(organization_id, current_user):
                         "email": role.user.email,
                         "firstName": role.user.firstName,
                         "lastName": role.user.lastName,
+                        "fullName": role.user.fullName,
                     },
                 }
                 for role in organization.userRoles.all()
@@ -658,6 +659,7 @@ def update_organization(organization_id: str, organization_data, current_user):
                         "email": role.user.email,
                         "firstName": role.user.firstName,
                         "lastName": role.user.lastName,
+                        "fullName": role.user.fullName,
                     },
                 }
                 for role in organization.userRoles.all()
@@ -1031,7 +1033,18 @@ def list_organizations_v2(state, regionId, current_user):
                 "countyFips": org.countyFips,
                 "type": org.type,
                 "userRoles": [
-                    {"id": str(role.id), "role": role.role, "approved": role.approved}
+                    {
+                        "id": str(role.id),
+                        "role": role.role,
+                        "approved": role.approved,
+                        "user": {
+                            "id": str(role.user.id),
+                            "email": role.user.email,
+                            "firstName": role.user.firstName,
+                            "lastName": role.user.lastName,
+                            "fullName": role.user.fullName,
+                        },
+                    }
                     for role in org.userRoles.all()
                 ],
                 "tags": [
