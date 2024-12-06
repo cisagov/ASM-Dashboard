@@ -70,6 +70,11 @@ const FIELD_TO_LABEL_MAP: FieldToLabelMap = {
       return 'IP';
     },
     filterValueAccssor(t) {
+      if (Array.isArray(t)) {
+        return t.sort((a: string, b: string) => {
+          return a.localeCompare(b);
+        });
+      }
       return t;
     }
   },
@@ -78,6 +83,11 @@ const FIELD_TO_LABEL_MAP: FieldToLabelMap = {
       return 'Name';
     },
     filterValueAccssor(t) {
+      if (Array.isArray(t)) {
+        return t.sort((a: string, b: string) => {
+          return a.localeCompare(b);
+        });
+      }
       return t;
     }
   },
@@ -86,6 +96,11 @@ const FIELD_TO_LABEL_MAP: FieldToLabelMap = {
       return 'Root Domain(s)';
     },
     filterValueAccssor(t) {
+      if (Array.isArray(t)) {
+        return t.sort((a: string, b: string) => {
+          return a.localeCompare(b);
+        });
+      }
       return t;
     }
   },
@@ -190,6 +205,8 @@ export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
       ];
     }, []);
   }, [filters]);
+
+  console.log('filtersByColumn', filtersByColumn);
 
   return (
     <Root aria-live="polite" aria-atomic="true">
