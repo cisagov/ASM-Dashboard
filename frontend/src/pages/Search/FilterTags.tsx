@@ -94,10 +94,18 @@ const FIELD_TO_LABEL_MAP: FieldToLabelMap = {
       return 'Organization';
     },
     filterValueAccssor: (t) => {
+      if (Array.isArray(t)) {
+        return t
+          .map((org) => org.name)
+          .sort((a: string, b: string) => {
+            return a.localeCompare(b);
+          });
+      }
       return t.name;
     },
-    trimAfter: 2
+    trimAfter: 3
   },
+
   query: {
     labelAccessor: (t) => {
       return 'Query';
@@ -165,9 +173,7 @@ export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
         : nextFilter.values;
       const value = fieldAccessors
         ? ellipsisPastIndex(
-            nextFilter.values.map((item: any) =>
-              fieldAccessors.filterValueAccssor(item)
-            ),
+            sortedValues,
             fieldAccessors.trimAfter ? fieldAccessors.trimAfter - 1 : null
           ).join(', ')
         : sortedValues.join(', ');
