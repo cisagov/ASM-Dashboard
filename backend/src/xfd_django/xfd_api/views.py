@@ -291,7 +291,7 @@ async def call_search_vulnerabilities(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@api_router.post("/vulnerabilities/export")
+@api_router.post("/vulnerabilities/export", tags=["Vulnerabilities"])
 async def export_vulnerabilities():
     try:
         pass
