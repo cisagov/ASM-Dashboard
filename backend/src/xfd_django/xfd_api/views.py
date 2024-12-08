@@ -192,7 +192,7 @@ async def pe_proxy(
     "/cpes/{cpe_id}",
     # dependencies=[Depends(get_current_active_user)],
     response_model=CpeSchema,
-    tags=["Cpe"],
+    tags=["CPEs"],
 )
 async def call_get_cpes_by_id(cpe_id):
     """
@@ -207,7 +207,7 @@ async def call_get_cpes_by_id(cpe_id):
     "/cves/{cve_id}",
     # dependencies=[Depends(get_current_active_user)],
     response_model=CveSchema,
-    tags=["Cve"],
+    tags=["CVEs"],
 )
 async def call_get_cves_by_id(cve_id):
     """
@@ -222,7 +222,7 @@ async def call_get_cves_by_id(cve_id):
     "/cves/name/{cve_name}",
     # dependencies=[Depends(get_current_active_user)],
     response_model=CveSchema,
-    tags=["Get cve by name"],
+    tags=["CVEs"],
 )
 async def call_get_cves_by_name(cve_name):
     """
@@ -264,7 +264,7 @@ async def call_export_domains(domain_search: DomainSearch):
     "/domain/{domain_id}",
     dependencies=[Depends(get_current_active_user)],
     response_model=DomainSchema,
-    tags=["Get domain by id"],
+    tags=["Domains"],
 )
 async def call_get_domain_by_id(domain_id: str):
     """
@@ -318,7 +318,7 @@ async def call_get_vulnerability_by_id(vuln_id):
     "/vulnerabilities/{vulnerabilityId}",
     dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
-    tags="Update vulnerability",
+    tags=["Vulnerabilities"],
 )
 async def call_update_vulnerability(
     vuln_id,
@@ -340,21 +340,21 @@ async def call_update_vulnerability(
 
 
 # Okta Callback
-@api_router.post("/auth/okta-callback", tags=["auth"])
+@api_router.post("/auth/okta-callback", tags=["Auth"])
 async def okta_callback(request: Request):
     """Handle Okta Callback."""
     return await auth_methods.handle_okta_callback(request)
 
 
 # Login
-@api_router.get("/login", tags=["auth"])
+@api_router.get("/login", tags=["Auth"])
 async def login_route():
     """Handle V1 Login."""
     return login()
 
 
 # V1 Callback
-@api_router.post("/auth/callback", tags=["auth"])
+@api_router.post("/auth/callback", tags=["Auth"])
 async def callback_route(request: Request):
     """Handle V1 Callback."""
     body = await request.json()
@@ -366,7 +366,7 @@ async def callback_route(request: Request):
 
 
 # ========================================
-#   Users Endpoints
+#   User Endpoints
 # ========================================
 
 
@@ -554,14 +554,14 @@ async def invite_user(
 
 
 # POST
-@api_router.post("/api-keys", response_model=ApiKeySchema, tags=["api-keys"])
+@api_router.post("/api-keys", response_model=ApiKeySchema, tags=["API Keys"])
 async def create_api_key(current_user: User = Depends(get_current_active_user)):
     """Create api key."""
     return api_key_methods.post(current_user)
 
 
 # DELETE
-@api_router.delete("/api-keys/{id}", tags=["api-keys"])
+@api_router.delete("/api-keys/{id}", tags=["API Keys"])
 async def delete_api_key(
     id: str, current_user: User = Depends(get_current_active_user)
 ):
@@ -579,7 +579,7 @@ async def delete_api_key(
     "/saved-searches",
     dependencies=[Depends(get_current_active_user)],
     response_model=SavedSearchSchema,
-    tags=["Saved Search"],
+    tags=["Saved Searches"],
 )
 async def call_create_saved_search(
     saved_search: SavedSearchCreate,
@@ -606,7 +606,7 @@ async def call_create_saved_search(
     "/saved-searches",
     dependencies=[Depends(get_current_active_user)],
     response_model=SavedSearchList,
-    tags=["Saved Search"],
+    tags=["Saved Searches"],
 )
 async def call_list_saved_searches(user: User = Depends(get_current_active_user)):
     """Retrieve a list of all saved searches."""
@@ -618,7 +618,7 @@ async def call_list_saved_searches(user: User = Depends(get_current_active_user)
     "/saved-searches/{saved_search_id}",
     dependencies=[Depends(get_current_active_user)],
     response_model=SavedSearchSchema,
-    tags=["Saved Search"],
+    tags=["Saved Searches"],
 )
 async def call_get_saved_search(
     saved_search_id: str, current_user: User = Depends(get_current_active_user)
@@ -632,7 +632,7 @@ async def call_get_saved_search(
     "/saved-searches/{saved_search_id}",
     dependencies=[Depends(get_current_active_user)],
     response_model=SavedSearchUpdate,
-    tags=["Saved Search"],
+    tags=["Saved Searches"],
 )
 async def call_update_saved_search(
     saved_search: SavedSearchUpdate,
@@ -659,7 +659,7 @@ async def call_update_saved_search(
 @api_router.delete(
     "/saved-searches/{saved_search_id}",
     dependencies=[Depends(get_current_active_user)],
-    tags=["Saved Search"],
+    tags=["Saved Searches"],
 )
 async def call_delete_saved_search(
     saved_search_id: str, current_user: User = Depends(get_current_active_user)
@@ -669,14 +669,14 @@ async def call_delete_saved_search(
 
 
 # GET ALL
-@api_router.get("/api-keys", response_model=List[ApiKeySchema], tags=["api-keys"])
+@api_router.get("/api-keys", response_model=List[ApiKeySchema], tags=["API Keys"])
 async def get_all_api_keys(current_user: User = Depends(get_current_active_user)):
     """Get all api keys."""
     return api_key_methods.get_all(current_user)
 
 
 # GET BY ID
-@api_router.get("/api-keys/{id}", response_model=ApiKeySchema, tags=["api-keys"])
+@api_router.get("/api-keys/{id}", response_model=ApiKeySchema, tags=["API Keys"])
 async def get_api_key(id: str, current_user: User = Depends(get_current_active_user)):
     """Get api key by id."""
     return api_key_methods.get_by_id(id, current_user)
@@ -689,7 +689,7 @@ async def get_api_key(id: str, current_user: User = Depends(get_current_active_u
 
 # POST
 @api_router.post(
-    "/notifications", response_model=NotificationSchema, tags=["notifications"]
+    "/notifications", response_model=NotificationSchema, tags=["Notifications"]
 )
 async def create_notification(current_user: User = Depends(get_current_active_user)):
     """Create notification key."""
@@ -699,7 +699,7 @@ async def create_notification(current_user: User = Depends(get_current_active_us
 
 # DELETE
 @api_router.delete(
-    "/notifications/{id}", response_model=NotificationSchema, tags=["notifications"]
+    "/notifications/{id}", response_model=NotificationSchema, tags=["Notifications"]
 )
 async def delete_notification(
     id: str, current_user: User = Depends(get_current_active_user)
@@ -710,7 +710,7 @@ async def delete_notification(
 
 # GET ALL: Doesn't require authentication
 @api_router.get(
-    "/notifications", response_model=List[NotificationSchema], tags=["notifications"]
+    "/notifications", response_model=List[NotificationSchema], tags=["Notifications"]
 )
 async def get_all_notifications():
     """Get all notifications."""
@@ -719,7 +719,7 @@ async def get_all_notifications():
 
 # GET BY ID
 @api_router.get(
-    "/notifications/{id}", response_model=NotificationSchema, tags=["notifications"]
+    "/notifications/{id}", response_model=NotificationSchema, tags=["Notifications"]
 )
 async def get_notification(
     id: str, current_user: User = Depends(get_current_active_user)
@@ -729,7 +729,7 @@ async def get_notification(
 
 
 # UPDATE BY ID
-@api_router.put("/notifications/{id}", tags=["notifications"])
+@api_router.put("/notifications/{id}", tags=["Notifications"])
 async def update_notification(
     id: str, current_user: User = Depends(get_current_active_user)
 ):
@@ -738,7 +738,7 @@ async def update_notification(
 
 
 # GET 508 Banner: Doesn't require authentication
-@api_router.get("/notifications/508-banner", tags=["notifications"])
+@api_router.get("/notifications/508-banner", tags=["Notifications"])
 async def get_508_banner():
     """Get notification by id."""
     return notification_methods.get_508_banner()
@@ -850,7 +850,7 @@ async def invoke_scheduler(current_user: User = Depends(get_current_active_user)
 
 @api_router.get(
     "/services/",
-    tags=["Retrieve Stats"],
+    tags=["Stats"],
 )
 async def get_services(
     current_user: User = Depends(get_current_active_user),
@@ -863,7 +863,7 @@ async def get_services(
 @api_router.get(
     "/ports/",
     response_model=List[PortsStats],  # Expecting a list of Stats objects
-    tags=["Retrieve Stats"],
+    tags=["Stats"],
 )
 async def get_Ports(
     current_user: User = Depends(get_current_active_user),
@@ -876,7 +876,7 @@ async def get_Ports(
 @api_router.get(
     "/num-vulnerabilities/",
     response_model=List[VulnerabilityStat],  # Expecting a list of Stats objects
-    tags=["Retrieve Stats"],
+    tags=["Stats"],
 )
 async def get_NumVulnerabilities(
     current_user: User = Depends(get_current_active_user),
@@ -891,7 +891,7 @@ async def get_NumVulnerabilities(
 @api_router.get(
     "/latest-vulnerabilities/",
     response_model=List[LatestVulnerabilitySchema],
-    tags=["Retrieve Stats"],
+    tags=["Stats"],
 )
 async def get_latest_vulnerabilities(
     organization: str = Query(None, description="Filter by organization ID"),
@@ -905,7 +905,7 @@ async def get_latest_vulnerabilities(
 @api_router.get(
     "/most-common-vulnerabilities/",
     response_model=List[MostCommonVulnerabilitySchema],
-    tags=["Retrieve Stats"],
+    tags=["Stats"],
 )
 async def get_most_common_vulnerabilities(
     organization: str = Query(None, description="Filter by organization ID"),
@@ -919,7 +919,7 @@ async def get_most_common_vulnerabilities(
 @api_router.get(
     "/severity-counts/",
     response_model=List[SeverityCountSchema],
-    tags=["Retrieve Stats"],
+    tags=["Stats"],
 )
 async def get_severity_counts(
     organization: str = Query(None, description="Filter by organization ID"),
@@ -936,7 +936,7 @@ async def get_severity_counts(
 @api_router.get(
     "/domains/total/",
     response_model=TotalDomainsResponse,
-    tags=["Retrieve Stats"],
+    tags=["Stats"],
 )
 async def get_total_domains(
     organization: str = Query(None, description="Filter by organization ID"),
@@ -949,7 +949,7 @@ async def get_total_domains(
 @api_router.get(
     "/by-org/",
     response_model=List[ByOrgItem],
-    tags=["Retrieve Stats"],
+    tags=["Stats"],
 )
 async def get_by_org(
     organization: str = Query(None, description="Filter by organization ID"),
