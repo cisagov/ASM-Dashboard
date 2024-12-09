@@ -159,6 +159,31 @@ def update_saved_search(request, user):
     if not uuid.UUID(request["saved_search_id"]):
         raise HTTPException(status_code=404, detail={"error": "Invalid UUID"})
     try:
+        # Process filter values when selecting organizations
+        def process_filter_values(values):
+            processed_values = []
+            for value in values:
+                if isinstance(value, dict):
+                    # Include only the required fields
+                    processed_values.append({
+                        "id": value.get("id"),
+                        "name": value.get("name"),
+                        "regionId": value.get("regionId"),
+                        "rootDomains": value.get("rootDomains", [])
+                    })
+                else:
+                    processed_values.append(value)
+            return processed_values
+
+        filters = [
+            {
+                "type": f.type,
+                "field": f.field,
+                "values": process_filter_values(f.values)
+            }
+            for f in request.get("filters", [])
+        ]
+
         saved_search = SavedSearch.objects.get(id=request["saved_search_id"])
         if saved_search.createdById.id != user.id:
             raise HTTPException(status_code=404, detail="Saved search not found")
@@ -177,7 +202,7 @@ def update_saved_search(request, user):
             "sortDirection": saved_search.sortDirection,
             "sortField": saved_search.sortField,
             "count": saved_search.count,
-            "filters": saved_search.filters,
+            "filters": filters,
             "searchPath": saved_search.searchPath,
         }
     except User.DoesNotExist:
