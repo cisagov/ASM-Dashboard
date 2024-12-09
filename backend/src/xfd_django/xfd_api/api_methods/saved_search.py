@@ -143,15 +143,16 @@ def update_saved_search(request, user):
         if saved_search.createdById.id != user.id:
             raise HTTPException(status_code=404, detail="Saved search not found")
 
+        name = request["name"].strip()
+        if name == "":
+            raise HTTPException(status_code=400, detail="Name cannot be empty")
+        
         saved_search.name = request["name"]
         saved_search.updatedAt = datetime.now(timezone.utc)
         saved_search.searchTerm = request["searchTerm"]
-        validate_name(request.get("name"))
-
         saved_search.save()
         response = {
             "name": saved_search.name,
-            "updatedAt": saved_search.updatedAt,
             "searchTerm": saved_search.searchTerm,
             "sortDirection": saved_search.sortDirection,
             "sortField": saved_search.sortField,

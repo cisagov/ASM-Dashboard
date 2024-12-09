@@ -29,7 +29,6 @@ class SavedSearchCreate(BaseModel):
 class SavedSearchUpdate(BaseModel):
     name: str
     searchTerm: str
-    updatedAt: datetime
     sortDirection: str
     sortField: str
     count: int
