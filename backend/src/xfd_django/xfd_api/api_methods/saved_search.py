@@ -27,7 +27,33 @@ def validate_name(value: str):
 
 def create_saved_search(request):
     validate_name(request.get("name"))
+    print(request)
     try:
+        # Process filter values when selecting organizations
+        def process_filter_values(values):
+            processed_values = []
+            for value in values:
+                if isinstance(value, dict):
+                    # Include only the required fields
+                    processed_values.append({
+                        "id": value.get("id"),
+                        "name": value.get("name"),
+                        "regionId": value.get("regionId"),
+                        "rootDomains": value.get("rootDomains", [])
+                    })
+                else:
+                    processed_values.append(value)
+            return processed_values
+
+        filters = [
+            {
+                "type": f.type,
+                "field": f.field,
+                "values": process_filter_values(f.values)
+            }
+            for f in request.get("filters", [])
+        ]
+
         search = SavedSearch.objects.create(
             name=request.get("name"),
             count=request.get("count", 0),  # Default to 0 if count does not exist
@@ -35,13 +61,7 @@ def create_saved_search(request):
             sortField=request.get("sortField", ""),
             searchTerm=request.get("searchTerm", ""),
             searchPath=request.get("searchPath", ""),
-            filters=[
-                {
-                    "type": "any",
-                    "field": request.get("field", ""),
-                    "values": [request.get("values", "")],
-                }
-            ],
+            filters=filters,
             createdById=request.get("createdById"),
         )
 
