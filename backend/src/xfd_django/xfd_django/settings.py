@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 # Standard Python Libraries
-import os
 import mimetypes
 import os
 
@@ -35,6 +34,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # TODO: GET THAT LATER
 SECRET_KEY = os.getenv("DJANGO_KEY")
 
+IS_LOCAL = os.getenv("IS_LOCAL")
+
 # JWT Secret Key
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
@@ -45,9 +46,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     ".execute-api.us-east-1.amazonaws.com",
-    os.getenv('BACKEND_DOMAIN'),
-    os.getenv('REACT_APP_API_URL'),
-    os.getenv('FRONTEND_DOMAIN'),
+    os.getenv("BACKEND_DOMAIN"),
+    os.getenv("REACT_APP_API_URL"),
+    os.getenv("FRONTEND_DOMAIN"),
 ]
 
 MESSAGE_TAGS = {
@@ -79,14 +80,14 @@ MIDDLEWARE = [
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": os.getenv('DB_NAME'),
-        "USER": os.getenv('DB_USERNAME'),
-        "PASSWORD": os.getenv('DB_PASSWORD'),
-        "HOST": os.getenv('DB_HOST'),
+        "NAME": os.getenv("DB_NAME"),
+        "USER": os.getenv("DB_USERNAME"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
+        "HOST": os.getenv("DB_HOST"),
         "PORT": "5432",
-        'TEST': {
-            'NAME': 'crossfeed_test',  # Name of the test database
-        }
+        "TEST": {
+            "NAME": "crossfeed_test",  # Name of the test database
+        },
     }
 }
 

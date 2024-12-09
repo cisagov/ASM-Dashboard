@@ -101,6 +101,7 @@ class NewScan(BaseModel):
 class CreateScanResponseModel(BaseModel):
     """Create Scan Schema."""
 
+    id: UUID
     name: str
     arguments: Any
     frequency: int

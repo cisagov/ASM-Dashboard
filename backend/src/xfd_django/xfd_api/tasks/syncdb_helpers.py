@@ -1,18 +1,29 @@
 # File: xfd_api/utils/db_utils.py
+# Standard Python Libraries
+from datetime import datetime
+import hashlib
+from itertools import islice
 import json
 import os
 import random
-import hashlib
 import secrets
-from django.conf import settings
-from django.db import transaction
-from xfd_api.models import ApiKey, Domain, Organization, OrganizationTag, Service, Vulnerability, UserType, User
-from xfd_api.tasks.es_client import ESClient
-from datetime import datetime
-from django.db import connection
+
+# Third-Party Libraries
 from django.apps import apps
+from django.conf import settings
+from django.db import connection, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
-from itertools import islice
+from xfd_api.models import (
+    ApiKey,
+    Domain,
+    Organization,
+    OrganizationTag,
+    Service,
+    User,
+    UserType,
+    Vulnerability,
+)
+from xfd_api.tasks.es_client import ESClient
 
 # Constants for sample data generation
 SAMPLE_TAG_NAME = "Sample Data"
@@ -70,13 +81,12 @@ def populate_sample_data():
             for _ in range(NUM_SAMPLE_DOMAINS):
                 domain = create_sample_domain(org)
                 create_sample_services_and_vulnerabilities(domain)
-        
+
         # Create a user for the organization
         user = create_sample_user(org)
 
         # Create an API key for the user
         create_api_key_for_user(user)
-
 
 
 def create_sample_user(organization):
@@ -127,7 +137,9 @@ def generate_random_name():
 
 def create_sample_domain(organization):
     """Create a sample domain linked to an organization."""
-    domain_name = f"{random.choice(adjectives)}-{random.choice(nouns)}.crossfeed.local".lower()
+    domain_name = (
+        f"{random.choice(adjectives)}-{random.choice(nouns)}.crossfeed.local".lower()
+    )
     ip = ".".join(map(str, (random.randint(0, 255) for _ in range(4))))
     return Domain.objects.create(
         name=domain_name,
@@ -169,6 +181,7 @@ def create_sample_services_and_vulnerabilities(domain):
             structuredData={},
         )
 
+
 def synchronize():
     """
     Synchronize the database schema with Django models.
@@ -198,6 +211,7 @@ def get_ordered_models(apps):
     Get models in dependency order to ensure foreign key constraints are respected.
     Handles circular dependencies gracefully by breaking cycles.
     """
+    # Standard Python Libraries
     from collections import defaultdict, deque
 
     dependencies = defaultdict(set)
@@ -272,7 +286,6 @@ def process_m2m_tables(schema_editor: BaseDatabaseSchemaEditor, cursor):
                 print(f"Many-to-Many table {m2m_table_name} already exists. Skipping.")
 
 
-
 def update_table(schema_editor: BaseDatabaseSchemaEditor, model):
     """
     Update an existing table for the given model. Ensure columns match fields.
@@ -299,9 +312,13 @@ def update_table(schema_editor: BaseDatabaseSchemaEditor, model):
         for column in extra_columns:
             print(f"Removing extra column '{column}' from table '{table_name}'")
             try:
-                cursor.execute(f"ALTER TABLE {table_name} DROP COLUMN IF EXISTS {column};")
+                cursor.execute(
+                    f"ALTER TABLE {table_name} DROP COLUMN IF EXISTS {column};"
+                )
             except Exception as e:
-                print(f"Error dropping column '{column}' from table '{table_name}': {e}")
+                print(
+                    f"Error dropping column '{column}' from table '{table_name}': {e}"
+                )
 
 
 def cleanup_stale_tables(cursor):
@@ -311,7 +328,9 @@ def cleanup_stale_tables(cursor):
     print("Checking for stale tables...")
     model_tables = {model._meta.db_table for model in apps.get_models()}
     m2m_tables = {
-        field.m2m_db_table() for model in apps.get_models() for field in model._meta.local_many_to_many
+        field.m2m_db_table()
+        for model in apps.get_models()
+        for field in model._meta.local_many_to_many
     }
     expected_tables = model_tables.union(m2m_tables)
 
@@ -325,7 +344,8 @@ def cleanup_stale_tables(cursor):
             cursor.execute(f"DROP TABLE {table} CASCADE;")
         except Exception as e:
             print(f"Error dropping stale table {table}: {e}")
-            
+
+
 def drop_all_tables():
     """
     Drops all tables in the database. Used with `dangerouslyforce`.
@@ -348,33 +368,37 @@ def drop_all_tables():
         )
     print("All tables dropped successfully.")
 
+
 def chunked_iterable(iterable, size):
     """Helper function to chunk an iterable."""
     iterator = iter(iterable)
     for first in iterator:
         yield list(islice([first] + list(iterator), size - 1))
 
+
 def update_organization_chunk(es_client, organizations):
     """Update a chunk of organizations."""
     es_client.update_organizations(organizations)
 
+
 def sync_es_organizations():
     """Sync elastic search organizations."""
     try:
-
         # Fetch all organization IDs
-        organization_ids = list(Organization.objects.values_list('id', flat=True))
+        organization_ids = list(Organization.objects.values_list("id", flat=True))
         print(f"Found {len(organization_ids)} organizations to sync.")
 
         if organization_ids:
             # Split IDs into chunks
-            for organization_chunk in chunked_iterable(organization_ids, ORGANIZATION_CHUNK_SIZE):
+            for organization_chunk in chunked_iterable(
+                organization_ids, ORGANIZATION_CHUNK_SIZE
+            ):
                 # Fetch full organization data for the current chunk
-                organizations = list(Organization.objects.filter(
-                    id__in=organization_chunk
-                ).values(
-                    'id', 'name', 'country', 'state', 'regionId', 'tags'
-                ))
+                organizations = list(
+                    Organization.objects.filter(id__in=organization_chunk).values(
+                        "id", "name", "country", "state", "regionId", "tags"
+                    )
+                )
                 print(f"Syncing {len(organizations)} organizations...")
 
                 # Attempt to update Elasticsearch

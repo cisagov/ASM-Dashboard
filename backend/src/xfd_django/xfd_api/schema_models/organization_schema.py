@@ -39,6 +39,7 @@ class UserRoleSchema(BaseModel):
     id: UUID
     role: str
     approved: bool
+    user: dict
 
 
 class TagSchema(BaseModel):
@@ -196,14 +197,8 @@ class GenericMessageResponseModel(BaseModel):
     message: str
 
 
-class GenericPostResponseModel(BaseModel):
-    """Generic response model."""
-
-    statusCode: int
-    body: Any
-
-
 class OrganizationSearchBody(BaseModel):
     """Elastic search orgnaization model."""
+
     regions: Optional[List[str]]
     searchTerm: str

@@ -1,4 +1,7 @@
+# Standard Python Libraries
 import os
+
+# Third-Party Libraries
 import django
 from django.db import connection
 from xfd_api.tasks.es_client import ESClient

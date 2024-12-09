@@ -272,20 +272,7 @@ def get_current_active_user(
     api_key: Optional[str] = Security(api_key_header),
     token: Optional[str] = Depends(get_token_from_header),
 ):
-    """
-    Ensure the current user is authenticated and active, supporting either API key or token.
-
-    Args:
-        request (Request): The incoming request object.
-        api_key (Optional[str]): The API key provided in headers.
-        token (Optional[str]): The JWT token from the Authorization header.
-
-    Returns:
-        User: The authenticated user object.
-
-    Raises:
-        HTTPException: If authentication fails or credentials are invalid.
-    """
+    """Ensure the current user is authenticated and active, supporting either API key or token."""
     user = None
     if api_key:
         user = get_user_by_api_key(api_key)
@@ -330,7 +317,7 @@ def get_current_active_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
         )
-    
+
     # Attach email to request state for logging
     request.state.user_email = user.email
     return user
@@ -426,7 +413,9 @@ def can_access_user(current_user, target_user_id) -> bool:
         return False
 
     # Check if the current user is the target user or a global write admin
-    if current_user.id == target_user_id or is_global_write_admin(current_user):
+    if str(current_user.id) == str(target_user_id) or is_global_write_admin(
+        current_user
+    ):
         return True
 
     # Check if the user is a regional admin and the target user is in the same region

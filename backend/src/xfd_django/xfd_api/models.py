@@ -643,7 +643,7 @@ class Vulnerability(models.Model):
         db_column="kevResults", blank=True, null=True, default=dict
     )
     domain = models.ForeignKey(
-        Domain, models.DO_NOTHING, db_column="domainId", blank=True, null=True
+        Domain, on_delete=models.CASCADE, db_column="domainId", blank=True, null=True
     )
     service = models.ForeignKey(
         Service, models.DO_NOTHING, db_column="serviceId", blank=True, null=True

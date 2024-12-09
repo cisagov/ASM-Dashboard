@@ -51,6 +51,7 @@ class SavedSearch(BaseModel):
     searchPath: str
     createdById: UUID
 
+
 class SavedSearchList(BaseModel):
     """SavedSearchList schema."""
 
