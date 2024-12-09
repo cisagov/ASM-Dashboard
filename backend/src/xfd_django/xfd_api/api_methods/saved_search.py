@@ -35,12 +35,14 @@ def create_saved_search(request):
             for value in values:
                 if isinstance(value, dict):
                     # Include only the required fields
-                    processed_values.append({
-                        "id": value.get("id"),
-                        "name": value.get("name"),
-                        "regionId": value.get("regionId"),
-                        "rootDomains": value.get("rootDomains", [])
-                    })
+                    processed_values.append(
+                        {
+                            "id": value.get("id"),
+                            "name": value.get("name"),
+                            "regionId": value.get("regionId"),
+                            "rootDomains": value.get("rootDomains", []),
+                        }
+                    )
                 else:
                     processed_values.append(value)
             return processed_values
@@ -49,7 +51,7 @@ def create_saved_search(request):
             {
                 "type": f.type,
                 "field": f.field,
-                "values": process_filter_values(f.values)
+                "values": process_filter_values(f.values),
             }
             for f in request.get("filters", [])
         ]
@@ -168,12 +170,14 @@ def update_saved_search(request, user):
             for value in values:
                 if isinstance(value, dict):
                     # Include only the required fields
-                    processed_values.append({
-                        "id": value.get("id"),
-                        "name": value.get("name"),
-                        "regionId": value.get("regionId"),
-                        "rootDomains": value.get("rootDomains", [])
-                    })
+                    processed_values.append(
+                        {
+                            "id": value.get("id"),
+                            "name": value.get("name"),
+                            "regionId": value.get("regionId"),
+                            "rootDomains": value.get("rootDomains", []),
+                        }
+                    )
                 else:
                     processed_values.append(value)
             return processed_values
@@ -182,7 +186,7 @@ def update_saved_search(request, user):
             {
                 "type": f.type,
                 "field": f.field,
-                "values": process_filter_values(f.values)
+                "values": process_filter_values(f.values),
             }
             for f in request.get("filters", [])
         ]
@@ -194,7 +198,7 @@ def update_saved_search(request, user):
         name = request["name"].strip()
         if name == "":
             raise HTTPException(status_code=400, detail="Name cannot be empty")
-        
+
         saved_search.name = request["name"]
         saved_search.updatedAt = datetime.now(timezone.utc)
         saved_search.searchTerm = request["searchTerm"]
