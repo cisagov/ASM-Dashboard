@@ -167,15 +167,15 @@ export const DrawerInterior: React.FC<Props> = (props) => {
       )
     : [];
 
+  const severityLevels = ['N/A', 'Low', 'Medium', 'High', 'Critical', 'Other'];
   const severityFacet: any[] = facets['vulnerabilities.severity']
-    ? facets['vulnerabilities.severity'][0].data
+    ? facets['vulnerabilities.severity'][0].data.sort(
+        (a: { value: string }, b: { value: string }) =>
+          severityLevels.indexOf(a.value) - severityLevels.indexOf(b.value)
+      )
     : [];
-
-  // Always show all severities
-  for (const value of ['Low', 'Medium', 'High', 'Critical']) {
-    if (!severityFacet.find((severity) => value === severity.value))
-      severityFacet.push({ value, count: 0 });
-  }
+  console.log(facets);
+  console.log('severityFacet', severityFacet);
 
   return (
     <StyledWrapper style={{ overflowY: 'auto' }}>
