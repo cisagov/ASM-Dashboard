@@ -3,7 +3,6 @@
 
 # Standard Python Libraries
 from datetime import datetime, timezone
-import json
 import uuid
 
 # Third-Party Libraries
@@ -11,7 +10,6 @@ from django.http import JsonResponse
 from fastapi import HTTPException
 
 from ..models import SavedSearch, User
-from ..schema_models.saved_search import SavedSearchFilters
 
 
 def validate_name(value: str):
