@@ -82,11 +82,8 @@ def search(search_body: SearchBody, event) -> Dict[str, Any]:
 
 
 def search_post(request_input):
-    """Handle Elastic Search request
+    """Handle Elastic Search request"""
 
-    Args:
-        request_input (request object): Post request object
-    """
     es_query = build_elasticsearch_query(request_input)
 
     # Perform search in Elasticsearch TODO: Confirm index name and format

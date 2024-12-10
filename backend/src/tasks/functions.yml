@@ -1,7 +1,7 @@
 ---
 
 scheduler:
-  handler: src/tasks/scheduler.handler
+  handler: src/xfd_django/xfd_api/tasks/scheduler.handler
   timeout: 900
   events:
     - schedule: rate(5 minutes)

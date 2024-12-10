@@ -295,7 +295,10 @@ def run_scan(scan_id: str, current_user):
 
         scan.manualRunPending = True
         scan.save()
-        return {"status": "success", "message": f"Scan {scan_id} deleted successfully."}
+        return {
+            "status": "success",
+            "message": f"Scan {scan_id} set to manualRunPending.",
+        }
 
     except HTTPException as http_exc:
         raise http_exc
