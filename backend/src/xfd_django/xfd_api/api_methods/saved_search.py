@@ -25,7 +25,6 @@ def validate_name(value: str):
 
 def create_saved_search(request):
     validate_name(request.get("name"))
-    print(request)
     try:
         # Process filter values when selecting organizations
         def process_filter_values(values):
