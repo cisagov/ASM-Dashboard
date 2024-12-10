@@ -6,12 +6,20 @@ from itertools import islice
 import os
 
 # Third-Party Libraries
+import django
 from django.utils import timezone
 
 from ..helpers.getScanOrganizations import get_scan_organizations
 from ..models import Organization, Scan, ScanTask
 from ..schema_models.scan import SCAN_SCHEMA
 from .ecs_client import ECSClient
+
+# Set the Django settings module
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
+os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
+
+# Initialize Django
+django.setup()
 
 
 def chunk(iterable, size):
