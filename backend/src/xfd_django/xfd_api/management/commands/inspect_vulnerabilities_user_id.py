@@ -18,7 +18,7 @@ class Command(BaseCommand):
             # Query to find user_ids associated with vulnerabilities
             user_ids_with_vulnerabilities = (
                 Role.objects.filter(organizationId__domain__vulnerability__isnull=False)
-                .values_list("userId", flat=True)
+                .values_list("user", flat=True)
                 .distinct()
             )
 

@@ -34,7 +34,7 @@ from .api_methods.saved_search import (
     list_saved_searches,
     update_saved_search,
 )
-from .api_methods.search import export, search_post
+from .api_methods.search import search_export, search_post
 from .api_methods.stats_ports import get_user_ports_cache
 from .api_methods.stats_services import get_user_services_count
 from .api_methods.user import (
@@ -75,8 +75,13 @@ from .schema_models.api_key import ApiKey as ApiKeySchema
 from .schema_models.by_org_item import ByOrgItem
 from .schema_models.cpe import Cpe as CpeSchema
 from .schema_models.cve import Cve as CveSchema
+from .schema_models.domain import (
+    DomainFilters,
+    DomainSearch,
+    GetDomainResponse,
+    TotalDomainsResponse,
+)
 from .schema_models.domain import Domain as DomainSchema
-from .schema_models.domain import DomainFilters, DomainSearch, TotalDomainsResponse
 from .schema_models.latest_vuln import LatestVulnerabilitySchema
 from .schema_models.most_common_vuln import MostCommonVulnerabilitySchema
 from .schema_models.notification import Notification as NotificationSchema
@@ -88,7 +93,7 @@ from .schema_models.saved_search import (
     SavedSearchUpdate,
 )
 from .schema_models.saved_search import SavedSearch as SavedSearchSchema
-from .schema_models.search import SearchBody, SearchRequest, SearchResponse
+from .schema_models.search import DomainSearchBody, SearchResponse
 from .schema_models.service import ServicesStat
 from .schema_models.severity_count import SeverityCountSchema
 from .schema_models.user import (
@@ -263,7 +268,7 @@ async def call_export_domains(domain_search: DomainSearch):
 @api_router.get(
     "/domain/{domain_id}",
     dependencies=[Depends(get_current_active_user)],
-    response_model=DomainSchema,
+    response_model=GetDomainResponse,
     tags=["Get domain by id"],
 )
 async def call_get_domain_by_id(domain_id: str):
@@ -1241,9 +1246,12 @@ async def search_organizations(
     response_model=SearchResponse,
     tags=["Search"],
 )
-async def search(request: SearchRequest):
+async def search(
+    search_body: DomainSearchBody, current_user: User = Depends(get_current_active_user)
+):
+    """ElasticSearch get domains index."""
     try:
-        search_post(request)
+        return await search_post(search_body, current_user)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
@@ -1253,11 +1261,11 @@ async def search(request: SearchRequest):
 @api_router.post(
     "/search/export", dependencies=[Depends(get_current_active_user)], tags=["Search"]
 )
-async def export_endpoint(request: Request):
+async def export_endpoint(
+    search_body: DomainSearchBody, current_user: User = Depends(get_current_active_user)
+):
     try:
-        body = await request.json()
-        search_body = SearchBody(**body)  # Parse request body into SearchBody
-        result = export(search_body, request)
+        result = await search_export(search_body, current_user)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

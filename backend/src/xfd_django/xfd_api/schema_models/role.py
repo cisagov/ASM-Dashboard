@@ -20,7 +20,7 @@ class Role(BaseModel):
     approved: bool
     createdById: Optional[Any]
     approvedById: Optional[Any]
-    userId: Optional[Any]
+    user: Optional[Any]
     organizationId: Optional[Any]
 
     class Config:

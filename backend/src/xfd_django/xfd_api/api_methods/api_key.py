@@ -25,14 +25,14 @@ def post(current_user):
         id=uuid.uuid4(),
         hashedKey=hashed_key,
         lastFour=key[-4:],
-        userId=current_user,
+        user=current_user,
         createdAt=datetime.utcnow(),
         updatedAt=datetime.utcnow(),
     )
 
-    # Convert the Django model instance to the Pydantic model, excluding fields like hashedKey and userId
+    # Convert the Django model instance to the Pydantic model, excluding fields like hashedKey and user
     validated_data = ApiKeySchema.model_validate(api_key_instance).model_dump(
-        exclude={"hashedKey", "userId"}
+        exclude={"hashedKey", "user"}
     )
 
     # Add the actual API key to the response for initial display to the user

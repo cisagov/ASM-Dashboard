@@ -1,93 +1,132 @@
 # api_methods/search.py
 # Standard Python Libraries
 import csv
-from io import StringIO
-from typing import Any, Dict, List, Optional
-from uuid import UUID
+import io
+from typing import Any, Dict, List
 
 # Third-Party Libraries
-import boto3
-from elasticsearch import Elasticsearch
 from fastapi import HTTPException
-from pydantic import BaseModel
 from xfd_api.auth import (
     get_org_memberships,
     get_tag_organizations,
     is_global_view_admin,
 )
-from xfd_api.helpers.elastic_search import build_elasticsearch_query, es
+from xfd_api.helpers.elastic_search import build_request
+from xfd_api.helpers.s3_client import S3Client
+from xfd_api.tasks.es_client import ESClient
 
-from ..schema_models.search import SearchBody
+from ..schema_models.search import DomainSearchBody
 
 
-# TODO: Determine if new search method works with indexes, if so:
-# remove the commented out original search methods
-def get_options(search_body: SearchBody, event) -> Dict[str, Any]:
-    """Determine options for filtering based on organization ID or tag ID."""
+async def get_options(search_body, user) -> Dict[str, Any]:
+    """Get Elastic Search options."""
     if search_body.organization_id and (
-        search_body.organization_id in get_org_memberships(event)
-        or is_global_view_admin(event)
+        search_body.organization_id in get_org_memberships(user)
+        or is_global_view_admin(user)
     ):
-        options = {
-            "organizationIds": [search_body.organization_id],
-            "matchAllOrganizations": False,
+        return {
+            "organization_ids": [search_body.organization_id],
+            "match_all_organizations": False,
         }
     elif search_body.tag_id:
-        options = {
-            "organizationIds": get_tag_organizations(event, str(search_body.tag_id)),
-            "matchAllOrganizations": False,
+        return {
+            "organization_ids": get_tag_organizations(search_body.tag_id),
+            "match_all_organizations": False,
         }
     else:
-        options = {
-            "organizationIds": get_org_memberships(event),
-            "matchAllOrganizations": is_global_view_admin(event),
+        return {
+            "organization_ids": get_org_memberships(user),
+            "match_all_organizations": is_global_view_admin(user),
         }
-    return options
 
 
-def fetch_all_results(
-    filters: Dict[str, Any], options: Dict[str, Any]
+async def fetch_all_results(
+    search_body: DomainSearchBody,
+    options: Dict[str, Any],
+    client: ESClient,
 ) -> List[Dict[str, Any]]:
-    """Fetch all search results from Elasticsearch."""
-    client = Elasticsearch()
-    results = []
+    """Fetch all results from Elasticsearch."""
+    results: List[Any] = []
     current = 1
+    RESULTS_PER_PAGE = 1000
+
     while True:
-        # Define the request as an empty dictionary for now
-        request: Dict[str, Any] = {}
-        current += 1
+        request = build_request(
+            DomainSearchBody(
+                **{
+                    "current": current,
+                    "resultsPerPage": RESULTS_PER_PAGE,
+                    "filters": search_body.filters,
+                    "searchTerm": search_body.searchTerm,
+                    "sortDirection": search_body.sortDirection,
+                    "sortField": search_body.sortField,
+                }
+            ),
+            options,
+        )
         try:
-            search_results = client.search(index="domains", body=request)
+            response = client.search_domains(request)
         except Exception as e:
-            print(f"Elasticsearch search error: {e}")
-            continue
-        if len(search_results["hits"]["hits"]) == 0:
+            print(f"Elasticsearch error: {e}")
+            raise HTTPException(status_code=500, detail="Error querying Elasticsearch.")
+
+        hits = response.get("hits", {}).get("hits", [])
+        if not hits:
             break
-        results.extend([res["_source"] for res in search_results["hits"]["hits"]])
+
+        results.extend(hit["_source"] for hit in hits)
+        current += 1
+
     return results
 
 
-def search(search_body: SearchBody, event) -> Dict[str, Any]:
-    """Perform a search on Elasticsearch and return results."""
-    request: Dict[str, Any] = {}
+def process_results(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Process Elasticsearch results into the desired format."""
+    processed_results = []
+    for res in results:
+        res["organization"] = (
+            res["organization"]["name"] if "organization" in res else None
+        )
+        res["ports"] = ", ".join(
+            str(service["port"]) for service in res.get("services", [])
+        )
 
-    client = Elasticsearch()
-    try:
-        search_results = client.search(index="domains", body=request)
-    except Exception as e:
-        print(f"Elasticsearch search error: {e}")
-        raise HTTPException(status_code=500, detail="Elasticsearch query failed")
+        products = {}
+        for service in res.get("services", []):
+            for product in service.get("products", []):
+                if "name" in product:
+                    product_name = product["name"].lower()
+                    product_version = product.get("version", "")
+                    products[
+                        product_name
+                    ] = f"{product['name']} {product_version}".strip()
 
-    return search_results["hits"]
+        res["products"] = ", ".join(products.values())
+        processed_results.append(res)
+
+    return processed_results
 
 
-def search_post(request_input):
+def generate_csv(results: List[Dict[str, Any]], fields: List[str]) -> str:
+    """Generate a CSV from the processed results."""
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=fields)
+    writer.writeheader()
+    writer.writerows(results)
+    return output.getvalue()
+
+
+# POST: /search
+async def search_post(search_body: DomainSearchBody, current_user):
     """Handle Elastic Search request"""
 
-    es_query = build_elasticsearch_query(request_input)
+    options = await get_options(search_body, current_user)
+    es_query = build_request(search_body, options)
 
-    # Perform search in Elasticsearch TODO: Confirm index name and format
-    response = es.search(index="domains-5", body=es_query)
+    client = ESClient()
+
+    # Perform search in Elasticsearch
+    response = client.search_domains(body=es_query)
 
     # Format response to match the required structure
     result = {
@@ -115,31 +154,21 @@ def search_post(request_input):
     return result
 
 
-def export(search_body: SearchBody, event) -> Dict[str, Any]:
+# POST: /search/export
+async def search_export(search_body: DomainSearchBody, current_user) -> Dict[str, Any]:
     """Export the search results into a CSV and upload to S3."""
-    options = get_options(search_body, event)
-    print(f"Export Options: {options}")
-    results = fetch_all_results(search_body.dict(), options)
-    print(f"Export results: {results}")
+    # Get Elasticsearch options
+    options = await get_options(search_body, current_user)
+
+    # Fetch results from Elasticsearch
+    client = ESClient()
+    results = await fetch_all_results(search_body, options, client)
 
     # Process results for CSV
-    for res in results:
-        res["organization"] = res.get("organization", {}).get("name", "")
-        res["ports"] = ", ".join(
-            [str(service["port"]) for service in res.get("services", [])]
-        )
-        products = {}
-        for service in res.get("services", []):
-            for product in service.get("products", []):
-                if product.get("name"):
-                    products[product["name"].lower()] = product["name"] + (
-                        f" {product['version']}" if product.get("version") else ""
-                    )
-        res["products"] = ", ".join(products.values())
+    processed_results = process_results(results)
 
-    # Create CSV
-    csv_buffer = StringIO()
-    fieldnames = [
+    # Define CSV fields
+    csv_fields = [
         "name",
         "ip",
         "id",
@@ -148,23 +177,35 @@ def export(search_body: SearchBody, event) -> Dict[str, Any]:
         "createdAt",
         "updatedAt",
         "organization",
+        "screenshot",
+        "censysCertificatesResults",
+        "ipOnly",
+        "vulnerabilities",
+        "cloudHosted",
+        "reverseName",
+        "subdomainSource",
+        "country",
+        "ssl",
+        "parent_join",
+        "discoveredBy",
+        "fromCidr",
+        "fromRootDomain",
+        "trustymailResults",
+        "asn",
+        "syncedAt",
+        "isFceb",
+        "services",
+        "suggest",
     ]
-    writer = csv.DictWriter(csv_buffer, fieldnames=fieldnames)
-    writer.writeheader()
-    writer.writerows(results)
+    # Generate CSV content
+    csv_content = generate_csv(processed_results, csv_fields)
 
-    # TODO: Replace with helper s3 logic
-    # Save to S3
-    # s3 = boto3.client("s3")
-    # bucket_name = "export-bucket-name"
-    # csv_key = "domains.csv"
-    # s3.put_object(Bucket=bucket_name, Key=csv_key, Body=csv_buffer.getvalue())
+    # Upload CSV to S3
+    s3_client = S3Client()
+    try:
+        csv_url = s3_client.save_csv(csv_content, "domains")
+    except Exception as e:
+        print(f"S3 upload error: {e}")
+        raise HTTPException(status_code=500, detail="Error uploading CSV to S3.")
 
-    # # Generate a presigned URL to access the CSV
-    # url = s3.generate_presigned_url(
-    #     "get_object", Params={"Bucket": bucket_name, "Key": csv_key}, ExpiresIn=3600
-    # )
-
-    # return {"url": url}
-    # TODO: Modify return once s3 logic is confirmed.
-    return {"data": results}
+    return {"url": csv_url}

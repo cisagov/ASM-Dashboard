@@ -39,7 +39,7 @@ class UserRoleSchema(BaseModel):
     id: UUID
     role: str
     approved: bool
-    user: dict
+    user: Optional[dict] = {}
 
 
 class TagSchema(BaseModel):
@@ -97,7 +97,7 @@ class GetOrganizationSchema(BaseModel):
     id: UUID
     createdAt: datetime
     updatedAt: datetime
-    acronym: Optional[str]
+    acronym: Optional[str] = None
     name: str
     rootDomains: List[str]
     ipBlocks: List[str]

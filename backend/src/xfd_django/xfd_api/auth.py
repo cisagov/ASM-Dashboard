@@ -92,8 +92,8 @@ def get_org_memberships(current_user) -> list[str]:
     """Returns the organization IDs that a user is a member of."""
     # Check if the user has a 'roles' attribute and it's not None
 
-    roles = Role.objects.filter(userId=current_user)
-    return [role.organizationId.id for role in roles if role.organizationId]
+    roles = Role.objects.filter(user=current_user)
+    return [role.organization.id for role in roles if role.organization]
 
 
 async def get_user_domains(user_id: str) -> List[str]:
@@ -107,8 +107,8 @@ async def get_user_domains(user_id: str) -> List[str]:
             return []
 
         # Fetch organization IDs associated with the user
-        organization_ids_qs = Role.objects.filter(userId__id=user_id).values_list(
-            "organizationId", flat=True
+        organization_ids_qs = Role.objects.filter(user__id=user_id).values_list(
+            "organization", flat=True
         )
         organization_ids = await sync_to_async(lambda qs: list(qs))(organization_ids_qs)
 
@@ -117,7 +117,7 @@ async def get_user_domains(user_id: str) -> List[str]:
 
         # Fetch domain names associated with these organizations
         domain_names_qs = Domain.objects.filter(
-            organizationId__in=organization_ids
+            organization__in=organization_ids
         ).values_list("name", flat=True)
         domain_list = await sync_to_async(lambda qs: list(qs))(domain_names_qs)
 
@@ -132,12 +132,12 @@ def get_user_service_ids(user_id):
     Retrieves service IDs associated with the organizations the user belongs to.
     """
     # Get organization IDs the user is a member of
-    organization_ids = Role.objects.filter(userId=user_id).values_list(
-        "organizationId", flat=True
+    organization_ids = Role.objects.filter(user=user_id).values_list(
+        "organization", flat=True
     )
 
     # Get domain IDs associated with these organizations
-    domain_ids = Domain.objects.filter(organizationId__in=organization_ids).values_list(
+    domain_ids = Domain.objects.filter(organization__in=organization_ids).values_list(
         "id", flat=True
     )
 
@@ -152,8 +152,8 @@ def get_user_service_ids(user_id):
 async def get_user_organization_ids(user_id: str) -> List[str]:
     try:
         # Fetch organization IDs associated with the user
-        organization_ids_qs = Role.objects.filter(userId__id=user_id).values_list(
-            "organizationId__id", flat=True
+        organization_ids_qs = Role.objects.filter(user__id=user_id).values_list(
+            "organization__id", flat=True
         )
         organization_ids = await sync_to_async(list)(organization_ids_qs)
         return [str(org_id) for org_id in organization_ids]
@@ -166,12 +166,12 @@ def get_user_ports(user_id):
     Retrieves port numbers associated with the organizations the user belongs to.
     """
     # Get organization IDs the user is a member of
-    organization_ids = Role.objects.filter(userId=user_id).values_list(
-        "organizationId", flat=True
+    organization_ids = Role.objects.filter(user=user_id).values_list(
+        "organization", flat=True
     )
 
     # Get domain IDs associated with these organizations
-    domain_ids = Domain.objects.filter(organizationId__in=organization_ids).values_list(
+    domain_ids = Domain.objects.filter(organization__in=organization_ids).values_list(
         "id", flat=True
     )
 
@@ -261,7 +261,7 @@ def get_user_by_api_key(api_key: str):
         api_key_instance = ApiKey.objects.get(hashedKey=hashed_key)
         api_key_instance.lastUsed = datetime.now(timezone.utc)
         api_key_instance.save(update_fields=["lastUsed"])
-        return api_key_instance.userId
+        return api_key_instance.user
     except ApiKey.DoesNotExist:
         print("API Key not found")
         return None

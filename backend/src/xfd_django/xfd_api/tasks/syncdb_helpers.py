@@ -118,7 +118,7 @@ def create_api_key_for_user(user):
     ApiKey.objects.create(
         hashedKey=hashed_key,
         lastFour=key[-4:],
-        userId=user,
+        user=user,
         createdAt=datetime.utcnow(),
         updatedAt=datetime.utcnow(),
     )

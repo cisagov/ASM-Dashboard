@@ -324,7 +324,7 @@ async def invoke_scheduler(current_user):
         print(lambda_function_name)
 
         # Run the Lambda command
-        response = await lambda_client.run_command(name=lambda_function_name)
+        response = lambda_client.run_command(name=lambda_function_name)
 
         return response
 
