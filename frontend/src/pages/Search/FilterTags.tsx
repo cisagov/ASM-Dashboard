@@ -53,7 +53,14 @@ const FIELD_TO_LABEL_MAP: FieldToLabelMap = {
       return 'Severity';
     },
     filterValueAccssor(t) {
-      const severityLevels = ['Low', 'Medium', 'High', 'Critical'];
+      const severityLevels = [
+        'N/A',
+        'Low',
+        'Medium',
+        'High',
+        'Critical',
+        'Other'
+      ];
       if (Array.isArray(t)) {
         return t.sort((a: string, b: string) => {
           const aValue = severityLevels.indexOf(a);
