@@ -121,7 +121,7 @@ jobs:
       - run: pip install -r worker/requirements.txt
       - run: pytest
   deploy_staging:
-    needs: [build_worker, lint, test, test_worker, test_python]
+    needs: [lint, test, test_worker, test_python]
     runs-on: ubuntu-latest
     environment: staging
     concurrency: '1'
