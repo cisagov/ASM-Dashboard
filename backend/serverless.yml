@@ -59,6 +59,7 @@ provider:
               - ${file(env.yml):${self:provider.stage}.DMZ_CIDR, ''}
   logs:
     restApi: true
+    logGroupName: /aws/lambda/crossfeed-integration-api
   deploymentBucket:
     serverSideEncryption: AES256
   iam:
