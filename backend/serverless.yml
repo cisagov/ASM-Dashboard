@@ -9,9 +9,9 @@ custom:
   webpack:
     webpackConfig: webpack.backend.config.js
   customDomain:
-    domainName: ${file(env.yml):${self:provider.stage}.DOMAIN, ''}
+    domainName: api.crossfeed.cyber.dhs.gov
     basePath: ''
-    certificateName: ${file(env.yml):${self:provider.stage}.DOMAIN, ''}
+    certificateName: api.crossfeed.cyber.dhs.gov
     stage: ${self:provider.stage}
     createRoute53Record: false
 
