@@ -18,6 +18,11 @@ custom:
         - provider.vpcEndpointIds
   pythonRequirements:
     dockerizePip: true
+    slim: true
+    strip: true
+    noDeploy:
+      - boto3
+      - botocore
 
 provider:
   name: aws
