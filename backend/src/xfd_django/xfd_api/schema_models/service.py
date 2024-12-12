@@ -30,11 +30,3 @@ class Service(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-class ServicesStat(BaseModel):
-    id: UUID
-    value: int
-
-    class Config:
-        from_attributes = True

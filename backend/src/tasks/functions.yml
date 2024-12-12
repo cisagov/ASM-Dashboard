@@ -48,124 +48,97 @@ updateScanTaskStatus:
             clusterArn:
               - ${file(env.yml):${self:provider.stage}-ecs-cluster, ''}
 
-# populateServiceStatsElasticache:
-#   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_ServicesStatscache
-#   runtime: python3.11
-#   environment:
-#     DJANGO_SETTINGS_MODULE: xfd_django.settings
-#     REDIS_ENDPOINT: ${env:ELASTICACHE_ENDPOINT}
-#   events:
-#     - schedule:
-#         rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
-#         enabled: true
-#   package:
-#     include:
-#       - src/**
-#       - requirements.txt
-#     exclude:
-#       - node_modules/**
+serviceStatsCache:
+  handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_services_cache
+  events:
+    - schedule:
+        rate: ron(0 0 * * ? *)  # This triggers the function every day it midnight
+        enabled: true
+  package:
+    include:
+      - src/**
+      - requirements.txt
+    exclude:
+      - node_modules/**
 
-# populatePortStatsElasticache:
-#   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_PortsStatscache
-#   runtime: python3.11
-#   environment:
-#     DJANGO_SETTINGS_MODULE: xfd_django.settings
-#     REDIS_ENDPOINT: ${env:ELASTICACHE_ENDPOINT}
-#   events:
-#     - schedule:
-#         rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
-#         enabled: true
-#   package:
-#     include:
-#       - src/**
-#       - requirements.txt
-#     exclude:
-#       - node_modules/**
+portStatsCache:
+  handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_ports_cache
+  events:
+    - schedule:
+        rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
+        enabled: true
+  package:
+    include:
+      - src/**
+      - requirements.txt
+    exclude:
+      - node_modules/**
 
-# populateNumVulnsStatsElasticache:
-#   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_NumVulnerabilitiesStatscache
-#   runtime: python3.11
-#   environment:
-#     DJANGO_SETTINGS_MODULE: xfd_django.settings
-#     REDIS_ENDPOINT: ${env:ELASTICACHE_ENDPOINT}
-#   events:
-#     - schedule:
-#         rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
-#         enabled: true
-#   package:
-#     include:
-#       - src/**
-#       - requirements.txt
-#     exclude:
-#       - node_modules/**
+numVulnsCache:
+  handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_num_vulns_cache
+  runtime: python3.11
+  environment:
+    DJANGO_SETTINGS_MODULE: xfd_django.settings
+    REDIS_ENDPOINT: ${env:ELASTICACHE_ENDPOINT}
+  events:
+    - schedule:
+        rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
+        enabled: true
+  package:
+    include:
+      - src/**
+      - requirements.txt
+    exclude:
+      - node_modules/**
 
-# populateLatestVulnsStatsElasticache:
-#   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_LatestVulnerabilitiesCache
-#   runtime: python3.11
-#   environment:
-#     DJANGO_SETTINGS_MODULE: xfd_django.settings
-#     REDIS_ENDPOINT: ${env:ELASTICACHE_ENDPOINT}
-#   events:
-#     - schedule:
-#         rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
-#         enabled: true
-#   package:
-#     include:
-#       - src/**
-#       - requirements.txt
-#     exclude:
-#       - node_modules/**
+latestVulnsCache:
+  handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_latest_vulns_cache
+  events:
+    - schedule:
+        rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
+        enabled: true
+  package:
+    include:
+      - src/**
+      - requirements.txt
+    exclude:
+      - node_modules/**
 
-# populateMostCommonVulnerabilityElasticache:
-#   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_MostCommonVulnerabilitiesCache
+mostCommonVulnsCache:
+  handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_most_common_vulns_cache
+  events:
+    - schedule:
+        rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
+        enabled: true
+  package:
+    include:
+      - src/**
+      - requirements.txt
+    exclude:
+      - node_modules/**
 
-#   runtime: python3.11
-#   environment:
-#     DJANGO_SETTINGS_MODULE: xfd_django.settings
-#     REDIS_ENDPOINT: ${env:ELASTICACHE_ENDPOINT}
-#   events:
-#     - schedule:
-#         rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
-#         enabled: true
-#   package:
-#     include:
-#       - src/**
-#       - requirements.txt
-#     exclude:
-#       - node_modules/**
+severityCache:
+  handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_severity_cache
+  events:
+    - schedule:
+        rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
+        enabled: true
+  package:
+    include:
+      - src/**
+      - requirements.txt
+    exclude:
+      - node_modules/**
 
-# populateSeverityCountsCache:
-#   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_SeverityCountsCache
-
-#   runtime: python3.11
-#   environment:
-#     DJANGO_SETTINGS_MODULE: xfd_django.settings
-#     REDIS_ENDPOINT: ${env:ELASTICACHE_ENDPOINT}
-#   events:
-#     - schedule:
-#         rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
-#         enabled: true
-#   package:
-#     include:
-#       - src/**
-#       - requirements.txt
-#     exclude:
-#       - node_modules/**
-
-# populateByOrgCache:
-#   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_VulnerabilitiesByOrgCache
-
-#   runtime: python3.11
-#   environment:
-#     DJANGO_SETTINGS_MODULE: xfd_django.settings
-#     REDIS_ENDPOINT: ${env:ELASTICACHE_ENDPOINT}
-#   events:
-#     - schedule:
-#         rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
-#         enabled: true
-#   package:
-#     include:
-#       - src/**
-#       - requirements.txt
-#     exclude:
-#       - node_modules/**
+byOrgCache:
+  handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_by_org_cache
+  events:
+    - schedule:
+        rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
+        enabled: true
+  package:
+    include:
+      - src/**
+      - requirements.txt
+    exclude:
+      - node_modules/**

@@ -7,102 +7,201 @@ from django.conf import settings
 from django.db.models import CharField, Count, F, Value
 from django.db.models.functions import Concat
 import redis
+from xfd_api.helpers.stats_helpers import populate_stats_cache
 
-from .models import Service, Vulnerability
+from ..models import Service, Vulnerability
 
 
-def populate_ServicesStatscache():
+def populate_services_cache():
+    return populate_stats_cache(
+        model=Service,
+        group_by_field="domain__organization_id",
+        redis_key_prefix="services_stats",
+        annotate_field="service",
+        filters={
+            "service__isnull": False,
+            "domain__isnull": False,
+            "domain__organization__isnull": False,
+        },
+    )
+
+
+def populate_ports_cache():
+    return populate_stats_cache(
+        model=Service,
+        group_by_field="domain__organization_id",
+        redis_key_prefix="ports_stats",
+        annotate_field="port",
+        filters={
+            "port__isnull": False,
+            "domain__isnull": False,
+            "domain__organization__isnull": False,
+        },
+    )
+
+
+def populate_num_vulns_cache():
+    return populate_stats_cache(
+        model=Vulnerability,
+        group_by_field="domain__organization_id",
+        redis_key_prefix="vulnerabilities_stats",
+        annotate_field="severity",
+        custom_id=Concat(
+            F("domain__name"),
+            Value("|"),
+            F("severity"),
+            output_field=CharField(),
+        ),
+        filters={
+            "state": "open",  # Include only open vulnerabilities
+            "domain__isnull": False,
+            "domain__organization__isnull": False,
+        },
+    )
+
+
+def populate_latest_vulns_cache(max_results=100):
+    """
+    Populate Redis with the latest vulnerabilities for each organization.
+    """
     try:
-        # Connect to Redis ElastiCache
+        # Connect to Redis
         redis_client = redis.StrictRedis(
             host=settings.ELASTICACHE_ENDPOINT,
             port=6379,
             db=0,
-            decode_responses=True,  # Ensures data returned as string, not bytes
+            decode_responses=True,
         )
 
-        # Fetch and aggregate data from Django models
-        services = (
-            Service.objects.filter(service__isnull=False)
-            .exclude(service="")
-            .filter(domainId__isnull=False)
-            .filter(domainId__organizationId__isnull=False)
-            .values("service")
-            .annotate(value=Count("id"))
-            .order_by("-value")
+        # Fetch and organize the latest vulnerabilities
+        vulnerabilities = (
+            Vulnerability.objects.filter(
+                state="open",  # Only open vulnerabilities
+                domain__isnull=False,
+                domain__organization__isnull=False,
+            )
+            .select_related("domain", "domain__organization")
+            .order_by("createdAt")[:max_results]
         )
 
-        services_list = list(services)
+        # Organize vulnerabilities by organization
+        vulnerabilities_by_org = {}
+        for vuln in vulnerabilities:
+            org_id = str(vuln.domain.organization.id)  # Organization ID
+            vuln_data = {
+                "id": str(vuln.id),
+                "createdAt": vuln.createdAt.isoformat(),
+                "updatedAt": vuln.updatedAt.isoformat(),
+                "lastSeen": vuln.lastSeen.isoformat() if vuln.lastSeen else None,
+                "title": vuln.title,
+                "cve": vuln.cve,
+                "cwe": vuln.cwe,
+                "cpe": vuln.cpe,
+                "description": vuln.description,
+                "references": vuln.references,
+                "cvss": str(vuln.cvss) if vuln.cvss else None,
+                "severity": vuln.severity,
+                "needsPopulation": vuln.needsPopulation,
+                "state": vuln.state,
+                "substate": vuln.substate,
+                "source": vuln.source,
+                "notes": vuln.notes,
+                "actions": vuln.actions,
+                "structuredData": vuln.structuredData,
+                "isKev": vuln.isKev,
+                "kevResults": vuln.kevResults,
+                "domain": {
+                    "id": str(vuln.domain.id),
+                    "createdAt": vuln.domain.createdAt.isoformat(),
+                    "updatedAt": vuln.domain.updatedAt.isoformat(),
+                    "syncedAt": vuln.domain.syncedAt.isoformat()
+                    if vuln.domain.syncedAt
+                    else None,
+                    "ip": vuln.domain.ip,
+                    "fromRootDomain": vuln.domain.fromRootDomain,
+                    "subdomainSource": vuln.domain.subdomainSource,
+                    "ipOnly": vuln.domain.ipOnly,
+                    "reverseName": vuln.domain.reverseName,
+                    "name": vuln.domain.name,
+                    "screenshot": vuln.domain.screenshot,
+                    "country": vuln.domain.country,
+                    "asn": vuln.domain.asn,
+                    "cloudHosted": vuln.domain.cloudHosted,
+                    "fromCidr": vuln.domain.fromCidr,
+                    "isFceb": vuln.domain.isFceb,
+                    "ssl": vuln.domain.ssl,
+                    "censysCertificatesResults": vuln.domain.censysCertificatesResults,
+                    "trustymailResults": vuln.domain.trustymailResults,
+                },
+            }
+            if org_id not in vulnerabilities_by_org:
+                vulnerabilities_by_org[org_id] = []
+            vulnerabilities_by_org[org_id].append(vuln_data)
 
-        # **Debugging statements**
-        print(f"Number of services retrieved: {len(services_list)}")
-        if services_list:
-            print(f"First service entry: {services_list[0]}")
-
-        # Adjust the data to have 'id' and 'value' keys
-        services_data = [
-            {"id": item["service"], "value": item["value"]} for item in services_list
-        ]
-
-        # Serialize the data to JSON
-        services_json = json.dumps(services_data)
-
-        # Store the data under a single key in Redis
-        redis_client.set("services_stats", services_json)
+        # Store each organization's vulnerabilities in Redis
+        for org_id, data in vulnerabilities_by_org.items():
+            redis_key = f"latest_vulnerabilities:{org_id}"
+            redis_client.set(redis_key, json.dumps(data))
 
         return {
             "status": "success",
-            "message": "Cache populated services successfully.",
+            "message": "Cache populated with the latest vulnerabilities successfully.",
         }
 
     except Exception as e:
-        print(f"An error occurred: {e}")
         return {
             "status": "error",
             "message": f"An unexpected error occurred while populating the cache: {e}",
         }
 
 
-def populate_PortsStatscache():
-    # Connect to Redis Elasticache
+def populate_most_common_vulns_cache(max_results=100):
+    """
+    Populate Redis with the most common vulnerabilities grouped by title, description, and severity.
+    """
     try:
-        # Connect to Redis Elasticache
+        # Connect to Redis
         redis_client = redis.StrictRedis(
             host=settings.ELASTICACHE_ENDPOINT,
             port=6379,
             db=0,
-            decode_responses=True,  # Ensures data returned as string, not bytes
+            decode_responses=True,
         )
 
-        # Fetch data from Django models
-        ports = (
-            Service.objects.filter(domainId__organizationId__isnull=False)
-            .values("port")
-            .annotate(value=Count("id"))
-            .order_by("-value")
+        # Fetch and aggregate vulnerabilities
+        vulnerabilities = (
+            Vulnerability.objects.filter(
+                state="open",  # Only open vulnerabilities
+                domain__isnull=False,
+                domain__organization__isnull=False,
+            )
+            .values("title", "description", "severity", "domain__organization_id")
+            .annotate(count=Count("id"))
+            .order_by("-count")[:max_results]
         )
 
-        # Convert queryset to list
-        ports_list = list(ports)
+        # Organize vulnerabilities by organization
+        vulnerabilities_by_org = {}
+        for vuln in vulnerabilities:
+            org_id = str(vuln["domain__organization_id"])
+            vuln_data = {
+                "title": vuln["title"],
+                "description": vuln["description"],
+                "severity": vuln["severity"],
+                "count": vuln["count"],
+            }
+            if org_id not in vulnerabilities_by_org:
+                vulnerabilities_by_org[org_id] = []
+            vulnerabilities_by_org[org_id].append(vuln_data)
 
-        # Serialize the data to JSON
-        ports_json = json.dumps(ports_list)
+        # Store each organization's vulnerabilities in Redis
+        for org_id, data in vulnerabilities_by_org.items():
+            redis_key = f"most_common_vulnerabilities:{org_id}"
+            redis_client.set(redis_key, json.dumps(data))
 
-        # Store the data under a single key in Redis
-        redis_client.set("ports_stats", ports_json)
-
-        return {"status": "success", "message": "Cache populated ports successfully."}
-
-    except redis.RedisError as redis_error:
         return {
-            "status": "error",
-            "message": f"Failed to populate cache due to Redis error: {redis_error}",
-        }
-
-    except django.db.DatabaseError as db_error:
-        return {
-            "status": "error",
-            "message": f"Failed to populate cache due to database error: {db_error}",
+            "status": "success",
+            "message": "Cache populated with the most common vulnerabilities successfully.",
         }
 
     except Exception as e:
@@ -112,268 +211,68 @@ def populate_PortsStatscache():
         }
 
 
-def populate_NumVulnerabilitiesStatscache(event=None, context=None):
-    # Connect to Redis ElastiCache
-    redis_client = redis.StrictRedis(
-        host=settings.ELASTICACHE_ENDPOINT,
-        port=6379,
-        db=0,
-        decode_responses=True,  # Automatically decode responses as UTF-8 strings
+def populate_severity_cache():
+    """
+    Populate Redis with severity statistics for vulnerabilities.
+    """
+    return populate_stats_cache(
+        model=Vulnerability,
+        group_by_field="domain__organization_id",  # Group by severity
+        redis_key_prefix="severity_stats",
+        annotate_field="severity",  # Default field for counting occurrences
+        filters={
+            "state": "open",  # Include only open vulnerabilities
+            "domain__isnull": False,
+            "domain__organization__isnull": False,
+        },
     )
 
+def populate_by_org_cache():
+    """
+    Populate Redis with the count of open vulnerabilities grouped by organization.
+    Each organization's data is stored under its own Redis key.
+    """
     try:
-        # Fetch data from Django models
-        MAX_RESULTS = 100  # Replace with your desired maximum number of results
+        # Connect to Redis
+        redis_client = redis.StrictRedis(
+            host=settings.ELASTICACHE_ENDPOINT,
+            port=6379,
+            db=0,
+            decode_responses=True,
+        )
 
-        num_vulnerabilities = (
+        # Fetch and aggregate vulnerabilities grouped by organization
+        vulnerabilities = (
             Vulnerability.objects.filter(
                 state="open",
-                domainId__isnull=False,  # Ensures the vulnerability is linked to a domain
+                domain__isnull=False,
+                domain__organization__isnull=False,
             )
-            .annotate(
-                composite_id=Concat(
-                    F("domainId__name"),
-                    Value("|"),
-                    F("severity"),
-                    output_field=CharField(),
-                )
-            )
-            .values("composite_id")
+            .values("domain__organization__id", "domain__organization__name")
             .annotate(value=Count("id"))
-            .order_by("-value")[:MAX_RESULTS]
-        )
-
-        # Prepare data for Redis
-        vulnerabilities_stats = {
-            item["composite_id"]: str(item["value"]) for item in num_vulnerabilities
-        }
-
-        # Use a Redis hash to store all vulnerability stats under a single key
-        redis_client.hset("num_vulnerabilities_stats", mapping=vulnerabilities_stats)
-
-        return {"status": "success", "message": "Cache populated successfully."}
-
-    except Exception as e:
-        # Handle exceptions gracefully
-        return {"status": "error", "message": f"An error occurred: {e}"}
-
-
-def populate_LatestVulnerabilitiesCache():
-    # Connect to Redis ElastiCache
-    redis_client = redis.StrictRedis(
-        host=settings.ELASTICACHE_ENDPOINT, port=6379, db=0, decode_responses=True
-    )
-
-    try:
-        MAX_RESULTS = 100  # Adjust as needed
-
-        latest_vulnerabilities = (
-            Vulnerability.objects.filter(state="open")
-            .select_related("domainId__organizationId")
-            .order_by("createdAt")[:MAX_RESULTS]
-        )
-
-        # Prepare data for Redis
-        vulnerabilities_data = []
-        for vuln in latest_vulnerabilities:
-            vulnerabilities_data.append(
-                {
-                    "id": str(vuln.id),
-                    "title": vuln.title,
-                    "state": vuln.state,
-                    "createdAt": vuln.createdAt.isoformat(),
-                    "domain": vuln.domainId.name if vuln.domainId else None,
-                    "organizationId": str(vuln.domainId.organizationId.id)
-                    if vuln.domainId and vuln.domainId.organizationId
-                    else None,
-                    # Include other fields as needed
-                }
-            )
-
-        # Serialize data to JSON
-        vulnerabilities_json = json.dumps(vulnerabilities_data)
-
-        # Store data in Redis
-        redis_client.set("latest_vulnerabilities", vulnerabilities_json)
-
-        return {"status": "success", "message": "Cache populated successfully."}
-
-    except Exception as e:
-        # Handle exceptions gracefully
-        return {"status": "error", "message": f"An error occurred: {e}"}
-
-
-def populate_MostCommonVulnerabilitiesCache():
-    redis_client = redis.StrictRedis(
-        host=settings.ELASTICACHE_ENDPOINT, port=6379, db=0, decode_responses=True
-    )
-
-    try:
-        MAX_RESULTS = 100  # Adjust as needed
-
-        # Retrieve vulnerabilities with related domain and organization information
-        most_common_vulnerabilities = (
-            Vulnerability.objects.filter(state="open")
-            .select_related("domainId__organizationId")
-            .values(
-                "title",
-                "description",
-                "severity",
-                "domainId__name",
-                "domainId__organizationId__id",
-            )
-            .annotate(count=Count("id"))
-            .order_by("-count")[:MAX_RESULTS]
-        )
-
-        # Convert QuerySet to a list
-        vulnerabilities_data = list(most_common_vulnerabilities)
-
-        # Rename fields for consistency and clarity
-        for vuln in vulnerabilities_data:
-            vuln["domain"] = vuln.pop("domainId__name", None)
-            vuln["organizationId"] = str(vuln.pop("domainId__organizationId__id", None))
-
-        # Serialize data to JSON
-        vulnerabilities_json = json.dumps(vulnerabilities_data)
-
-        # Store data in Redis
-        redis_client.set("most_common_vulnerabilities", vulnerabilities_json)
-
-        return {"status": "success", "message": "Cache populated successfully."}
-    except Exception as e:
-        return {"status": "error", "message": f"An error occurred: {e}"}
-
-
-def populate_SeverityCountsCache():
-    """
-    Fetches the count of open vulnerabilities grouped by severity and stores the data in Redis.
-    """
-    # Connect to Redis ElastiCache
-    redis_client = redis.StrictRedis(
-        host=settings.ELASTICACHE_ENDPOINT,
-        port=6379,
-        db=0,
-        decode_responses=True,  # Automatically decode responses as UTF-8 strings
-    )
-
-    try:
-        vulnerabilities = (
-            Vulnerability.objects.filter(state="open")
-            .select_related("domainId__organizationId")
-            .values("id", "severity", "domainId__organizationId__id")
-        )
-
-        # Transform the QuerySet to a list of dictionaries
-        data = [
-            {
-                "id": str(item["id"]),
-                "severity": item["severity"],
-                "organizationId": str(item["domainId__organizationId__id"]),
-            }
-            for item in vulnerabilities
-        ]
-
-        # Serialize data to JSON
-        vulnerabilities_json = json.dumps(data)
-
-        # Store data in Redis under the key 'vulnerabilities_data'
-        redis_client.set("vulnerabilities_data", vulnerabilities_json)
-
-        return {
-            "status": "success",
-            "message": "Vulnerabilities cache populated successfully.",
-        }
-    except Exception as e:
-        return {"status": "error", "message": f"An error occurred: {e}"}
-
-
-def populate_VulnerabilitiesByOrgCache():
-    """
-    Fetches open vulnerabilities with organization information and stores them in Redis.
-    """
-    redis_client = redis.StrictRedis(
-        host=settings.ELASTICACHE_ENDPOINT, port=6379, db=0, decode_responses=True
-    )
-
-    try:
-        # Fetch vulnerabilities with related organization data
-        vulnerabilities = (
-            Vulnerability.objects.filter(state="open")
-            .select_related("domainId__organizationId")
-            .values(
-                "id",
-                "domainId__organizationId__id",
-                "domainId__organizationId__name",
-            )
-        )
-
-        # Convert QuerySet to list of dictionaries
-        data = [
-            {
-                "vulnerabilityId": str(item["id"]),
-                "orgId": str(item["domainId__organizationId__id"]),
-                "orgName": item["domainId__organizationId__name"],
-            }
-            for item in vulnerabilities
-        ]
-
-        # Serialize data to JSON
-        json_data = json.dumps(data)
-
-        # Store data in Redis under the key 'vulnerabilities_by_org'
-        redis_client.set("vulnerabilities_by_org", json_data)
-
-        return {"status": "success", "message": "Cache populated successfully."}
-    except Exception as e:
-        return {"status": "error", "message": f"An error occurred: {e}"}
-
-    # '''I need to create filterQuery to apply to the few endpoints that require it'''
-
-
-def populate_ByOrgCache():
-    """
-    Fetches the count of open vulnerabilities grouped by organization and stores the data in Redis.
-    """
-    # Connect to Redis ElastiCache
-    redis_client = redis.StrictRedis(
-        host=settings.ELASTICACHE_ENDPOINT,
-        port=6379,
-        db=0,
-        decode_responses=True,  # To automatically decode responses as UTF-8 strings
-    )
-
-    try:
-        # Execute the Django ORM query
-        by_org = (
-            Vulnerability.objects.filter(state="open")
-            .values(
-                id=F("domainId__organizationId__name"),
-                orgId=F("domainId__organizationId__id"),
-            )
-            .annotate(
-                value=Count("id"),
-            )
             .order_by("-value")
         )
 
-        # Convert QuerySet to a list of dictionaries
-        data = list(by_org)
+        # Organize data and store in Redis
+        for vuln in vulnerabilities:
+            org_id = str(vuln["domain__organization__id"])
+            org_name = vuln["domain__organization__name"]
+            redis_key = f"by_org_stats:{org_id}"
+            data = {
+                "id": org_name,  # Organization name as "id"
+                "orgId": org_id,  # Organization ID
+                "value": vuln["value"],  # Count of vulnerabilities
+                "label": org_name,  # Organization name as "label"
+            }
+            redis_client.set(redis_key, json.dumps(data))
 
-        # Add 'label' field (same as 'id') and ensure data types
-        for item in data:
-            item["id"] = str(item["id"])
-            item["orgId"] = str(item["orgId"])
-            item["value"] = int(item["value"])
-            item["label"] = item["id"]
+        return {
+            "status": "success",
+            "message": "Cache populated for byOrg successfully.",
+        }
 
-        # Serialize data to JSON
-        json_data = json.dumps(data)
-
-        # Store data in Redis under the key 'by_org'
-        redis_client.set("by_org", json_data)
-
-        return {"status": "success", "message": "ByOrg cache populated successfully."}
     except Exception as e:
-        # Handle exceptions gracefully
-        return {"status": "error", "message": f"An error occurred: {e}"}
+        return {
+            "status": "error",
+            "message": f"An unexpected error occurred while populating the cache: {e}",
+        }

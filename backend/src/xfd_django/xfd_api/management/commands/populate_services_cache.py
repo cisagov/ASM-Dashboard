@@ -1,6 +1,6 @@
 # Third-Party Libraries
 from django.core.management.base import BaseCommand
-from xfd_api.elasticache_tasks import populate_ServicesStatscache
+from xfd_api.tasks.elasticache_tasks import populate_services_cache
 
 
 class Command(BaseCommand):
@@ -10,5 +10,5 @@ class Command(BaseCommand):
     )
 
     def handle(self, *args, **options):
-        result = populate_ServicesStatscache()
+        result = populate_services_cache()
         self.stdout.write(self.style.SUCCESS(result["message"]))
