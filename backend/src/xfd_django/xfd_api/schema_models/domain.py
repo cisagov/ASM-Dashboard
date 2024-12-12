@@ -3,7 +3,7 @@
 # from pydantic.types import UUID1, UUID
 # Standard Python Libraries
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, List, Optional
 from uuid import UUID
 
 # Third-Party Libraries
@@ -69,6 +69,12 @@ class DomainSearch(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class DomainSearchResponse(BaseModel):
+    """List of Domain objects"""
+
+    results: List[Domain]
 
 
 class TotalDomainsResponse(BaseModel):

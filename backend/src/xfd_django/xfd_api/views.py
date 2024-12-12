@@ -39,8 +39,8 @@ from .api_methods.stats_ports import get_user_ports_cache
 from .api_methods.stats_services import get_user_services_count
 from .api_methods.user import (
     accept_terms,
-    get_me,
     delete_user,
+    get_me,
     get_users,
     get_users_by_region_id,
     get_users_by_state,
@@ -74,23 +74,36 @@ from .schema_models.api_key import ApiKey as ApiKeySchema
 from .schema_models.by_org_item import ByOrgItem
 from .schema_models.cpe import Cpe as CpeSchema
 from .schema_models.cve import Cve as CveSchema
+from .schema_models.domain import (
+    DomainFilters,
+    DomainSearch,
+    DomainSearchResponse,
+    TotalDomainsResponse,
+)
 from .schema_models.domain import Domain as DomainSchema
-from .schema_models.domain import DomainFilters, DomainSearch, TotalDomainsResponse
 from .schema_models.latest_vuln import LatestVulnerabilitySchema
 from .schema_models.most_common_vuln import MostCommonVulnerabilitySchema
 from .schema_models.notification import Notification as NotificationSchema
 from .schema_models.ports_stats import PortsStats
 from .schema_models.role import Role as RoleSchema
+from .schema_models.saved_search import (
+    SavedSearchCreate,
+    SavedSearchList,
+    SavedSearchUpdate,
+)
 from .schema_models.saved_search import SavedSearch as SavedSearchSchema
-from .schema_models.saved_search import SavedSearchCreate, SavedSearchUpdate, SavedSearchList
 from .schema_models.search import SearchBody, SearchRequest, SearchResponse
 from .schema_models.service import ServicesStat
 from .schema_models.severity_count import SeverityCountSchema
-from .schema_models.user import NewUser, NewUserResponseModel, RegisterUserResponse, VersionModel
+from .schema_models.user import NewUser, NewUserResponseModel, RegisterUserResponse
 from .schema_models.user import User as UserSchema
-from .schema_models.user import UserResponse
+from .schema_models.user import UserResponse, VersionModel
+from .schema_models.vulnerability import (
+    VulnerabilitySearch,
+    VulnerabilitySearchResponse,
+    VulnerabilityStat,
+)
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
-from .schema_models.vulnerability import VulnerabilitySearch, VulnerabilityStat
 
 # Define API router
 api_router = APIRouter()
@@ -226,16 +239,15 @@ async def call_get_cves_by_name(cve_name):
 @api_router.post(
     "/domain/search",
     dependencies=[Depends(get_current_active_user)],
-    response_model=List[DomainSchema],
+    response_model=DomainSearchResponse,
     tags=["Domains"],
 )
 async def call_search_domains(
     domain_search: DomainSearch, current_user: User = Depends(get_current_active_user)
 ):
-    try:
-        return search_domains(domain_search, current_user)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    domains = search_domains(domain_search, current_user)
+    print(f"Domains: {domains}")
+    return DomainSearchResponse(results=domains)
 
 
 @api_router.post(
@@ -268,17 +280,15 @@ async def call_get_domain_by_id(domain_id: str):
 @api_router.post(
     "/vulnerabilities/search",
     dependencies=[Depends(get_current_active_user)],
-    response_model=List[VulnerabilitySchema],
+    response_model=VulnerabilitySearchResponse,
     tags=["Vulnerabilities"],
 )
 async def call_search_vulnerabilities(
     vulnerability_search: VulnerabilitySearch,
     current_user: User = Depends(get_current_active_user),
 ):
-    try:
-        return search_vulnerabilities(vulnerability_search, current_user)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    vulnerabilities = search_vulnerabilities(vulnerability_search, current_user)
+    return VulnerabilitySearchResponse(results=vulnerabilities)
 
 
 @api_router.post("/vulnerabilities/export")
@@ -290,28 +300,28 @@ async def export_vulnerabilities():
 
 
 @api_router.get(
-    "/vulnerabilities/{vulnerabilityId}",
+    "/vulnerabilities/{vulnerability_id}",
     dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
     tags=["Vulnerabilities"],
 )
-async def call_get_vulnerability_by_id(vuln_id):
+async def call_get_vulnerability_by_id(vulnerability_id):
     """
     Get vulnerability by id.
     Returns:
         object: a single Vulnerability object.
     """
-    return get_vulnerability_by_id(vuln_id)
+    return get_vulnerability_by_id(vulnerability_id)
 
 
 @api_router.put(
-    "/vulnerabilities/{vulnerabilityId}",
+    "/vulnerabilities/{vulnerability_id}",
     dependencies=[Depends(get_current_active_user)],
     response_model=VulnerabilitySchema,
     tags="Update vulnerability",
 )
 async def call_update_vulnerability(
-    vuln_id,
+    vulnerability_id,
     data: VulnerabilitySchema,
     current_user: User = Depends(get_current_active_user),
 ):
@@ -321,7 +331,7 @@ async def call_update_vulnerability(
     Returns:
         object: a single vulnerability object that has been modified.
     """
-    return update_vulnerability(vuln_id, data, current_user)
+    return update_vulnerability(vulnerability_id, data, current_user)
 
 
 # ========================================
@@ -360,8 +370,15 @@ async def callback_route(request: Request):
 # ========================================
 
 
-@api_router.post("/users/me/acceptTerms", response_model=UserSchema, dependencies=[Depends(get_current_active_user)], tags=["Users"])
-async def call_accept_terms(version_data: VersionModel, current_user: User = Depends(get_current_active_user)):
+@api_router.post(
+    "/users/me/acceptTerms",
+    response_model=UserSchema,
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Users"],
+)
+async def call_accept_terms(
+    version_data: VersionModel, current_user: User = Depends(get_current_active_user)
+):
     """Accept the latest terms of service."""
 
     return accept_terms(version_data, current_user)
@@ -1219,6 +1236,7 @@ async def search_organizations(
 ):
     """Search for organizations in Elasticsearch."""
     return organization.search_organizations_task(search_body, current_user)
+
 
 # ========================================
 #   Search Endpoints

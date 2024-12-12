@@ -1,9 +1,9 @@
 """API methods to support Organization endpoints."""
 
 # Standard Python Libraries
-from typing import List
-import uuid
 import json
+from typing import Any, Dict, List
+import uuid
 
 # Third-Party Libraries
 from django.db.models import Q
@@ -21,8 +21,8 @@ from ..auth import (
 )
 from ..helpers.regionStateMap import REGION_STATE_MAP
 from ..models import Organization, OrganizationTag, Role, Scan, ScanTask, User
-from ..tasks.es_client import ESClient
 from ..schema_models import organization_schema
+from ..tasks.es_client import ESClient
 
 
 def is_valid_uuid(val: str) -> bool:
@@ -996,28 +996,23 @@ def search_organizations_task(search_body, current_user: User):
         client = ESClient()
 
         # Construct the Elasticsearch query
-        query_body = {
-            "query": {
-                "bool": {
-                    "must": [],
-                    "filter": []
-                }
-            }
+        query_body: Dict[str, Dict[str, Dict[str, Any]]] = {
+            "query": {"bool": {"must": [], "filter": []}}
         }
 
         # Use match_all if searchTerm is empty
         if search_body.searchTerm.strip():
-            query_body["query"]["bool"]["must"].append({
-                "wildcard": {"name": f"*{search_body.searchTerm}*"}
-            })
+            query_body["query"]["bool"]["must"].append(
+                {"wildcard": {"name": f"*{search_body.searchTerm}*"}}
+            )
         else:
             query_body["query"]["bool"]["must"].append({"match_all": {}})
 
         # Add region filters if provided
         if search_body.regions:
-            query_body["query"]["bool"]["filter"].append({
-                "terms": {"regionId": search_body.regions}
-            })
+            query_body["query"]["bool"]["filter"].append(
+                {"terms": {"regionId": search_body.regions}}
+            )
 
         # Log the query for debugging
         print(f"Query body: {query_body}")
@@ -1025,12 +1020,15 @@ def search_organizations_task(search_body, current_user: User):
         # Execute the search
         search_results = client.search_organizations(query_body)
 
-        return {"body":search_results}
+        return {"body": search_results}
 
     except Exception as e:
         print(e)
-        raise HTTPException(status_code=500, detail="An error occurred while searching organizations.")
-    
+        raise HTTPException(
+            status_code=500, detail="An error occurred while searching organizations."
+        )
+
+
 async def stats_get_org_count_by_id(organization, tag, current_user, redis_client):
     """Get stats org count."""
     try:

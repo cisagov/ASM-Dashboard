@@ -57,11 +57,9 @@ def search_domains(domain_search: DomainSearch, current_user):
 
         # Add a filter to restrict based on FCEB and CIDR criteria
         domains = domains.filter(Q(isFceb=True) | Q(isFceb=False, fromCidr=True))
-
         if domain_search.filters:
             domains = filter_domains(domains, domain_search.filters)
         paginator = Paginator(domains, domain_search.pageSize)
-
         return paginator.get_page(domain_search.page)
     except Domain.DoesNotExist as e:
         raise HTTPException(status_code=404, detail=str(e))
