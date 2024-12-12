@@ -13,15 +13,12 @@ from ..models import Organization, Scan, ScanTask
 from ..schema_models.scan import SCAN_SCHEMA
 from .ecs_client import ECSClient
 
-# Set the Django settings module
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
-
-# Third-Party Libraries
 import django
-
-# Initialize Django
+print("Setting up Django...")
 django.setup()
+print("Django setup complete.")
 
 
 def chunk(iterable, size):
