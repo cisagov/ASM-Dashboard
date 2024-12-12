@@ -20,13 +20,7 @@ from .api_methods import notification as notification_methods
 from .api_methods import organization, proxy, scan, scan_tasks, user
 from .api_methods.cpe import get_cpes_by_id
 from .api_methods.cve import get_cves_by_id, get_cves_by_name
-from .api_methods.domain import (
-    export_domains,
-    get_domain_by_id,
-    search_domains,
-    stats_total_domains,
-)
-from .api_methods.organization import stats_get_org_count_by_id
+from .api_methods.domain import export_domains, get_domain_by_id, search_domains
 from .api_methods.saved_search import (
     create_saved_search,
     delete_saved_search,
@@ -35,8 +29,16 @@ from .api_methods.saved_search import (
     update_saved_search,
 )
 from .api_methods.search import search_export, search_post
-from .api_methods.stats_ports import get_user_ports_cache
-from .api_methods.stats_services import get_user_services_count
+from .api_methods.stats import (
+    get_num_vulns,
+    get_severity_stats,
+    get_stats,
+    get_user_ports_count,
+    get_user_services_count,
+    stats_latest_vulns,
+    stats_most_common_vulns,
+    get_by_org_stats
+)
 from .api_methods.user import (
     accept_terms,
     delete_user,
@@ -49,30 +51,18 @@ from .api_methods.user import (
     update_user_v2,
 )
 from .api_methods.vulnerability import (
-    get_num_vulns,
     get_vulnerability_by_id,
     search_vulnerabilities,
-    stats_latest_vulns,
-    stats_most_common_vulns,
-    stats_vuln_count,
     update_vulnerability,
 )
-from .auth import (
-    get_current_active_user,
-    get_tag_organization_ids,
-    get_user_domains,
-    get_user_organization_ids,
-    get_user_ports,
-    get_user_service_ids,
-    is_global_view_admin,
-)
+from .auth import get_current_active_user
 from .login_gov import callback, login
 from .models import Domain, Organization, User, Vulnerability
 from .schema_models import organization_schema as OrganizationSchema
 from .schema_models import scan as scanSchema
 from .schema_models import scan_tasks as scanTaskSchema
+from .schema_models import stat_schema
 from .schema_models.api_key import ApiKey as ApiKeySchema
-from .schema_models.by_org_item import ByOrgItem
 from .schema_models.cpe import Cpe as CpeSchema
 from .schema_models.cve import Cve as CveSchema
 from .schema_models.domain import (
@@ -82,10 +72,7 @@ from .schema_models.domain import (
     TotalDomainsResponse,
 )
 from .schema_models.domain import Domain as DomainSchema
-from .schema_models.latest_vuln import LatestVulnerabilitySchema
-from .schema_models.most_common_vuln import MostCommonVulnerabilitySchema
 from .schema_models.notification import Notification as NotificationSchema
-from .schema_models.ports_stats import PortsStats
 from .schema_models.role import Role as RoleSchema
 from .schema_models.saved_search import (
     SavedSearchCreate,
@@ -94,8 +81,6 @@ from .schema_models.saved_search import (
 )
 from .schema_models.saved_search import SavedSearch as SavedSearchSchema
 from .schema_models.search import DomainSearchBody, SearchResponse
-from .schema_models.service import ServicesStat
-from .schema_models.severity_count import SeverityCountSchema
 from .schema_models.user import (
     NewUser,
     NewUserResponseModel,
@@ -105,7 +90,7 @@ from .schema_models.user import (
 from .schema_models.user import User as UserSchema
 from .schema_models.user import UserResponse, UserResponseV2, VersionModel
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
-from .schema_models.vulnerability import VulnerabilitySearch, VulnerabilityStat
+from .schema_models.vulnerability import VulnerabilitySearch
 
 # Define API router
 api_router = APIRouter()
@@ -853,119 +838,127 @@ async def invoke_scheduler(current_user: User = Depends(get_current_active_user)
 # ========================================
 
 
-@api_router.get(
-    "/services/",
-    tags=["Retrieve Stats"],
+@api_router.post(
+    "/stats",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=stat_schema.StatsResponse,
+    tags=["Stats"],
 )
 async def get_services(
+    filter_data: OrganizationSchema.StatsPayloadSchema,
+    current_user: User = Depends(get_current_active_user),
+    redis_client=Depends(get_redis_client),
+):
+    """Retrieve all stats from Elasticache filtered by user."""
+    return await get_stats(filter_data, current_user, redis_client)
+
+
+@api_router.post(
+    "/services",
+    response_model=List[stat_schema.ServiceStat],
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Stats"],
+)
+async def post(
+    filter_data: OrganizationSchema.StatsPayloadSchema,
     current_user: User = Depends(get_current_active_user),
     redis_client=Depends(get_redis_client),
 ):
     """Retrieve services from Elasticache filtered by user."""
-    get_user_services_count(current_user, redis_client)
+    return await get_user_services_count(filter_data, current_user, redis_client)
 
 
-@api_router.get(
-    "/ports/",
-    response_model=List[PortsStats],  # Expecting a list of Stats objects
-    tags=["Retrieve Stats"],
+@api_router.post(
+    "/ports",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=List[stat_schema.PortStat],
+    tags=["Stats"],
 )
-async def get_Ports(
+async def get_ports_stats(
+    filter_data: OrganizationSchema.StatsPayloadSchema,
     current_user: User = Depends(get_current_active_user),
     redis_client=Depends(get_redis_client),
 ):
     """Retrieve Port Stats from Elasticache."""
-    get_user_ports_cache(current_user, redis_client)
+    return await get_user_ports_count(filter_data, current_user, redis_client)
 
 
-@api_router.get(
-    "/num-vulnerabilities/",
-    response_model=List[VulnerabilityStat],  # Expecting a list of Stats objects
-    tags=["Retrieve Stats"],
+@api_router.post(
+    "/num-vulns",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=List[stat_schema.VulnerabilityStat],
+    tags=["Stats"],
 )
-async def get_NumVulnerabilities(
+async def get_num_vulns_stats(
+    filter_data: OrganizationSchema.StatsPayloadSchema,
     current_user: User = Depends(get_current_active_user),
     redis_client: aioredis.Redis = Depends(get_redis_client),
 ):
     """
     Retrieve number of vulnerabilities stats from ElastiCache (Redis) filtered by user.
     """
-    get_num_vulns(current_user, redis_client)
+    return await get_num_vulns(filter_data, current_user, redis_client)
 
 
-@api_router.get(
-    "/latest-vulnerabilities/",
-    response_model=List[LatestVulnerabilitySchema],
-    tags=["Retrieve Stats"],
+@api_router.post(
+    "/latest-vulns",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=List[stat_schema.LatestVulnerability],
+    tags=["Stats"],
 )
 async def get_latest_vulnerabilities(
-    organization: str = Query(None, description="Filter by organization ID"),
-    tag: Optional[str] = None,
+    filter_data: OrganizationSchema.StatsPayloadSchema,
     current_user: User = Depends(get_current_active_user),
     redis_client: aioredis.Redis = Depends(get_redis_client),
 ):
-    stats_latest_vulns(organization, tag, current_user, redis_client)
+    return await stats_latest_vulns(filter_data, current_user, redis_client)
 
 
-@api_router.get(
-    "/most-common-vulnerabilities/",
-    response_model=List[MostCommonVulnerabilitySchema],
-    tags=["Retrieve Stats"],
+@api_router.post(
+    "/most-common-vulns",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=List[stat_schema.MostCommonVulnerability],
+    tags=["Stats"],
 )
-async def get_most_common_vulnerabilities(
-    organization: str = Query(None, description="Filter by organization ID"),
-    tag: str = Query(None, description="Filter by tag"),
+async def get_most_common_vulns(
+    filter_data: OrganizationSchema.StatsPayloadSchema,
     current_user: User = Depends(get_current_active_user),
     redis_client: aioredis.Redis = Depends(get_redis_client),
 ):
-    stats_most_common_vulns(organization, tag, current_user, redis_client)
+    return await stats_most_common_vulns(filter_data, current_user, redis_client)
 
 
-@api_router.get(
-    "/severity-counts/",
-    response_model=List[SeverityCountSchema],
-    tags=["Retrieve Stats"],
+@api_router.post(
+    "/severity-counts",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=List[stat_schema.SeverityCountStat],
+    tags=["Stats"],
 )
 async def get_severity_counts(
-    organization: str = Query(None, description="Filter by organization ID"),
-    tag: str = Query(None, description="Filter by tag"),
+    filter_data: OrganizationSchema.StatsPayloadSchema,
     current_user: User = Depends(get_current_active_user),
     redis_client: aioredis.Redis = Depends(get_redis_client),
 ):
     """
     Retrieves the count of open vulnerabilities grouped by severity from Redis.
     """
-    stats_vuln_count(organization, tag, current_user, redis_client)
+    return await get_severity_stats(filter_data, current_user, redis_client)
 
-
-@api_router.get(
-    "/domains/total/",
-    response_model=TotalDomainsResponse,
-    tags=["Retrieve Stats"],
+@api_router.post(
+    "/by-org",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=List[stat_schema.ByOrgStat],
+    tags=["Stats"],
 )
-async def get_total_domains(
-    organization: str = Query(None, description="Filter by organization ID"),
-    tag: str = Query(None, description="Filter by tag"),
-    current_user: User = Depends(get_current_active_user),
-):
-    stats_total_domains(organization, tag, current_user)
-
-
-@api_router.get(
-    "/by-org/",
-    response_model=List[ByOrgItem],
-    tags=["Retrieve Stats"],
-)
-async def get_by_org(
-    organization: str = Query(None, description="Filter by organization ID"),
-    tag: str = Query(None, description="Filter by tag"),
+async def get_severity_counts(
+    filter_data: OrganizationSchema.StatsPayloadSchema,
     current_user: User = Depends(get_current_active_user),
     redis_client: aioredis.Redis = Depends(get_redis_client),
 ):
     """
-    Retrieves the count of open vulnerabilities grouped by organization from Redis.
+    Retrieves the count of open vulnerabilities grouped by severity from Redis.
     """
-    stats_get_org_count_by_id(organization, tag, current_user, redis_client)
+    return await get_by_org_stats(filter_data, current_user, redis_client)
 
 
 # ========================================

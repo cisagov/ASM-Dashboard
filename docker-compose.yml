@@ -93,6 +93,13 @@ services:
     logging:
       driver: json-file
 
+  redis:
+    image: redis:7.0
+    ports:
+      - "6379:6379"
+    networks:
+      - backend
+
   # kib:
   #   image: docker.elastic.co/kibana/kibana:7.9.0
   #   networks:
