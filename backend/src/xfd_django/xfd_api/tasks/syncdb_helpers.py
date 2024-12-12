@@ -168,7 +168,8 @@ def create_sample_services_and_vulnerabilities(domain):
     # Add random vulnerabilities
     if random.random() < PROB_SAMPLE_VULNERABILITIES:
         Vulnerability.objects.create(
-            title="Sample Vulnerability " + "".join(random.choices("ABCDEFGHIJKLMNOPQRSTUVWXYZ", k=3)),
+            title="Sample Vulnerability "
+            + "".join(random.choices("ABCDEFGHIJKLMNOPQRSTUVWXYZ", k=3)),
             domain=domain,
             service=None,
             description="Sample description",

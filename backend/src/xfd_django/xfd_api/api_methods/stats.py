@@ -1,18 +1,18 @@
 # Standard Python Libraries
-import json
 from collections import defaultdict
+import json
 
 # Third-Party Libraries
 from fastapi import HTTPException
 from redis import asyncio as aioredis
-
-
 from xfd_api.auth import get_stats_org_ids
 from xfd_api.helpers.stats_helpers import get_stats_count_from_cache, get_total_count
+
 
 # GET: /stats
 async def get_stats(filter_data, current_user, redis_client):
     """Compile all stats."""
+
     async def safe_fetch(fetch_fn, *args, **kwargs):
         """Safely fetch stats, returning an empty list on failure."""
         try:
@@ -29,22 +29,64 @@ async def get_stats(filter_data, current_user, redis_client):
             status_code=404,
             detail="No organizations found for the user with the specified filters.",
         )
-    
-    # Fetch 
+
+    # Fetch
     try:
         return {
             "result": {
                 "domains": {
-                    "services": await safe_fetch(get_user_services_count, filter_data, current_user, redis_client, filtered_org_ids=filtered_org_ids),
-                    "ports": await safe_fetch(get_user_ports_count, filter_data, current_user, redis_client, filtered_org_ids=filtered_org_ids),
-                    "numVulnerabilities": await safe_fetch(get_num_vulns, filter_data, current_user, redis_client, filtered_org_ids=filtered_org_ids),
-                    "total": await safe_fetch(get_total_count,filtered_org_ids)
+                    "services": await safe_fetch(
+                        get_user_services_count,
+                        filter_data,
+                        current_user,
+                        redis_client,
+                        filtered_org_ids=filtered_org_ids,
+                    ),
+                    "ports": await safe_fetch(
+                        get_user_ports_count,
+                        filter_data,
+                        current_user,
+                        redis_client,
+                        filtered_org_ids=filtered_org_ids,
+                    ),
+                    "numVulnerabilities": await safe_fetch(
+                        get_num_vulns,
+                        filter_data,
+                        current_user,
+                        redis_client,
+                        filtered_org_ids=filtered_org_ids,
+                    ),
+                    "total": await safe_fetch(get_total_count, filtered_org_ids),
                 },
                 "vulnerabilities": {
-                    "severity": await safe_fetch(get_severity_stats, filter_data, current_user, redis_client, filtered_org_ids=filtered_org_ids),
-                    "latestVulnerabilities": await safe_fetch(stats_latest_vulns, filter_data, current_user, redis_client, filtered_org_ids=filtered_org_ids),
-                    "mostCommonVulnerabilities": await safe_fetch(stats_most_common_vulns, filter_data, current_user, redis_client, filtered_org_ids=filtered_org_ids),
-                    "byOrg": await safe_fetch(get_by_org_stats, filter_data, current_user, redis_client, filtered_org_ids=filtered_org_ids)
+                    "severity": await safe_fetch(
+                        get_severity_stats,
+                        filter_data,
+                        current_user,
+                        redis_client,
+                        filtered_org_ids=filtered_org_ids,
+                    ),
+                    "latestVulnerabilities": await safe_fetch(
+                        stats_latest_vulns,
+                        filter_data,
+                        current_user,
+                        redis_client,
+                        filtered_org_ids=filtered_org_ids,
+                    ),
+                    "mostCommonVulnerabilities": await safe_fetch(
+                        stats_most_common_vulns,
+                        filter_data,
+                        current_user,
+                        redis_client,
+                        filtered_org_ids=filtered_org_ids,
+                    ),
+                    "byOrg": await safe_fetch(
+                        get_by_org_stats,
+                        filter_data,
+                        current_user,
+                        redis_client,
+                        filtered_org_ids=filtered_org_ids,
+                    ),
                 },
             }
         }
@@ -53,7 +95,10 @@ async def get_stats(filter_data, current_user, redis_client):
             status_code=500, detail=f"An unexpected error occurred: {e}"
         )
 
-async def get_user_services_count(filter_data, current_user, redis_client, filtered_org_ids = None):
+
+async def get_user_services_count(
+    filter_data, current_user, redis_client, filtered_org_ids=None
+):
     """Retrieve services from Elasticache filtered by user."""
     try:
         if not filtered_org_ids:
@@ -66,7 +111,9 @@ async def get_user_services_count(filter_data, current_user, redis_client, filte
                     detail="No organizations found for the user with the specified filters.",
                 )
 
-        services_data = await get_stats_count_from_cache(redis_client, "services_stats", filtered_org_ids)
+        services_data = await get_stats_count_from_cache(
+            redis_client, "services_stats", filtered_org_ids
+        )
 
         if not services_data:
             raise HTTPException(
@@ -85,7 +132,9 @@ async def get_user_services_count(filter_data, current_user, redis_client, filte
         )
 
 
-async def get_user_ports_count(filter_data, current_user, redis_client, filtered_org_ids = None):
+async def get_user_ports_count(
+    filter_data, current_user, redis_client, filtered_org_ids=None
+):
     """Retrieve ports from Elasticache filtered by user."""
     try:
         if not filtered_org_ids:
@@ -98,7 +147,9 @@ async def get_user_ports_count(filter_data, current_user, redis_client, filtered
                     detail="No organizations found for the user with the specified filters.",
                 )
 
-        ports_data = await get_stats_count_from_cache(redis_client, "ports_stats", filtered_org_ids)
+        ports_data = await get_stats_count_from_cache(
+            redis_client, "ports_stats", filtered_org_ids
+        )
 
         if not ports_data:
             raise HTTPException(
@@ -115,9 +166,9 @@ async def get_user_ports_count(filter_data, current_user, redis_client, filtered
         raise HTTPException(
             status_code=500, detail=f"An unexpected error occurred: {e}"
         )
-    
 
-async def get_num_vulns(filter_data, current_user, redis_client, filtered_org_ids = None):
+
+async def get_num_vulns(filter_data, current_user, redis_client, filtered_org_ids=None):
     """Retrieve ports from Elasticache filtered by user."""
     try:
         if not filtered_org_ids:
@@ -130,7 +181,9 @@ async def get_num_vulns(filter_data, current_user, redis_client, filtered_org_id
                     detail="No organizations found for the user with the specified filters.",
                 )
 
-        num_vulns_data = await get_stats_count_from_cache(redis_client, "vulnerabilities_stats", filtered_org_ids)
+        num_vulns_data = await get_stats_count_from_cache(
+            redis_client, "vulnerabilities_stats", filtered_org_ids
+        )
 
         if not num_vulns_data:
             raise HTTPException(
@@ -148,7 +201,10 @@ async def get_num_vulns(filter_data, current_user, redis_client, filtered_org_id
             status_code=500, detail=f"An unexpected error occurred: {e}"
         )
 
-async def get_severity_stats(filter_data, current_user, redis_client, filtered_org_ids = None):
+
+async def get_severity_stats(
+    filter_data, current_user, redis_client, filtered_org_ids=None
+):
     """Retrieve ports from Elasticache filtered by user."""
     try:
         if not filtered_org_ids:
@@ -161,7 +217,9 @@ async def get_severity_stats(filter_data, current_user, redis_client, filtered_o
                     detail="No organizations found for the user with the specified filters.",
                 )
 
-        severity_data = await get_stats_count_from_cache(redis_client, "severity_stats", filtered_org_ids)
+        severity_data = await get_stats_count_from_cache(
+            redis_client, "severity_stats", filtered_org_ids
+        )
 
         if not severity_data:
             raise HTTPException(
@@ -178,8 +236,11 @@ async def get_severity_stats(filter_data, current_user, redis_client, filtered_o
         raise HTTPException(
             status_code=500, detail=f"An unexpected error occurred: {e}"
         )
-    
-async def stats_latest_vulns(filter_data, current_user, redis_client, max_results=100, filtered_org_ids = None):
+
+
+async def stats_latest_vulns(
+    filter_data, current_user, redis_client, max_results=100, filtered_org_ids=None
+):
     """
     Retrieve the latest vulnerabilities from Elasticache filtered by user.
     """
@@ -204,7 +265,9 @@ async def stats_latest_vulns(filter_data, current_user, redis_client, max_result
                 vulnerabilities.extend(json.loads(org_vulnerabilities))
 
         # Limit the results to the maximum specified
-        vulnerabilities = sorted(vulnerabilities, key=lambda x: x["createdAt"])[:max_results]
+        vulnerabilities = sorted(vulnerabilities, key=lambda x: x["createdAt"])[
+            :max_results
+        ]
 
         if not vulnerabilities:
             raise HTTPException(
@@ -219,11 +282,14 @@ async def stats_latest_vulns(filter_data, current_user, redis_client, max_result
 
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"An unexpected error occurred: {e}",
+            status_code=500,
+            detail=f"An unexpected error occurred: {e}",
         )
 
 
-async def stats_most_common_vulns(filter_data, current_user, redis_client, max_results=100, filtered_org_ids = None):
+async def stats_most_common_vulns(
+    filter_data, current_user, redis_client, max_results=100, filtered_org_ids=None
+):
     """
     Retrieve the most common vulnerabilities from Elasticache filtered by user.
     """
@@ -269,7 +335,10 @@ async def stats_most_common_vulns(filter_data, current_user, redis_client, max_r
             detail=f"An unexpected error occurred: {e}",
         )
 
-async def get_by_org_stats(filter_data, current_user, redis_client, filtered_org_ids=None):
+
+async def get_by_org_stats(
+    filter_data, current_user, redis_client, filtered_org_ids=None
+):
     """
     Fetch the count of open vulnerabilities grouped by organization from Redis.
     """
@@ -292,7 +361,9 @@ async def get_by_org_stats(filter_data, current_user, redis_client, filtered_org
             redis_key = f"by_org_stats:{org_id}"
             org_stats = await redis_client.get(redis_key)
             if org_stats:
-                by_org_data.append(json.loads(org_stats))  # Directly append the Redis data
+                by_org_data.append(
+                    json.loads(org_stats)
+                )  # Directly append the Redis data
 
         if not by_org_data:
             raise HTTPException(
@@ -307,5 +378,6 @@ async def get_by_org_stats(filter_data, current_user, redis_client, filtered_org
 
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"An unexpected error occurred: {e}",
+            status_code=500,
+            detail=f"An unexpected error occurred: {e}",
         )

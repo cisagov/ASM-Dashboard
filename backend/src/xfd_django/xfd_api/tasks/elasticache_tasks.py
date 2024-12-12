@@ -1,5 +1,6 @@
 # Standard Python Libraries
 import json
+import os
 
 # Third-Party Libraries
 import django
@@ -10,6 +11,13 @@ import redis
 from xfd_api.helpers.stats_helpers import populate_stats_cache
 
 from ..models import Service, Vulnerability
+
+# Set the Django settings module
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
+os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
+
+# Initialize Django
+django.setup()
 
 
 def populate_services_cache():
@@ -226,6 +234,7 @@ def populate_severity_cache():
             "domain__organization__isnull": False,
         },
     )
+
 
 def populate_by_org_cache():
     """

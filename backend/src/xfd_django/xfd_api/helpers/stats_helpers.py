@@ -1,17 +1,15 @@
 # Standard Python Libraries
-import json
+import asyncio
 from collections import defaultdict
+import json
 
 # Third-Party Libraries
-from fastapi import HTTPException
-import asyncio
 import django
 from django.conf import settings
 from django.db.models import CharField, Count, F, Value
 from django.db.models.functions import Concat
+from fastapi import HTTPException
 import redis
-
-
 from xfd_api.models import Domain
 
 
@@ -36,7 +34,10 @@ async def get_stats_count_from_cache(redis_client, redis_key_prefix, filtered_or
             for stat in stats_list:
                 aggregated_stats[stat["id"]] += stat["value"]
 
-    return [{"id": stat_id, "value": value, "label": stat_id} for stat_id, value in aggregated_stats.items()]
+    return [
+        {"id": stat_id, "value": value, "label": stat_id}
+        for stat_id, value in aggregated_stats.items()
+    ]
 
 
 def populate_stats_cache(
@@ -70,7 +71,9 @@ def populate_stats_cache(
 
         # Aggregate and group data
         stats = (
-            queryset.values(group_by_field, "custom_id" if custom_id else annotate_field)
+            queryset.values(
+                group_by_field, "custom_id" if custom_id else annotate_field
+            )
             .annotate(value=Count(annotate_field))
             .order_by(group_by_field, "-value")
         )
@@ -100,18 +103,17 @@ def populate_stats_cache(
             "status": "error",
             "message": f"An unexpected error occurred: {e}",
         }
-    
+
+
 async def get_total_count(filtered_org_ids):
     """
     Retrieve the total count of domains associated with the filtered organizations.
     """
     try:
         # Query the database for the total count of domains in the filtered organizations
-        total_count = (
-            Domain.objects.filter(organization__in=filtered_org_ids).count()
-        )
+        total_count = Domain.objects.filter(organization__in=filtered_org_ids).count()
         return total_count
 
     except Exception as e:
         print(f"Unexpected error fetching total count: {e}")
-        return 0 
+        return 0

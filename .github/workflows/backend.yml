@@ -116,7 +116,7 @@ jobs:
           CROSSFEED_COMMAND_OPTIONS: '{"scanName": "test"}'
           DB_USERNAME: crossfeed
           DB_PASSWORD: password
-    
+
   build_worker:
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -233,7 +233,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           SLS_DEBUG: '*'
-      
+
       - name: Deploy worker
         run: npm run deploy-worker-integration
         working-directory: backend

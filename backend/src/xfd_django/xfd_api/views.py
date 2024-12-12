@@ -30,6 +30,7 @@ from .api_methods.saved_search import (
 )
 from .api_methods.search import search_export, search_post
 from .api_methods.stats import (
+    get_by_org_stats,
     get_num_vulns,
     get_severity_stats,
     get_stats,
@@ -37,7 +38,6 @@ from .api_methods.stats import (
     get_user_services_count,
     stats_latest_vulns,
     stats_most_common_vulns,
-    get_by_org_stats
 )
 from .api_methods.user import (
     accept_terms,
@@ -939,13 +939,14 @@ async def get_severity_counts(
     """
     return await get_severity_stats(filter_data, current_user, redis_client)
 
+
 @api_router.post(
     "/by-org",
     dependencies=[Depends(get_current_active_user)],
     response_model=List[stat_schema.ByOrgStat],
     tags=["Stats"],
 )
-async def get_severity_counts(
+async def get_by_org(
     filter_data: OrganizationSchema.StatsPayloadSchema,
     current_user: User = Depends(get_current_active_user),
     redis_client: aioredis.Redis = Depends(get_redis_client),
