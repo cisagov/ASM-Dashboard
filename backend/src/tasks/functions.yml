@@ -7,39 +7,32 @@ scheduler:
     - schedule: rate(5 minutes)
   reservedConcurrency: 1
   memorySize: 4096
-  existingArn: arn:aws:lambda:us-east-1:957221700844:function:crossfeed-integration-scheduler
 
 syncdb:
   timeout: 900
   handler: src/xfd_django/xfd_api/tasks/run_syncdb.handler
-  existingArn: arn:aws:lambda:us-east-1:957221700844:function:crossfeed-integration-syncdb
 
 pesyncdb:
   timeout: 900
   handler: src/tasks/pesyncdb.handler
-  existingArn: arn:aws:lambda:us-east-1:957221700844:function:crossfeed-integration-pesyncdb
 
 bastion:
   timeout: 900
   handler: src/xfd_django/xfd_api/tasks/bastion.handler
-  existingArn: arn:aws:lambda:us-east-1:957221700844:function:crossfeed-integration-bastion
 
 makeGlobalAdmin:
   handler: src/tasks/makeGlobalAdmin.handler
-  existingArn: arn:aws:lambda:us-east-1:957221700844:function:crossfeed-integration-makeGlobalAdmin
 
 checkUserExpiration:
   timeout: 300
   handler: src/tasks/checkUserExpiration.handler
   events:
     - schedule: cron(0 0 * * ? *)  # Runs every day at midnight
-  existingArn: arn:aws:lambda:us-east-1:957221700844:function:crossfeed-integration-checkUserExpiration
 
 scanExecution:
   timeout: 900  # 15 minutes
   handler: src/tasks/scanExecution.handler
   memorySize: 4096
-  existingArn: arn:aws:lambda:us-east-1:957221700844:function:crossfeed-integration-scanExecution
 
 updateScanTaskStatus:
   handler: src/tasks/updateScanTaskStatus.handler
@@ -54,7 +47,6 @@ updateScanTaskStatus:
           detail:
             clusterArn:
               - ${file(env.yml):${self:provider.stage}-ecs-cluster, ''}
-  existingArn: arn:aws:lambda:us-east-1:957221700844:function:crossfeed-integration-updateScanTaskStatus
 
 serviceStatsCache:
   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_services_cache
