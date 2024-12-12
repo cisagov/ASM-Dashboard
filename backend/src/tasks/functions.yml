@@ -76,10 +76,6 @@ portStatsCache:
 
 numVulnsCache:
   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_num_vulns_cache
-  runtime: python3.11
-  environment:
-    DJANGO_SETTINGS_MODULE: xfd_django.settings
-    REDIS_ENDPOINT: ${env:ELASTICACHE_ENDPOINT}
   events:
     - schedule:
         rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
