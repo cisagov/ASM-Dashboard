@@ -23,7 +23,7 @@ custom:
     noDeploy:
       - boto3
       - botocore
-    
+
 provider:
   name: aws
   region: ${file(env.yml):${self:provider.stage}.REGION, ''}

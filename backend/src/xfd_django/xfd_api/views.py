@@ -75,13 +75,8 @@ from .schema_models.api_key import ApiKey as ApiKeySchema
 from .schema_models.by_org_item import ByOrgItem
 from .schema_models.cpe import Cpe as CpeSchema
 from .schema_models.cve import Cve as CveSchema
-from .schema_models.domain import (
-    DomainFilters,
-    DomainSearch,
-    GetDomainResponse,
-    TotalDomainsResponse,
-)
 from .schema_models.domain import Domain as DomainSchema
+from .schema_models.domain import DomainFilters, DomainSearch, TotalDomainsResponse
 from .schema_models.latest_vuln import LatestVulnerabilitySchema
 from .schema_models.most_common_vuln import MostCommonVulnerabilitySchema
 from .schema_models.notification import Notification as NotificationSchema
@@ -268,7 +263,7 @@ async def call_export_domains(domain_search: DomainSearch):
 @api_router.get(
     "/domain/{domain_id}",
     dependencies=[Depends(get_current_active_user)],
-    response_model=GetDomainResponse,
+    # response_model=GetDomainResponse,
     tags=["Get domain by id"],
 )
 async def call_get_domain_by_id(domain_id: str):
