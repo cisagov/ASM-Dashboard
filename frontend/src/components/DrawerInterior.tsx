@@ -176,13 +176,6 @@ export const DrawerInterior: React.FC<Props> = (props) => {
       )
     : [];
 
-  // const severityFacet: any[] = facets['vulnerabilities.severity']
-  //   ? facets['vulnerabilities.severity'][0].data.sort(
-  //       (a: { value: string }, b: { value: string }) =>
-  //         severityLevels.indexOf(a.value) - severityLevels.indexOf(b.value)
-  //     )
-  //   : [];
-
   console.log('facets', facets['vulnerabilities.severity']);
   const titleCaseSeverityFacet = facets['vulnerabilities.severity']
     ? facets['vulnerabilities.severity'][0].data.map(
@@ -205,7 +198,6 @@ export const DrawerInterior: React.FC<Props> = (props) => {
         }
       )
     : [];
-  console.log('titleCaseSeverityFacet', titleCaseSeverityFacet);
 
   const groupedData: GroupedData = titleCaseSeverityFacet
     .map((d: SeverityData) => {
@@ -232,16 +224,12 @@ export const DrawerInterior: React.FC<Props> = (props) => {
       return acc;
     }, {});
 
-  console.log('groupedData', groupedData);
-
   const sortedSeverityFacets = Object.entries(groupedData)
     .map(([value, count]) => ({ value, count }))
     .sort((a, b) => {
       const order = ['N/A', 'Low', 'Medium', 'High', 'Critical', 'Other'];
       return order.indexOf(a.value) - order.indexOf(b.value);
     });
-
-  console.log('sortedSeverityFacets', sortedSeverityFacets);
 
   return (
     <StyledWrapper style={{ overflowY: 'auto' }}>
