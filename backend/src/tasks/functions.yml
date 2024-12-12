@@ -52,8 +52,7 @@ serviceStatsCache:
   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_services_cache
   events:
     - schedule:
-        rate: ron(0 0 * * ? *)  # This triggers the function every day it midnight
-        enabled: true
+        rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
   package:
     include:
       - src/**
@@ -65,8 +64,7 @@ portStatsCache:
   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_ports_cache
   events:
     - schedule:
-        rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
-        enabled: true
+        rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
   package:
     include:
       - src/**
@@ -78,8 +76,7 @@ numVulnsCache:
   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_num_vulns_cache
   events:
     - schedule:
-        rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
-        enabled: true
+        rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
   package:
     include:
       - src/**
@@ -91,8 +88,7 @@ latestVulnsCache:
   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_latest_vulns_cache
   events:
     - schedule:
-        rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
-        enabled: true
+        rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
   package:
     include:
       - src/**
@@ -104,8 +100,7 @@ mostCommonVulnsCache:
   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_most_common_vulns_cache
   events:
     - schedule:
-        rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
-        enabled: true
+        rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
   package:
     include:
       - src/**
@@ -117,8 +112,7 @@ severityCache:
   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_severity_cache
   events:
     - schedule:
-        rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
-        enabled: true
+        rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
   package:
     include:
       - src/**
@@ -130,8 +124,7 @@ byOrgCache:
   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_by_org_cache
   events:
     - schedule:
-        rate: ron(0 0 * * ? *)  # This triggers the function every day it mightnight
-        enabled: true
+        rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
   package:
     include:
       - src/**
