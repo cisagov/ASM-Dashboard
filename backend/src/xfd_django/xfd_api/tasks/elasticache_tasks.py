@@ -8,9 +8,6 @@ from django.conf import settings
 from django.db.models import CharField, Count, F, Value
 from django.db.models.functions import Concat
 import redis
-from xfd_api.helpers.stats_helpers import populate_stats_cache
-
-from ..models import Service, Vulnerability
 
 # Set the Django settings module
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
@@ -18,6 +15,10 @@ os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 
 # Initialize Django
 django.setup()
+
+# Third-Party Libraries
+from xfd_api.helpers.stats_helpers import populate_stats_cache
+from xfd_api.models import Service, Vulnerability
 
 
 def populate_services_cache():

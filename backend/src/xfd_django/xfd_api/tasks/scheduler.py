@@ -6,19 +6,19 @@ from itertools import islice
 import os
 
 # Third-Party Libraries
+import django
 from django.utils import timezone
-
-from ..helpers.getScanOrganizations import get_scan_organizations
-from ..models import Organization, Scan, ScanTask
-from ..schema_models.scan import SCAN_SCHEMA
-from .ecs_client import ECSClient
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
-import django
-print("Setting up Django...")
+
 django.setup()
-print("Django setup complete.")
+
+# Third-Party Libraries
+from xfd_api.helpers.getScanOrganizations import get_scan_organizations
+from xfd_api.models import Organization, Scan, ScanTask
+from xfd_api.schema_models.scan import SCAN_SCHEMA
+from xfd_api.tasks.ecs_client import ECSClient
 
 
 def chunk(iterable, size):
