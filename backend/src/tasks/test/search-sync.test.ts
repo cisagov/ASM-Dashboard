@@ -45,13 +45,14 @@ describe('search_sync', () => {
       domain
     }).save();
 
-    await searchSync({
-      organizationId: organization.id,
-      organizationName: 'organizationName',
-      scanId: 'scanId',
-      scanName: 'scanName',
-      scanTaskId: 'scanTaskId'
-    });
+    await searchSync();
+    // {
+    //   organizationId: organization.id,
+    //   organizationName: 'organizationName',
+    //   scanId: 'scanId',
+    //   scanName: 'scanName',
+    //   scanTaskId: 'scanTaskId'
+    // }
 
     expect(updateDomains).not.toBeCalled();
   });
@@ -71,13 +72,14 @@ describe('search_sync', () => {
       updatedAt: new Date('9999-10-11')
     }).save();
 
-    await searchSync({
-      organizationId: organization.id,
-      organizationName: 'organizationName',
-      scanId: 'scanId',
-      scanName: 'scanName',
-      scanTaskId: 'scanTaskId'
-    });
+    await searchSync();
+    //   {
+    //   organizationId: organization.id,
+    //   organizationName: 'organizationName',
+    //   scanId: 'scanId',
+    //   scanName: 'scanName',
+    //   scanTaskId: 'scanTaskId'
+    // }
 
     expect(updateDomains).toBeCalled();
   });
@@ -97,14 +99,14 @@ describe('search_sync', () => {
       updatedAt: new Date('9999-9-11')
     }).save();
 
-    await searchSync({
-      organizationId: organization.id,
-      organizationName: 'organizationName',
-      scanId: 'scanId',
-      scanName: 'scanName',
-      scanTaskId: 'scanTaskId'
-    });
-
+    await searchSync();
+    // {
+    //   organizationId: organization.id,
+    //   organizationName: 'organizationName',
+    //   scanId: 'scanId',
+    //   scanName: 'scanName',
+    //   scanTaskId: 'scanTaskId'
+    // }
     expect(updateDomains).not.toBeCalled();
   });
 
@@ -122,13 +124,14 @@ describe('search_sync', () => {
       updatedAt: new Date('9999-10-11')
     }).save();
 
-    await searchSync({
-      organizationId: organization.id,
-      organizationName: 'organizationName',
-      scanId: 'scanId',
-      scanName: 'scanName',
-      scanTaskId: 'scanTaskId'
-    });
+    await searchSync();
+    // {
+    //   organizationId: organization.id,
+    //   organizationName: 'organizationName',
+    //   scanId: 'scanId',
+    //   scanName: 'scanName',
+    //   scanTaskId: 'scanTaskId'
+    // }
 
     expect(updateDomains).toBeCalled();
   });
@@ -147,13 +150,14 @@ describe('search_sync', () => {
       updatedAt: new Date('9999-9-11')
     }).save();
 
-    await searchSync({
-      organizationId: organization.id,
-      organizationName: 'organizationName',
-      scanId: 'scanId',
-      scanName: 'scanName',
-      scanTaskId: 'scanTaskId'
-    });
+    await searchSync();
+    // {
+    //   organizationId: organization.id,
+    //   organizationName: 'organizationName',
+    //   scanId: 'scanId',
+    //   scanName: 'scanName',
+    //   scanTaskId: 'scanTaskId'
+    // }
 
     expect(updateDomains).not.toBeCalled();
   });
@@ -174,13 +178,14 @@ describe('search_sync', () => {
       syncedAt: new Date('9999-10-10')
     }).save();
 
-    await searchSync({
-      organizationId: organization.id,
-      organizationName: 'organizationName',
-      scanId: 'scanId',
-      scanName: 'scanName',
-      scanTaskId: 'scanTaskId'
-    });
+    await searchSync();
+    // {
+    //   organizationId: organization.id,
+    //   organizationName: 'organizationName',
+    //   scanId: 'scanId',
+    //   scanName: 'scanName',
+    //   scanTaskId: 'scanTaskId'
+    // }
 
     expect(updateDomains).toBeCalled();
   });
@@ -201,13 +206,14 @@ describe('search_sync', () => {
       syncedAt: new Date('9999-10-10')
     }).save();
 
-    await searchSync({
-      organizationId: organization.id,
-      organizationName: 'organizationName',
-      scanId: 'scanId',
-      scanName: 'scanName',
-      scanTaskId: 'scanTaskId'
-    });
+    await searchSync();
+    // {
+    //   organizationId: organization.id,
+    //   organizationName: 'organizationName',
+    //   scanId: 'scanId',
+    //   scanName: 'scanName',
+    //   scanTaskId: 'scanTaskId'
+    // }
 
     expect(updateDomains).not.toBeCalled();
   });
@@ -233,13 +239,14 @@ describe('search_sync', () => {
       domain
     }).save();
 
-    await searchSync({
-      organizationId: organization.id,
-      organizationName: 'organizationName',
-      scanId: 'scanId',
-      scanName: 'scanName',
-      scanTaskId: 'scanTaskId'
-    });
+    await searchSync();
+    // {
+    //   organizationId: organization.id,
+    //   organizationName: 'organizationName',
+    //   scanId: 'scanId',
+    //   scanName: 'scanName',
+    //   scanTaskId: 'scanTaskId'
+    // }
 
     expect(updateDomains).toBeCalled();
     expect(
@@ -272,12 +279,13 @@ describe('search_sync', () => {
       )
     );
 
-    await searchSync({
-      organizationId: organization.id,
-      scanId: 'scanId',
-      scanName: 'scanName',
-      scanTaskId: 'scanTaskId'
-    });
+    await searchSync();
+    // {
+    //   organizationId: organization.id,
+    //   scanId: 'scanId',
+    //   scanName: 'scanName',
+    //   scanTaskId: 'scanTaskId'
+    // }
 
     expect(updateDomains).toBeCalledTimes(2);
   });
