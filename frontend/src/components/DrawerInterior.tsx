@@ -44,6 +44,15 @@ interface Props {
   initialFilters: any[];
 }
 
+interface SeverityData {
+  value: string;
+  count: number;
+}
+
+interface GroupedData {
+  [key: string]: number;
+}
+
 const FiltersApplied: React.FC = () => {
   return (
     <div className={classes.applied}>
@@ -167,15 +176,72 @@ export const DrawerInterior: React.FC<Props> = (props) => {
       )
     : [];
 
-  const severityLevels = ['N/A', 'Low', 'Medium', 'High', 'Critical', 'Other'];
-  const severityFacet: any[] = facets['vulnerabilities.severity']
-    ? facets['vulnerabilities.severity'][0].data.sort(
-        (a: { value: string }, b: { value: string }) =>
-          severityLevels.indexOf(a.value) - severityLevels.indexOf(b.value)
+  // const severityFacet: any[] = facets['vulnerabilities.severity']
+  //   ? facets['vulnerabilities.severity'][0].data.sort(
+  //       (a: { value: string }, b: { value: string }) =>
+  //         severityLevels.indexOf(a.value) - severityLevels.indexOf(b.value)
+  //     )
+  //   : [];
+
+  console.log('facets', facets['vulnerabilities.severity']);
+  const titleCaseSeverityFacet = facets['vulnerabilities.severity']
+    ? facets['vulnerabilities.severity'][0].data.map(
+        (d: { value: string; count: number }) => {
+          if (
+            d.value === 'null' ||
+            d.value === null ||
+            d.value === '' ||
+            d.value === 'undefined' ||
+            d.value === 'N/A'
+          ) {
+            return { value: 'N/A', count: d.count };
+          } else {
+            return {
+              value:
+                d.value[0]?.toUpperCase() + d.value.slice(1)?.toLowerCase(),
+              count: d.count
+            };
+          }
+        }
       )
     : [];
-  console.log(facets);
-  console.log('severityFacet', severityFacet);
+  console.log('titleCaseSeverityFacet', titleCaseSeverityFacet);
+
+  const groupedData: GroupedData = titleCaseSeverityFacet
+    .map((d: SeverityData) => {
+      const severityLevels = [
+        'N/A',
+        'Low',
+        'Medium',
+        'High',
+        'Critical',
+        'Other'
+      ];
+      if (severityLevels.includes(d.value)) {
+        return d;
+      } else {
+        return { value: 'Other', count: d.count };
+      }
+    })
+    .reduce((acc: GroupedData, curr: SeverityData) => {
+      if (acc[curr.value]) {
+        acc[curr.value] += curr.count;
+      } else {
+        acc[curr.value] = curr.count;
+      }
+      return acc;
+    }, {});
+
+  console.log('groupedData', groupedData);
+
+  const sortedSeverityFacets = Object.entries(groupedData)
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => {
+      const order = ['N/A', 'Low', 'Medium', 'High', 'Critical', 'Other'];
+      return order.indexOf(a.value) - order.indexOf(b.value);
+    });
+
+  console.log('sortedSeverityFacets', sortedSeverityFacets);
 
   return (
     <StyledWrapper style={{ overflowY: 'auto' }}>
@@ -365,7 +431,7 @@ export const DrawerInterior: React.FC<Props> = (props) => {
           </AccordionDetails>
         </Accordion>
       )}
-      {severityFacet.length > 0 && (
+      {sortedSeverityFacets.length > 0 && (
         <Accordion
           elevation={0}
           square
@@ -391,7 +457,7 @@ export const DrawerInterior: React.FC<Props> = (props) => {
           </AccordionSummary>
           <AccordionDetails classes={{ root: classes.details }}>
             <FacetFilter
-              options={severityFacet}
+              options={sortedSeverityFacets}
               selected={filtersByColumn['vulnerabilities.severity'] ?? []}
               onSelect={(value) =>
                 addFilter('vulnerabilities.severity', value, 'any')

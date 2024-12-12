@@ -196,7 +196,9 @@ export function buildRequest(
         aggs: {
           severity: {
             terms: {
-              field: 'vulnerabilities.severity.keyword'
+              field: 'vulnerabilities.severity.keyword',
+              missing: 'null',
+              size: 50
             }
           },
           cve: {
