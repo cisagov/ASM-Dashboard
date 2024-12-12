@@ -121,6 +121,23 @@ type FlatFilters = {
   type: 'all' | 'none' | 'any';
 }[];
 
+const filterOrder = [
+  'Region',
+  'Organization',
+  'IP',
+  'Domain',
+  'Root Domain(s)',
+  'Port',
+  'CVE',
+  'Severity'
+];
+
+const sortFiltersByOrder = (filters: FlatFilters) => {
+  return filters.sort((a, b) => {
+    return filterOrder.indexOf(a.label) - filterOrder.indexOf(b.label);
+  });
+};
+
 export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
   const { userLevel } = useUserLevel();
 
@@ -134,7 +151,7 @@ export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
   }, [userLevel]);
 
   const filtersByColumn: FlatFilters = useMemo(() => {
-    return filters.reduce((acc, nextFilter) => {
+    const processedFilters = filters.reduce((acc, nextFilter) => {
       const fieldAccessors = FIELD_TO_LABEL_MAP[nextFilter.field] ?? null;
       const value = fieldAccessors
         ? ellipsisPastIndex(
@@ -156,6 +173,7 @@ export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
         }
       ];
     }, []);
+    return sortFiltersByOrder(processedFilters);
   }, [filters]);
 
   return (
