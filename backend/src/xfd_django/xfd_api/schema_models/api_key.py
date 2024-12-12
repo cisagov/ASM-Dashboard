@@ -19,7 +19,7 @@ class ApiKey(BaseModel):
         str
     ] = None  # Make optional to avoid validation error in response
     lastFour: Optional[str]
-    userId: Optional[UUID] = None  # Make optional to avoid validation error in response
+    user: Optional[UUID] = None  # Make optional to avoid validation error in response
     api_key: Optional[
         str
     ] = None  # Add the actual key to the schema for response inclusion
@@ -31,7 +31,7 @@ class ApiKey(BaseModel):
 
         # Remove the '_state' field or any other unwanted internal fields
         api_key_data.pop("_state", None)
-        api_key_data["userId"] = api_key_data.pop("userId_id", None)
+        api_key_data["user"] = api_key_data.pop("user_id", None)
 
         for key, val in api_key_data.items():
             # Convert any UUIDs to strings

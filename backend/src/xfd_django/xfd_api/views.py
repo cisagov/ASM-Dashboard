@@ -34,7 +34,7 @@ from .api_methods.saved_search import (
     list_saved_searches,
     update_saved_search,
 )
-from .api_methods.search import export, search_post
+from .api_methods.search import search_export, search_post
 from .api_methods.stats_ports import get_user_ports_cache
 from .api_methods.stats_services import get_user_services_count
 from .api_methods.user import (
@@ -46,6 +46,7 @@ from .api_methods.user import (
     get_users_by_state,
     get_users_v2,
     update_user,
+    update_user_v2,
 )
 from .api_methods.vulnerability import (
     get_num_vulns,
@@ -92,12 +93,17 @@ from .schema_models.saved_search import (
     SavedSearchUpdate,
 )
 from .schema_models.saved_search import SavedSearch as SavedSearchSchema
-from .schema_models.search import SearchBody, SearchRequest, SearchResponse
+from .schema_models.search import DomainSearchBody, SearchRequest, SearchResponse
 from .schema_models.service import ServicesStat
 from .schema_models.severity_count import SeverityCountSchema
-from .schema_models.user import NewUser, NewUserResponseModel, RegisterUserResponse
+from .schema_models.user import (
+    NewUser,
+    NewUserResponseModel,
+    RegisterUserResponse,
+    UpdateUserV2,
+)
 from .schema_models.user import User as UserSchema
-from .schema_models.user import UserResponse, VersionModel
+from .schema_models.user import UserResponse, UserResponseV2, VersionModel
 from .schema_models.vulnerability import (
     VulnerabilitySearch,
     VulnerabilitySearchResponse,
@@ -265,7 +271,7 @@ async def call_export_domains(domain_search: DomainSearch):
 @api_router.get(
     "/domain/{domain_id}",
     dependencies=[Depends(get_current_active_user)],
-    response_model=DomainSchema,
+    # response_model=GetDomainResponse,
     tags=["Get domain by id"],
 )
 async def call_get_domain_by_id(domain_id: str):
@@ -384,44 +390,32 @@ async def call_accept_terms(
     return accept_terms(version_data, current_user)
 
 
-# GET Current User
 @api_router.get("/users/me", tags=["Users"])
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return get_me(current_user)
 
 
-@api_router.delete("/users/{userId}", tags=["Users"])
-async def call_delete_user(current_user, userId: str):
-    """
-    call delete_user()
-    Args:
-        userId: UUID of the user to delete.
-        Returns:
-        User: The user that was deleted.
-    """
-
-    return delete_user(current_user, userId)
+@api_router.delete(
+    "/users/{userId}",
+    response_model=OrganizationSchema.GenericMessageResponseModel,
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Users"],
+)
+async def call_delete_user(
+    userId: str, current_user: User = Depends(get_current_active_user)
+):
+    """Delete user."""
+    return delete_user(userId, current_user)
 
 
 @api_router.get(
-    "/users/",
-    response_model=List[UserSchema],
+    "/users",
+    response_model=List[UserResponseV2],
     dependencies=[Depends(get_current_active_user)],
     tags=["Users"],
 )
 async def call_get_users(current_user: User = Depends(get_current_active_user)):
-    """
-    Call get_users()
-
-    Args:
-        regionId: Region IDs to filter users by.
-
-    Raises:
-        HTTPException: If the user is not authorized or no users are found.
-
-    Returns:
-        List[User]: A list of users matching the filter criteria.
-    """
+    """Get all users."""
     return get_users(current_user)
 
 
@@ -473,7 +467,7 @@ async def call_get_users_by_state(
 
 @api_router.get(
     "/v2/users",
-    response_model=List[UserResponse],
+    response_model=List[UserResponseV2],
     dependencies=[Depends(get_current_active_user)],
     tags=["Users"],
 )
@@ -483,18 +477,23 @@ async def call_get_users_v2(
     invitePending: Optional[bool] = Query(None),
     current_user: User = Depends(get_current_active_user),
 ):
-    """
-    Call get_users_v2()
-    Args:
-        request : The HTTP request containing query parameters.
-
-    Raises:
-        HTTPException: If the user is not authorized or no users are found.
-
-    Returns:
-        List[User]: A list of users matching the filter criteria.
-    """
+    """Get users with filter."""
     return get_users_v2(state, regionId, invitePending, current_user)
+
+
+@api_router.put(
+    "/v2/users/{user_id}",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=UserResponseV2,
+    tags=["Users"],
+)
+async def update_user_v2_view(
+    user_id: str,
+    user_data: UpdateUserV2,
+    current_user: User = Depends(get_current_active_user),
+):
+    """Update a particular user."""
+    return update_user_v2(user_id, user_data, current_user)
 
 
 @api_router.post("/users/{userId}", tags=["Users"])
@@ -1150,7 +1149,6 @@ async def delete_organization(
 @api_router.post(
     "/v2/organizations/{organization_id}/users",
     dependencies=[Depends(get_current_active_user)],
-    response_model=OrganizationSchema.GenericPostResponseModel,
     tags=["Organizations"],
 )
 async def add_user_to_organization_v2(
@@ -1249,9 +1247,12 @@ async def search_organizations(
     response_model=SearchResponse,
     tags=["Search"],
 )
-async def search(request: SearchRequest):
+async def search(
+    search_body: DomainSearchBody, current_user: User = Depends(get_current_active_user)
+):
+    """ElasticSearch get domains index."""
     try:
-        search_post(request)
+        return await search_post(search_body, current_user)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
@@ -1261,11 +1262,11 @@ async def search(request: SearchRequest):
 @api_router.post(
     "/search/export", dependencies=[Depends(get_current_active_user)], tags=["Search"]
 )
-async def export_endpoint(request: Request):
+async def export_endpoint(
+    search_body: DomainSearchBody, current_user: User = Depends(get_current_active_user)
+):
     try:
-        body = await request.json()
-        search_body = SearchBody(**body)  # Parse request body into SearchBody
-        result = export(search_body, request)
+        result = await search_export(search_body, current_user)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

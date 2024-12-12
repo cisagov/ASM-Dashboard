@@ -62,7 +62,7 @@ def test_delete_own_api_key():
     api_key = ApiKey.objects.create(
         hashedKey="1234",
         lastFour="1234",
-        userId=user,
+        user=user,
     )
     response = client.delete(
         f"/api-keys/{api_key.id}",
@@ -103,7 +103,7 @@ def test_delete_other_users_api_key_fails():
     api_key = ApiKey.objects.create(
         hashedKey="1234",
         lastFour="1234",
-        userId=user1,
+        user=user1,
     )
 
     # Try to delete user1's API key as user2

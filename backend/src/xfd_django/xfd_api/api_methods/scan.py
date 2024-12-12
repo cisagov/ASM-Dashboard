@@ -12,6 +12,7 @@ from ..schema_models.scan import SCAN_SCHEMA, NewScan
 from ..tasks.lambda_client import LambdaClient
 
 
+# GET: /scans
 def list_scans(current_user):
     """List scans."""
     try:
@@ -68,6 +69,7 @@ def list_scans(current_user):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# GET: /granularScans
 def list_granular_scans(current_user):
     """List granular scans."""
     try:
@@ -91,6 +93,7 @@ def list_granular_scans(current_user):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# POST: /scans
 def create_scan(scan_data: NewScan, current_user):
     """Create a new scan."""
     try:
@@ -121,6 +124,7 @@ def create_scan(scan_data: NewScan, current_user):
             scan.tags.set(tag_ids)
 
         return {
+            "id": scan.id,
             "name": scan.name,
             "arguments": scan.arguments,
             "frequency": scan.frequency,
@@ -144,6 +148,7 @@ def create_scan(scan_data: NewScan, current_user):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# GET: /scans/{scan_id}
 def get_scan(scan_id: str, current_user):
     """Get a scan by its ID."""
 
@@ -191,6 +196,7 @@ def get_scan(scan_id: str, current_user):
     }
 
 
+# PUT: /scans/{scan_id}
 def update_scan(scan_id: str, scan_data: NewScan, current_user):
     """Update a scan by its ID."""
     try:
@@ -248,6 +254,7 @@ def update_scan(scan_id: str, scan_data: NewScan, current_user):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# DELETE: /scans/{scan_id}
 def delete_scan(scan_id: str, current_user):
     """Delete a scan by its ID."""
     try:
@@ -272,6 +279,7 @@ def delete_scan(scan_id: str, current_user):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# POST: /scans/{scan_id}/run
 def run_scan(scan_id: str, current_user):
     """Mark a scan as manually triggered to run."""
     try:
@@ -287,7 +295,10 @@ def run_scan(scan_id: str, current_user):
 
         scan.manualRunPending = True
         scan.save()
-        return {"status": "success", "message": f"Scan {scan_id} deleted successfully."}
+        return {
+            "status": "success",
+            "message": f"Scan {scan_id} set to manualRunPending.",
+        }
 
     except HTTPException as http_exc:
         raise http_exc
@@ -296,6 +307,7 @@ def run_scan(scan_id: str, current_user):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# POST: /scheduler/invoke
 async def invoke_scheduler(current_user):
     """Manually invoke the scan scheduler."""
     try:
@@ -312,7 +324,7 @@ async def invoke_scheduler(current_user):
         print(lambda_function_name)
 
         # Run the Lambda command
-        response = await lambda_client.run_command(name=lambda_function_name)
+        response = lambda_client.run_command(name=lambda_function_name)
 
         return response
 

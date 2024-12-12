@@ -1,6 +1,5 @@
 import React from 'react';
 import Notifications from 'pages/Notifications';
-import Scan from 'pages/Scan/Scan';
 import ScansView from 'pages/Scans/ScansView';
 import ScanTasksView from 'pages/Scans/ScanTasksView';
 import { Box, Container, Tab } from '@mui/material';
@@ -27,7 +26,6 @@ export const AdminTools: React.FC = () => {
           </Box>
           <TabPanel value="1">
             <ScansView />
-            <Scan />
           </TabPanel>
           <TabPanel value="2">
             <ScanTasksView />

@@ -92,8 +92,8 @@ def get_org_memberships(current_user) -> list[str]:
     """Returns the organization IDs that a user is a member of."""
     # Check if the user has a 'roles' attribute and it's not None
 
-    roles = Role.objects.filter(userId=current_user)
-    return [role.organizationId.id for role in roles if role.organizationId]
+    roles = Role.objects.filter(user=current_user)
+    return [role.organization.id for role in roles if role.organization]
 
 
 async def get_user_domains(user_id: str) -> List[str]:
@@ -107,8 +107,8 @@ async def get_user_domains(user_id: str) -> List[str]:
             return []
 
         # Fetch organization IDs associated with the user
-        organization_ids_qs = Role.objects.filter(userId__id=user_id).values_list(
-            "organizationId", flat=True
+        organization_ids_qs = Role.objects.filter(user__id=user_id).values_list(
+            "organization", flat=True
         )
         organization_ids = await sync_to_async(lambda qs: list(qs))(organization_ids_qs)
 
@@ -117,7 +117,7 @@ async def get_user_domains(user_id: str) -> List[str]:
 
         # Fetch domain names associated with these organizations
         domain_names_qs = Domain.objects.filter(
-            organizationId__in=organization_ids
+            organization__in=organization_ids
         ).values_list("name", flat=True)
         domain_list = await sync_to_async(lambda qs: list(qs))(domain_names_qs)
 
@@ -132,12 +132,12 @@ def get_user_service_ids(user_id):
     Retrieves service IDs associated with the organizations the user belongs to.
     """
     # Get organization IDs the user is a member of
-    organization_ids = Role.objects.filter(userId=user_id).values_list(
-        "organizationId", flat=True
+    organization_ids = Role.objects.filter(user=user_id).values_list(
+        "organization", flat=True
     )
 
     # Get domain IDs associated with these organizations
-    domain_ids = Domain.objects.filter(organizationId__in=organization_ids).values_list(
+    domain_ids = Domain.objects.filter(organization__in=organization_ids).values_list(
         "id", flat=True
     )
 
@@ -152,8 +152,8 @@ def get_user_service_ids(user_id):
 async def get_user_organization_ids(user_id: str) -> List[str]:
     try:
         # Fetch organization IDs associated with the user
-        organization_ids_qs = Role.objects.filter(userId__id=user_id).values_list(
-            "organizationId__id", flat=True
+        organization_ids_qs = Role.objects.filter(user__id=user_id).values_list(
+            "organization__id", flat=True
         )
         organization_ids = await sync_to_async(list)(organization_ids_qs)
         return [str(org_id) for org_id in organization_ids]
@@ -166,12 +166,12 @@ def get_user_ports(user_id):
     Retrieves port numbers associated with the organizations the user belongs to.
     """
     # Get organization IDs the user is a member of
-    organization_ids = Role.objects.filter(userId=user_id).values_list(
-        "organizationId", flat=True
+    organization_ids = Role.objects.filter(user=user_id).values_list(
+        "organization", flat=True
     )
 
     # Get domain IDs associated with these organizations
-    domain_ids = Domain.objects.filter(organizationId__in=organization_ids).values_list(
+    domain_ids = Domain.objects.filter(organization__in=organization_ids).values_list(
         "id", flat=True
     )
 
@@ -261,7 +261,7 @@ def get_user_by_api_key(api_key: str):
         api_key_instance = ApiKey.objects.get(hashedKey=hashed_key)
         api_key_instance.lastUsed = datetime.now(timezone.utc)
         api_key_instance.save(update_fields=["lastUsed"])
-        return api_key_instance.userId
+        return api_key_instance.user
     except ApiKey.DoesNotExist:
         print("API Key not found")
         return None
@@ -272,20 +272,7 @@ def get_current_active_user(
     api_key: Optional[str] = Security(api_key_header),
     token: Optional[str] = Depends(get_token_from_header),
 ):
-    """
-    Ensure the current user is authenticated and active, supporting either API key or token.
-
-    Args:
-        request (Request): The incoming request object.
-        api_key (Optional[str]): The API key provided in headers.
-        token (Optional[str]): The JWT token from the Authorization header.
-
-    Returns:
-        User: The authenticated user object.
-
-    Raises:
-        HTTPException: If authentication fails or credentials are invalid.
-    """
+    """Ensure the current user is authenticated and active, supporting either API key or token."""
     user = None
     if api_key:
         user = get_user_by_api_key(api_key)
@@ -330,7 +317,7 @@ def get_current_active_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
         )
-    
+
     # Attach email to request state for logging
     request.state.user_email = user.email
     return user
@@ -426,7 +413,9 @@ def can_access_user(current_user, target_user_id) -> bool:
         return False
 
     # Check if the current user is the target user or a global write admin
-    if current_user.id == target_user_id or is_global_write_admin(current_user):
+    if str(current_user.id) == str(target_user_id) or is_global_write_admin(
+        current_user
+    ):
         return True
 
     # Check if the user is a regional admin and the target user is in the same region

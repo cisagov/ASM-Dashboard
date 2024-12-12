@@ -31,13 +31,14 @@ class SearchResponse(BaseModel):
     hits: Any
 
 
-class SearchBody(BaseModel):
-    current: int
-    results_per_page: int
-    search_term: str
-    sort_direction: str
-    sort_field: str
-    filters: List[Filter]
-    organization_ids: Optional[List[UUID]] = None
-    organization_id: Optional[UUID] = None
-    tag_id: Optional[UUID] = None
+class DomainSearchBody(BaseModel):
+    """Elastic search domain model."""
+
+    current: Optional[int] = 1
+    filters: Optional[List[dict]] = []
+    resultsPerPage: Optional[int] = 15
+    searchTerm: Optional[str] = ""
+    sortDirection: Optional[str] = "asc"
+    sortField: Optional[str] = "name"
+    organization_id: Optional[List[str]] = None
+    tag_id: Optional[str] = None
