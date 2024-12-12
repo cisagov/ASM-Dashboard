@@ -166,7 +166,10 @@ export const DrawerInterior: React.FC<Props> = (props) => {
     : [];
 
   const fromDomainFacet: any[] = facets['fromRootDomain']
-    ? facets['fromRootDomain'][0].data
+    ? facets['fromRootDomain'][0].data.sort(
+        (a: { value: string }, b: { value: string }) =>
+          a.value.localeCompare(b.value)
+      )
     : [];
 
   const cveFacet: any[] = facets['vulnerabilities.cve']
