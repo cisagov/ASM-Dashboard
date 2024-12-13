@@ -21,7 +21,7 @@ from xfd_api.helpers.stats_helpers import populate_stats_cache
 from xfd_api.models import Service, Vulnerability
 
 
-def populate_services_cache():
+def populate_services_cache(event, context):
     return populate_stats_cache(
         model=Service,
         group_by_field="domain__organization_id",
@@ -35,7 +35,7 @@ def populate_services_cache():
     )
 
 
-def populate_ports_cache():
+def populate_ports_cache(event, context):
     return populate_stats_cache(
         model=Service,
         group_by_field="domain__organization_id",
@@ -49,7 +49,7 @@ def populate_ports_cache():
     )
 
 
-def populate_num_vulns_cache():
+def populate_num_vulns_cache(event, context):
     return populate_stats_cache(
         model=Vulnerability,
         group_by_field="domain__organization_id",
@@ -69,7 +69,7 @@ def populate_num_vulns_cache():
     )
 
 
-def populate_latest_vulns_cache(max_results=100):
+def populate_latest_vulns_cache(event, context, max_results=100):
     """
     Populate Redis with the latest vulnerabilities for each organization.
     """
@@ -164,7 +164,7 @@ def populate_latest_vulns_cache(max_results=100):
         }
 
 
-def populate_most_common_vulns_cache(max_results=100):
+def populate_most_common_vulns_cache(event, context, max_results=100):
     """
     Populate Redis with the most common vulnerabilities grouped by title, description, and severity.
     """
@@ -220,7 +220,7 @@ def populate_most_common_vulns_cache(max_results=100):
         }
 
 
-def populate_severity_cache():
+def populate_severity_cache(event, context):
     """
     Populate Redis with severity statistics for vulnerabilities.
     """
@@ -237,7 +237,7 @@ def populate_severity_cache():
     )
 
 
-def populate_by_org_cache():
+def populate_by_org_cache(event, context):
     """
     Populate Redis with the count of open vulnerabilities grouped by organization.
     Each organization's data is stored under its own Redis key.

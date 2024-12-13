@@ -10,5 +10,5 @@ class Command(BaseCommand):
     )
 
     def handle(self, *args, **options):
-        result = populate_services_cache()
+        result = populate_services_cache({}, {})
         self.stdout.write(self.style.SUCCESS(result["message"]))

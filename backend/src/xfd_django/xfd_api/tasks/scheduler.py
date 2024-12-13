@@ -267,7 +267,7 @@ class Scheduler:
         return True
 
 
-def handler(event):
+def handler(event, context):
     """Handler for manually invoking the scheduler to run scans."""
     print("Running scheduler...")
 

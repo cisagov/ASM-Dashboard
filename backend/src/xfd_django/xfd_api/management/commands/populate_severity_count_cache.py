@@ -7,5 +7,5 @@ class Command(BaseCommand):
     help = "Populates the vulnerabilities stats cache in AWS Elasticache"
 
     def handle(self, *args, **options):
-        result = populate_severity_cache()
+        result = populate_severity_cache({}, {})
         self.stdout.write(self.style.SUCCESS(result["message"]))
