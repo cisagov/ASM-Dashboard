@@ -20,13 +20,7 @@ from .api_methods import notification as notification_methods
 from .api_methods import organization, proxy, scan, scan_tasks, user
 from .api_methods.cpe import get_cpes_by_id
 from .api_methods.cve import get_cves_by_id, get_cves_by_name
-from .api_methods.domain import (
-    export_domains,
-    get_domain_by_id,
-    search_domains,
-    stats_total_domains,
-)
-from .api_methods.organization import stats_get_org_count_by_id
+from .api_methods.domain import export_domains, get_domain_by_id, search_domains
 from .api_methods.saved_search import (
     create_saved_search,
     delete_saved_search,
@@ -34,9 +28,17 @@ from .api_methods.saved_search import (
     list_saved_searches,
     update_saved_search,
 )
-from .api_methods.search import export, search_post
-from .api_methods.stats_ports import get_user_ports_cache
-from .api_methods.stats_services import get_user_services_count
+from .api_methods.search import search_export, search_post
+from .api_methods.stats import (
+    get_by_org_stats,
+    get_num_vulns,
+    get_severity_stats,
+    get_stats,
+    get_user_ports_count,
+    get_user_services_count,
+    stats_latest_vulns,
+    stats_most_common_vulns,
+)
 from .api_methods.user import (
     accept_terms,
     delete_user,
@@ -49,38 +51,23 @@ from .api_methods.user import (
     update_user_v2,
 )
 from .api_methods.vulnerability import (
-    get_num_vulns,
     get_vulnerability_by_id,
     search_vulnerabilities,
-    stats_latest_vulns,
-    stats_most_common_vulns,
-    stats_vuln_count,
     update_vulnerability,
 )
-from .auth import (
-    get_current_active_user,
-    get_tag_organization_ids,
-    get_user_domains,
-    get_user_organization_ids,
-    get_user_ports,
-    get_user_service_ids,
-    is_global_view_admin,
-)
+from .auth import get_current_active_user
 from .login_gov import callback, login
 from .models import Domain, Organization, User, Vulnerability
 from .schema_models import organization_schema as OrganizationSchema
 from .schema_models import scan as scanSchema
 from .schema_models import scan_tasks as scanTaskSchema
+from .schema_models import stat_schema
 from .schema_models.api_key import ApiKey as ApiKeySchema
-from .schema_models.by_org_item import ByOrgItem
 from .schema_models.cpe import Cpe as CpeSchema
 from .schema_models.cve import Cve as CveSchema
 from .schema_models.domain import Domain as DomainSchema
 from .schema_models.domain import DomainFilters, DomainSearch, TotalDomainsResponse
-from .schema_models.latest_vuln import LatestVulnerabilitySchema
-from .schema_models.most_common_vuln import MostCommonVulnerabilitySchema
 from .schema_models.notification import Notification as NotificationSchema
-from .schema_models.ports_stats import PortsStats
 from .schema_models.role import Role as RoleSchema
 from .schema_models.saved_search import (
     SavedSearchCreate,
@@ -88,9 +75,7 @@ from .schema_models.saved_search import (
     SavedSearchUpdate,
 )
 from .schema_models.saved_search import SavedSearch as SavedSearchSchema
-from .schema_models.search import SearchBody, SearchRequest, SearchResponse
-from .schema_models.service import ServicesStat
-from .schema_models.severity_count import SeverityCountSchema
+from .schema_models.search import DomainSearchBody, SearchResponse
 from .schema_models.user import (
     NewUser,
     NewUserResponseModel,
@@ -100,7 +85,7 @@ from .schema_models.user import (
 from .schema_models.user import User as UserSchema
 from .schema_models.user import UserResponse, UserResponseV2, VersionModel
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
-from .schema_models.vulnerability import VulnerabilitySearch, VulnerabilityStat
+from .schema_models.vulnerability import VulnerabilitySearch
 
 # Define API router
 api_router = APIRouter()
@@ -116,8 +101,20 @@ async def get_redis_client(request: Request):
     return request.app.state.redis
 
 
+# Healthcheck endpoint
+@api_router.get("/healthcheck", tags=["Testing"])
+async def healthcheck():
+    """
+    Healthcheck endpoint.
+
+    Returns:
+        dict: A dictionary containing the health status of the application.
+    """
+    return {"status": "ok"}
+
+
 # ========================================
-#   Analytics
+#   Proxy Endpoints
 # ========================================
 
 
@@ -162,7 +159,7 @@ async def matomo_proxy(
 @api_router.api_route(
     "/pe/{path:path}",
     dependencies=[Depends(get_current_active_user)],
-    tags=["Analytics"],
+    tags=["P&E Proxy"],
 )
 async def pe_proxy(
     path: str, request: Request, current_user: User = Depends(get_current_active_user)
@@ -176,68 +173,11 @@ async def pe_proxy(
     return await proxy.proxy_request(request, os.getenv("PE_API_URL", ""), path)
 
 
-# ========================================
-#   API Keys
-# ========================================
-
-
-# POST
-@api_router.post("/api-keys", response_model=ApiKeySchema, tags=["API Keys"])
-async def create_api_key(current_user: User = Depends(get_current_active_user)):
-    """Create api key."""
-    return api_key_methods.post(current_user)
-
-
-# DELETE
-@api_router.delete("/api-keys/{id}", tags=["API Keys"])
-async def delete_api_key(
-    id: str, current_user: User = Depends(get_current_active_user)
-):
-    """Delete api key by id."""
-    return api_key_methods.delete(id, current_user)
-
-
-# ========================================
-#   Auth
-# ========================================
-
-
-# Okta Callback
-@api_router.post("/auth/okta-callback", tags=["Auth"])
-async def okta_callback(request: Request):
-    """Handle Okta Callback."""
-    return await auth_methods.handle_okta_callback(request)
-
-
-# Login
-@api_router.get("/login", tags=["Auth"])
-async def login_route():
-    """Handle V1 Login."""
-    return login()
-
-
-# V1 Callback
-@api_router.post("/auth/callback", tags=["Auth"])
-async def callback_route(request: Request):
-    """Handle V1 Callback."""
-    body = await request.json()
-    try:
-        user_info = callback(body)
-        return user_info
-    except Exception as error:
-        raise HTTPException(status_code=400, detail=str(error))
-
-
-# ========================================
-#   CPEs
-# ========================================
-
-
 @api_router.get(
     "/cpes/{cpe_id}",
     # dependencies=[Depends(get_current_active_user)],
     response_model=CpeSchema,
-    tags=["CPEs"],
+    tags=["Cpe"],
 )
 async def call_get_cpes_by_id(cpe_id):
     """
@@ -248,16 +188,11 @@ async def call_get_cpes_by_id(cpe_id):
     return get_cpes_by_id(cpe_id)
 
 
-# ========================================
-#   CVEs
-# ========================================
-
-
 @api_router.get(
     "/cves/{cve_id}",
     # dependencies=[Depends(get_current_active_user)],
     response_model=CveSchema,
-    tags=["CVEs"],
+    tags=["Cve"],
 )
 async def call_get_cves_by_id(cve_id):
     """
@@ -272,7 +207,7 @@ async def call_get_cves_by_id(cve_id):
     "/cves/name/{cve_name}",
     # dependencies=[Depends(get_current_active_user)],
     response_model=CveSchema,
-    tags=["CVEs"],
+    tags=["Get cve by name"],
 )
 async def call_get_cves_by_name(cve_name):
     """
@@ -281,11 +216,6 @@ async def call_get_cves_by_name(cve_name):
         object: a single Cpe object.
     """
     return get_cves_by_name(cve_name)
-
-
-# ========================================
-#   Domains
-# ========================================
 
 
 @api_router.post(
@@ -318,8 +248,8 @@ async def call_export_domains(domain_search: DomainSearch):
 @api_router.get(
     "/domain/{domain_id}",
     dependencies=[Depends(get_current_active_user)],
-    response_model=DomainSchema,
-    tags=["Domains"],
+    # response_model=GetDomainResponse,
+    tags=["Get domain by id"],
 )
 async def call_get_domain_by_id(domain_id: str):
     """
@@ -330,14 +260,421 @@ async def call_get_domain_by_id(domain_id: str):
     return get_domain_by_id(domain_id)
 
 
+@api_router.post(
+    "/vulnerabilities/search",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=List[VulnerabilitySchema],
+    tags=["Vulnerabilities"],
+)
+async def call_search_vulnerabilities(
+    vulnerability_search: VulnerabilitySearch,
+    current_user: User = Depends(get_current_active_user),
+):
+    try:
+        return search_vulnerabilities(vulnerability_search, current_user)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/vulnerabilities/export")
+async def export_vulnerabilities():
+    try:
+        pass
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get(
+    "/vulnerabilities/{vulnerabilityId}",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=VulnerabilitySchema,
+    tags=["Vulnerabilities"],
+)
+async def call_get_vulnerability_by_id(vuln_id):
+    """
+    Get vulnerability by id.
+    Returns:
+        object: a single Vulnerability object.
+    """
+    return get_vulnerability_by_id(vuln_id)
+
+
+@api_router.put(
+    "/vulnerabilities/{vulnerabilityId}",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=VulnerabilitySchema,
+    tags="Update vulnerability",
+)
+async def call_update_vulnerability(
+    vuln_id,
+    data: VulnerabilitySchema,
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Update vulnerability by id.
+
+    Returns:
+        object: a single vulnerability object that has been modified.
+    """
+    return update_vulnerability(vuln_id, data, current_user)
+
+
 # ========================================
-#   Notifications
+#   Auth Endpoints
+# ========================================
+
+
+# Okta Callback
+@api_router.post("/auth/okta-callback", tags=["auth"])
+async def okta_callback(request: Request):
+    """Handle Okta Callback."""
+    return await auth_methods.handle_okta_callback(request)
+
+
+# Login
+@api_router.get("/login", tags=["auth"])
+async def login_route():
+    """Handle V1 Login."""
+    return login()
+
+
+# V1 Callback
+@api_router.post("/auth/callback", tags=["auth"])
+async def callback_route(request: Request):
+    """Handle V1 Callback."""
+    body = await request.json()
+    try:
+        user_info = callback(body)
+        return user_info
+    except Exception as error:
+        raise HTTPException(status_code=400, detail=str(error))
+
+
+# ========================================
+#   Users Endpoints
+# ========================================
+
+
+@api_router.post(
+    "/users/me/acceptTerms",
+    response_model=UserSchema,
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Users"],
+)
+async def call_accept_terms(
+    version_data: VersionModel, current_user: User = Depends(get_current_active_user)
+):
+    """Accept the latest terms of service."""
+
+    return accept_terms(version_data, current_user)
+
+
+@api_router.get("/users/me", tags=["Users"])
+async def read_users_me(current_user: User = Depends(get_current_active_user)):
+    return get_me(current_user)
+
+
+@api_router.delete(
+    "/users/{userId}",
+    response_model=OrganizationSchema.GenericMessageResponseModel,
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Users"],
+)
+async def call_delete_user(
+    userId: str, current_user: User = Depends(get_current_active_user)
+):
+    """Delete user."""
+    return delete_user(userId, current_user)
+
+
+@api_router.get(
+    "/users",
+    response_model=List[UserResponseV2],
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Users"],
+)
+async def call_get_users(current_user: User = Depends(get_current_active_user)):
+    """Get all users."""
+    return get_users(current_user)
+
+
+@api_router.get(
+    "/users/regionId/{regionId}",
+    response_model=List[UserSchema],
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Users"],
+)
+async def call_get_users_by_region_id(
+    regionId, current_user: User = Depends(get_current_active_user)
+):
+    """
+    Call get_users_by_region_id()
+    Args:
+        request : The HTTP request containing query parameters.
+
+    Raises:
+        HTTPException: If the user is not authorized or no users are found.
+
+    Returns:
+        List[User]: A list of users matching the filter criteria.
+    """
+    return get_users_by_region_id(regionId, current_user)
+
+
+@api_router.get(
+    "/users/state/{state}",
+    response_model=List[UserSchema],
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Users"],
+)
+async def call_get_users_by_state(
+    state, current_user: User = Depends(get_current_active_user)
+):
+    """
+    Call get_users_by_state()
+    Args:
+        request : The HTTP request containing query parameters.
+
+    Raises:
+        HTTPException: If the user is not authorized or no users are found.
+
+    Returns:
+        List[User]: A list of users matching the filter criteria.
+    """
+    return get_users_by_state(state, current_user)
+
+
+@api_router.get(
+    "/v2/users",
+    response_model=List[UserResponseV2],
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Users"],
+)
+async def call_get_users_v2(
+    state: Optional[str] = Query(None),
+    regionId: Optional[str] = Query(None),
+    invitePending: Optional[bool] = Query(None),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Get users with filter."""
+    return get_users_v2(state, regionId, invitePending, current_user)
+
+
+@api_router.put(
+    "/v2/users/{user_id}",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=UserResponseV2,
+    tags=["Users"],
+)
+async def update_user_v2_view(
+    user_id: str,
+    user_data: UpdateUserV2,
+    current_user: User = Depends(get_current_active_user),
+):
+    """Update a particular user."""
+    return update_user_v2(user_id, user_data, current_user)
+
+
+@api_router.post("/users/{userId}", tags=["Users"])
+async def call_update_user(
+    userId, body, current_user: User = Depends(get_current_active_user)
+):
+    """
+    Update a user by ID.
+    Args:
+        userId : The ID of the user to update.
+        request : The HTTP request containing authorization and target for update.
+
+    Raises:
+        HTTPException: If the user is not authorized or the user is not found.
+
+    Returns:
+        JSONResponse: The result of the update.
+    """
+    return update_user(userId, body, current_user)
+
+
+@api_router.put(
+    "/users/{user_id}/register/approve",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=RegisterUserResponse,
+    tags=["Users"],
+)
+async def register_approve(
+    user_id: str, current_user: User = Depends(get_current_active_user)
+):
+    """Approve a registered user."""
+    return user.approve_user_registration(user_id, current_user)
+
+
+@api_router.put(
+    "/users/{user_id}/register/deny",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=RegisterUserResponse,
+    tags=["Users"],
+)
+async def register_deny(
+    user_id: str, current_user: User = Depends(get_current_active_user)
+):
+    """Deny a registered user."""
+    return user.deny_user_registration(user_id, current_user)
+
+
+@api_router.post(
+    "/users",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=NewUserResponseModel,
+    tags=["Users"],
+)
+async def invite_user(
+    new_user: NewUser, current_user: User = Depends(get_current_active_user)
+):
+    """Invite a user."""
+    return user.invite(new_user, current_user)
+
+
+# ========================================
+#   Api-Key Endpoints
+# ========================================
+
+
+# POST
+@api_router.post("/api-keys", response_model=ApiKeySchema, tags=["api-keys"])
+async def create_api_key(current_user: User = Depends(get_current_active_user)):
+    """Create api key."""
+    return api_key_methods.post(current_user)
+
+
+# DELETE
+@api_router.delete("/api-keys/{id}", tags=["api-keys"])
+async def delete_api_key(
+    id: str, current_user: User = Depends(get_current_active_user)
+):
+    """Delete api key by id."""
+    return api_key_methods.delete(id, current_user)
+
+
+# ========================================
+#   Saved Search  Endpoints
+# ========================================
+
+
+# Create a new saved search
+@api_router.post(
+    "/saved-searches",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=SavedSearchSchema,
+    tags=["Saved Search"],
+)
+async def call_create_saved_search(
+    saved_search: SavedSearchCreate,
+    current_user: User = Depends(get_current_active_user),
+):
+    """Create a new saved search."""
+
+    request = {
+        "name": saved_search.name,
+        "count": saved_search.count,
+        "sortDirection": saved_search.sortDirection,
+        "sortField": saved_search.sortField,
+        "searchTerm": saved_search.searchTerm,
+        "searchPath": saved_search.searchPath,
+        "filters": saved_search.filters,
+        "createdById": current_user,
+    }
+
+    return create_saved_search(request)
+
+
+# Get all existing saved searches
+@api_router.get(
+    "/saved-searches",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=SavedSearchList,
+    tags=["Saved Search"],
+)
+async def call_list_saved_searches(user: User = Depends(get_current_active_user)):
+    """Retrieve a list of all saved searches."""
+    return list_saved_searches(user)
+
+
+# Get individual saved search by ID
+@api_router.get(
+    "/saved-searches/{saved_search_id}",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=SavedSearchSchema,
+    tags=["Saved Search"],
+)
+async def call_get_saved_search(
+    saved_search_id: str, current_user: User = Depends(get_current_active_user)
+):
+    """Retrieve a saved search by its ID."""
+    return get_saved_search(saved_search_id, current_user)
+
+
+# Update saved search by ID
+@api_router.put(
+    "/saved-searches/{saved_search_id}",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=SavedSearchUpdate,
+    tags=["Saved Search"],
+)
+async def call_update_saved_search(
+    saved_search: SavedSearchUpdate,
+    saved_search_id: str,
+    current_user: User = Depends(get_current_active_user),
+):
+    """Update a saved search by its ID."""
+
+    request = {
+        "saved_search_id": saved_search_id,
+        "name": saved_search.name,
+        "count": saved_search.count,
+        "searchTerm": saved_search.searchTerm,
+        "sortDirection": saved_search.sortDirection,
+        "sortField": saved_search.sortField,
+        "searchPath": saved_search.searchPath,
+        "filters": saved_search.filters,
+    }
+
+    return update_saved_search(request, current_user)
+
+
+# Delete saved search by ID
+@api_router.delete(
+    "/saved-searches/{saved_search_id}",
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Saved Search"],
+)
+async def call_delete_saved_search(
+    saved_search_id: str, current_user: User = Depends(get_current_active_user)
+):
+    """Delete a saved search by its ID."""
+    return delete_saved_search(saved_search_id, current_user)
+
+
+# GET ALL
+@api_router.get("/api-keys", response_model=List[ApiKeySchema], tags=["api-keys"])
+async def get_all_api_keys(current_user: User = Depends(get_current_active_user)):
+    """Get all api keys."""
+    return api_key_methods.get_all(current_user)
+
+
+# GET BY ID
+@api_router.get("/api-keys/{id}", response_model=ApiKeySchema, tags=["api-keys"])
+async def get_api_key(id: str, current_user: User = Depends(get_current_active_user)):
+    """Get api key by id."""
+    return api_key_methods.get_by_id(id, current_user)
+
+
+# ========================================
+#   Notification Endpoints
 # ========================================
 
 
 # POST
 @api_router.post(
-    "/notifications", response_model=NotificationSchema, tags=["Notifications"]
+    "/notifications", response_model=NotificationSchema, tags=["notifications"]
 )
 async def create_notification(current_user: User = Depends(get_current_active_user)):
     """Create notification key."""
@@ -347,7 +684,7 @@ async def create_notification(current_user: User = Depends(get_current_active_us
 
 # DELETE
 @api_router.delete(
-    "/notifications/{id}", response_model=NotificationSchema, tags=["Notifications"]
+    "/notifications/{id}", response_model=NotificationSchema, tags=["notifications"]
 )
 async def delete_notification(
     id: str, current_user: User = Depends(get_current_active_user)
@@ -358,7 +695,7 @@ async def delete_notification(
 
 # GET ALL: Doesn't require authentication
 @api_router.get(
-    "/notifications", response_model=List[NotificationSchema], tags=["Notifications"]
+    "/notifications", response_model=List[NotificationSchema], tags=["notifications"]
 )
 async def get_all_notifications():
     """Get all notifications."""
@@ -367,7 +704,7 @@ async def get_all_notifications():
 
 # GET BY ID
 @api_router.get(
-    "/notifications/{id}", response_model=NotificationSchema, tags=["Notifications"]
+    "/notifications/{id}", response_model=NotificationSchema, tags=["notifications"]
 )
 async def get_notification(
     id: str, current_user: User = Depends(get_current_active_user)
@@ -377,7 +714,7 @@ async def get_notification(
 
 
 # UPDATE BY ID
-@api_router.put("/notifications/{id}", tags=["Notifications"])
+@api_router.put("/notifications/{id}", tags=["notifications"])
 async def update_notification(
     id: str, current_user: User = Depends(get_current_active_user)
 ):
@@ -386,14 +723,286 @@ async def update_notification(
 
 
 # GET 508 Banner: Doesn't require authentication
-@api_router.get("/notifications/508-banner", tags=["Notifications"])
+@api_router.get("/notifications/508-banner", tags=["notifications"])
 async def get_508_banner():
     """Get notification by id."""
     return notification_methods.get_508_banner()
 
 
 # ========================================
-#   Organizations
+#   Scan Endpoints
+# ========================================
+
+
+@api_router.get(
+    "/scans",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=scanSchema.GetScansResponseModel,
+    tags=["Scans"],
+)
+async def list_scans(current_user: User = Depends(get_current_active_user)):
+    """Retrieve a list of all scans."""
+    return scan.list_scans(current_user)
+
+
+@api_router.get(
+    "/granularScans",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=scanSchema.GetGranularScansResponseModel,
+    tags=["Scans"],
+)
+async def list_granular_scans(current_user: User = Depends(get_current_active_user)):
+    """Retrieve a list of granular scans. User must be authenticated."""
+    return scan.list_granular_scans(current_user)
+
+
+@api_router.post(
+    "/scans",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=scanSchema.CreateScanResponseModel,
+    tags=["Scans"],
+)
+async def create_scan(
+    scan_data: scanSchema.NewScan, current_user: User = Depends(get_current_active_user)
+):
+    """Create a new scan."""
+    return scan.create_scan(scan_data, current_user)
+
+
+@api_router.get(
+    "/scans/{scan_id}",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=scanSchema.GetScanResponseModel,
+    tags=["Scans"],
+)
+async def get_scan(scan_id: str, current_user: User = Depends(get_current_active_user)):
+    """Get a scan by its ID. User must be authenticated."""
+    return scan.get_scan(scan_id, current_user)
+
+
+@api_router.put(
+    "/scans/{scan_id}",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=scanSchema.CreateScanResponseModel,
+    tags=["Scans"],
+)
+async def update_scan(
+    scan_id: str,
+    scan_data: scanSchema.NewScan,
+    current_user: User = Depends(get_current_active_user),
+):
+    """Update a scan by its ID."""
+    return scan.update_scan(scan_id, scan_data, current_user)
+
+
+@api_router.delete(
+    "/scans/{scan_id}",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=scanSchema.GenericMessageResponseModel,
+    tags=["Scans"],
+)
+async def delete_scan(
+    scan_id: str, current_user: User = Depends(get_current_active_user)
+):
+    """Delete a scan by its ID."""
+    return scan.delete_scan(scan_id, current_user)
+
+
+@api_router.post(
+    "/scans/{scan_id}/run",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=scanSchema.GenericMessageResponseModel,
+    tags=["Scans"],
+)
+async def run_scan(scan_id: str, current_user: User = Depends(get_current_active_user)):
+    """Manually run a scan by its ID"""
+    return scan.run_scan(scan_id, current_user)
+
+
+@api_router.post(
+    "/scheduler/invoke", dependencies=[Depends(get_current_active_user)], tags=["Scans"]
+)
+async def invoke_scheduler(current_user: User = Depends(get_current_active_user)):
+    """Manually invoke the scan scheduler."""
+    response = await scan.invoke_scheduler(current_user)
+    return response
+
+
+# ========================================
+#   Stats Endpoints
+# ========================================
+
+
+@api_router.post(
+    "/stats",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=stat_schema.StatsResponse,
+    tags=["Stats"],
+)
+async def get_services(
+    filter_data: OrganizationSchema.StatsPayloadSchema,
+    current_user: User = Depends(get_current_active_user),
+    redis_client=Depends(get_redis_client),
+):
+    """Retrieve all stats from Elasticache filtered by user."""
+    return await get_stats(filter_data, current_user, redis_client)
+
+
+@api_router.post(
+    "/services",
+    response_model=List[stat_schema.ServiceStat],
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Stats"],
+)
+async def post(
+    filter_data: OrganizationSchema.StatsPayloadSchema,
+    current_user: User = Depends(get_current_active_user),
+    redis_client=Depends(get_redis_client),
+):
+    """Retrieve services from Elasticache filtered by user."""
+    return await get_user_services_count(filter_data, current_user, redis_client)
+
+
+@api_router.post(
+    "/ports",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=List[stat_schema.PortStat],
+    tags=["Stats"],
+)
+async def get_ports_stats(
+    filter_data: OrganizationSchema.StatsPayloadSchema,
+    current_user: User = Depends(get_current_active_user),
+    redis_client=Depends(get_redis_client),
+):
+    """Retrieve Port Stats from Elasticache."""
+    return await get_user_ports_count(filter_data, current_user, redis_client)
+
+
+@api_router.post(
+    "/num-vulns",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=List[stat_schema.VulnerabilityStat],
+    tags=["Stats"],
+)
+async def get_num_vulns_stats(
+    filter_data: OrganizationSchema.StatsPayloadSchema,
+    current_user: User = Depends(get_current_active_user),
+    redis_client: aioredis.Redis = Depends(get_redis_client),
+):
+    """
+    Retrieve number of vulnerabilities stats from ElastiCache (Redis) filtered by user.
+    """
+    return await get_num_vulns(filter_data, current_user, redis_client)
+
+
+@api_router.post(
+    "/latest-vulns",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=List[stat_schema.LatestVulnerability],
+    tags=["Stats"],
+)
+async def get_latest_vulnerabilities(
+    filter_data: OrganizationSchema.StatsPayloadSchema,
+    current_user: User = Depends(get_current_active_user),
+    redis_client: aioredis.Redis = Depends(get_redis_client),
+):
+    return await stats_latest_vulns(filter_data, current_user, redis_client)
+
+
+@api_router.post(
+    "/most-common-vulns",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=List[stat_schema.MostCommonVulnerability],
+    tags=["Stats"],
+)
+async def get_most_common_vulns(
+    filter_data: OrganizationSchema.StatsPayloadSchema,
+    current_user: User = Depends(get_current_active_user),
+    redis_client: aioredis.Redis = Depends(get_redis_client),
+):
+    return await stats_most_common_vulns(filter_data, current_user, redis_client)
+
+
+@api_router.post(
+    "/severity-counts",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=List[stat_schema.SeverityCountStat],
+    tags=["Stats"],
+)
+async def get_severity_counts(
+    filter_data: OrganizationSchema.StatsPayloadSchema,
+    current_user: User = Depends(get_current_active_user),
+    redis_client: aioredis.Redis = Depends(get_redis_client),
+):
+    """
+    Retrieves the count of open vulnerabilities grouped by severity from Redis.
+    """
+    return await get_severity_stats(filter_data, current_user, redis_client)
+
+
+@api_router.post(
+    "/by-org",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=List[stat_schema.ByOrgStat],
+    tags=["Stats"],
+)
+async def get_by_org(
+    filter_data: OrganizationSchema.StatsPayloadSchema,
+    current_user: User = Depends(get_current_active_user),
+    redis_client: aioredis.Redis = Depends(get_redis_client),
+):
+    """
+    Retrieves the count of open vulnerabilities grouped by severity from Redis.
+    """
+    return await get_by_org_stats(filter_data, current_user, redis_client)
+
+
+# ========================================
+#   Scan Task Endpoints
+# ========================================
+
+
+@api_router.post(
+    "/scan-tasks/search",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=scanTaskSchema.ScanTaskListResponse,
+    tags=["Scan Tasks"],
+)
+async def list_scan_tasks(
+    search_data: Optional[scanTaskSchema.ScanTaskSearch] = Body(None),
+    current_user: User = Depends(get_current_active_user),
+):
+    """List scan tasks based on filters."""
+    return scan_tasks.list_scan_tasks(search_data, current_user)
+
+
+@api_router.post(
+    "/scan-tasks/{scan_task_id}/kill",
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Scan Tasks"],
+)
+async def kill_scan_tasks(
+    scan_task_id: UUID, current_user: User = Depends(get_current_active_user)
+):
+    """Kill a scan task."""
+    return scan_tasks.kill_scan_task(scan_task_id, current_user)
+
+
+@api_router.get(
+    "/scan-tasks/{scan_task_id}/logs",
+    dependencies=[Depends(get_current_active_user)],
+    # response_model=scanTaskSchema.GenericResponse,
+    tags=["Scan Tasks"],
+)
+async def get_scan_task_logs(
+    scan_task_id: UUID, current_user: User = Depends(get_current_active_user)
+):
+    """Get logs from a particular scan task."""
+    return scan_tasks.get_scan_task_logs(scan_task_id, current_user)
+
+
+# ========================================
+#   Organization Endpoints
 # ========================================
 
 
@@ -616,263 +1225,7 @@ async def search_organizations(
 
 
 # ========================================
-#   Saved Searches
-# ========================================
-
-
-# Create a new saved search
-@api_router.post(
-    "/saved-searches",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=SavedSearchSchema,
-    tags=["Saved Searches"],
-)
-async def call_create_saved_search(
-    saved_search: SavedSearchCreate,
-    current_user: User = Depends(get_current_active_user),
-):
-    """Create a new saved search."""
-
-    request = {
-        "name": saved_search.name,
-        "count": saved_search.count,
-        "sortDirection": saved_search.sortDirection,
-        "sortField": saved_search.sortField,
-        "searchTerm": saved_search.searchTerm,
-        "searchPath": saved_search.searchPath,
-        "filters": saved_search.filters,
-        "createdById": current_user,
-    }
-
-    return create_saved_search(request)
-
-
-# Get all existing saved searches
-@api_router.get(
-    "/saved-searches",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=SavedSearchList,
-    tags=["Saved Searches"],
-)
-async def call_list_saved_searches(user: User = Depends(get_current_active_user)):
-    """Retrieve a list of all saved searches."""
-    return list_saved_searches(user)
-
-
-# Get individual saved search by ID
-@api_router.get(
-    "/saved-searches/{saved_search_id}",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=SavedSearchSchema,
-    tags=["Saved Searches"],
-)
-async def call_get_saved_search(
-    saved_search_id: str, current_user: User = Depends(get_current_active_user)
-):
-    """Retrieve a saved search by its ID."""
-    return get_saved_search(saved_search_id, current_user)
-
-
-# Update saved search by ID
-@api_router.put(
-    "/saved-searches/{saved_search_id}",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=SavedSearchUpdate,
-    tags=["Saved Searches"],
-)
-async def call_update_saved_search(
-    saved_search: SavedSearchUpdate,
-    saved_search_id: str,
-    current_user: User = Depends(get_current_active_user),
-):
-    """Update a saved search by its ID."""
-
-    request = {
-        "saved_search_id": saved_search_id,
-        "name": saved_search.name,
-        "count": saved_search.count,
-        "searchTerm": saved_search.searchTerm,
-        "sortDirection": saved_search.sortDirection,
-        "sortField": saved_search.sortField,
-        "searchPath": saved_search.searchPath,
-        "filters": saved_search.filters,
-    }
-
-    return update_saved_search(request, current_user)
-
-
-# Delete saved search by ID
-@api_router.delete(
-    "/saved-searches/{saved_search_id}",
-    dependencies=[Depends(get_current_active_user)],
-    tags=["Saved Searches"],
-)
-async def call_delete_saved_search(
-    saved_search_id: str, current_user: User = Depends(get_current_active_user)
-):
-    """Delete a saved search by its ID."""
-    return delete_saved_search(saved_search_id, current_user)
-
-
-# GET ALL
-@api_router.get("/api-keys", response_model=List[ApiKeySchema], tags=["API Keys"])
-async def get_all_api_keys(current_user: User = Depends(get_current_active_user)):
-    """Get all api keys."""
-    return api_key_methods.get_all(current_user)
-
-
-# GET BY ID
-@api_router.get("/api-keys/{id}", response_model=ApiKeySchema, tags=["API Keys"])
-async def get_api_key(id: str, current_user: User = Depends(get_current_active_user)):
-    """Get api key by id."""
-    return api_key_methods.get_by_id(id, current_user)
-
-
-# ========================================
-#   Scans
-# ========================================
-
-
-@api_router.get(
-    "/scans",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=scanSchema.GetScansResponseModel,
-    tags=["Scans"],
-)
-async def list_scans(current_user: User = Depends(get_current_active_user)):
-    """Retrieve a list of all scans."""
-    return scan.list_scans(current_user)
-
-
-@api_router.get(
-    "/granularScans",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=scanSchema.GetGranularScansResponseModel,
-    tags=["Scans"],
-)
-async def list_granular_scans(current_user: User = Depends(get_current_active_user)):
-    """Retrieve a list of granular scans. User must be authenticated."""
-    return scan.list_granular_scans(current_user)
-
-
-@api_router.post(
-    "/scans",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=scanSchema.CreateScanResponseModel,
-    tags=["Scans"],
-)
-async def create_scan(
-    scan_data: scanSchema.NewScan, current_user: User = Depends(get_current_active_user)
-):
-    """Create a new scan."""
-    return scan.create_scan(scan_data, current_user)
-
-
-@api_router.get(
-    "/scans/{scan_id}",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=scanSchema.GetScanResponseModel,
-    tags=["Scans"],
-)
-async def get_scan(scan_id: str, current_user: User = Depends(get_current_active_user)):
-    """Get a scan by its ID. User must be authenticated."""
-    return scan.get_scan(scan_id, current_user)
-
-
-@api_router.put(
-    "/scans/{scan_id}",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=scanSchema.CreateScanResponseModel,
-    tags=["Scans"],
-)
-async def update_scan(
-    scan_id: str,
-    scan_data: scanSchema.NewScan,
-    current_user: User = Depends(get_current_active_user),
-):
-    """Update a scan by its ID."""
-    return scan.update_scan(scan_id, scan_data, current_user)
-
-
-@api_router.delete(
-    "/scans/{scan_id}",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=scanSchema.GenericMessageResponseModel,
-    tags=["Scans"],
-)
-async def delete_scan(
-    scan_id: str, current_user: User = Depends(get_current_active_user)
-):
-    """Delete a scan by its ID."""
-    return scan.delete_scan(scan_id, current_user)
-
-
-@api_router.post(
-    "/scans/{scan_id}/run",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=scanSchema.GenericMessageResponseModel,
-    tags=["Scans"],
-)
-async def run_scan(scan_id: str, current_user: User = Depends(get_current_active_user)):
-    """Manually run a scan by its ID"""
-    return scan.run_scan(scan_id, current_user)
-
-
-@api_router.post(
-    "/scheduler/invoke", dependencies=[Depends(get_current_active_user)], tags=["Scans"]
-)
-async def invoke_scheduler(current_user: User = Depends(get_current_active_user)):
-    """Manually invoke the scan scheduler."""
-    response = await scan.invoke_scheduler(current_user)
-    return response
-
-
-# ========================================
-#   Scan Tasks
-# ========================================
-
-
-@api_router.post(
-    "/scan-tasks/search",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=scanTaskSchema.ScanTaskListResponse,
-    tags=["Scan Tasks"],
-)
-async def list_scan_tasks(
-    search_data: Optional[scanTaskSchema.ScanTaskSearch] = Body(None),
-    current_user: User = Depends(get_current_active_user),
-):
-    """List scan tasks based on filters."""
-    return scan_tasks.list_scan_tasks(search_data, current_user)
-
-
-@api_router.post(
-    "/scan-tasks/{scan_task_id}/kill",
-    dependencies=[Depends(get_current_active_user)],
-    tags=["Scan Tasks"],
-)
-async def kill_scan_tasks(
-    scan_task_id: UUID, current_user: User = Depends(get_current_active_user)
-):
-    """Kill a scan task."""
-    return scan_tasks.kill_scan_task(scan_task_id, current_user)
-
-
-@api_router.get(
-    "/scan-tasks/{scan_task_id}/logs",
-    dependencies=[Depends(get_current_active_user)],
-    # response_model=scanTaskSchema.GenericResponse,
-    tags=["Scan Tasks"],
-)
-async def get_scan_task_logs(
-    scan_task_id: UUID, current_user: User = Depends(get_current_active_user)
-):
-    """Get logs from a particular scan task."""
-    return scan_tasks.get_scan_task_logs(scan_task_id, current_user)
-
-
-# ========================================
-#   Search
+#   Search Endpoints
 # ========================================
 
 
@@ -882,9 +1235,12 @@ async def get_scan_task_logs(
     response_model=SearchResponse,
     tags=["Search"],
 )
-async def search(request: SearchRequest):
+async def search(
+    search_body: DomainSearchBody, current_user: User = Depends(get_current_active_user)
+):
+    """ElasticSearch get domains index."""
     try:
-        search_post(request)
+        return await search_post(search_body, current_user)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
@@ -894,395 +1250,11 @@ async def search(request: SearchRequest):
 @api_router.post(
     "/search/export", dependencies=[Depends(get_current_active_user)], tags=["Search"]
 )
-async def export_endpoint(request: Request):
+async def export_endpoint(
+    search_body: DomainSearchBody, current_user: User = Depends(get_current_active_user)
+):
     try:
-        body = await request.json()
-        search_body = SearchBody(**body)  # Parse request body into SearchBody
-        result = export(search_body, request)
+        result = await search_export(search_body, current_user)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# ========================================
-#   Stats
-# ========================================
-
-
-@api_router.get(
-    "/services/",
-    tags=["Stats"],
-)
-async def get_services(
-    current_user: User = Depends(get_current_active_user),
-    redis_client=Depends(get_redis_client),
-):
-    """Retrieve services from Elasticache filtered by user."""
-    get_user_services_count(current_user, redis_client)
-
-
-@api_router.get(
-    "/ports/",
-    response_model=List[PortsStats],  # Expecting a list of Stats objects
-    tags=["Stats"],
-)
-async def get_Ports(
-    current_user: User = Depends(get_current_active_user),
-    redis_client=Depends(get_redis_client),
-):
-    """Retrieve Port Stats from Elasticache."""
-    get_user_ports_cache(current_user, redis_client)
-
-
-@api_router.get(
-    "/num-vulnerabilities/",
-    response_model=List[VulnerabilityStat],  # Expecting a list of Stats objects
-    tags=["Stats"],
-)
-async def get_NumVulnerabilities(
-    current_user: User = Depends(get_current_active_user),
-    redis_client: aioredis.Redis = Depends(get_redis_client),
-):
-    """
-    Retrieve number of vulnerabilities stats from ElastiCache (Redis) filtered by user.
-    """
-    get_num_vulns(current_user, redis_client)
-
-
-@api_router.get(
-    "/latest-vulnerabilities/",
-    response_model=List[LatestVulnerabilitySchema],
-    tags=["Stats"],
-)
-async def get_latest_vulnerabilities(
-    organization: str = Query(None, description="Filter by organization ID"),
-    tag: Optional[str] = None,
-    current_user: User = Depends(get_current_active_user),
-    redis_client: aioredis.Redis = Depends(get_redis_client),
-):
-    stats_latest_vulns(organization, tag, current_user, redis_client)
-
-
-@api_router.get(
-    "/most-common-vulnerabilities/",
-    response_model=List[MostCommonVulnerabilitySchema],
-    tags=["Stats"],
-)
-async def get_most_common_vulnerabilities(
-    organization: str = Query(None, description="Filter by organization ID"),
-    tag: str = Query(None, description="Filter by tag"),
-    current_user: User = Depends(get_current_active_user),
-    redis_client: aioredis.Redis = Depends(get_redis_client),
-):
-    stats_most_common_vulns(organization, tag, current_user, redis_client)
-
-
-@api_router.get(
-    "/severity-counts/",
-    response_model=List[SeverityCountSchema],
-    tags=["Stats"],
-)
-async def get_severity_counts(
-    organization: str = Query(None, description="Filter by organization ID"),
-    tag: str = Query(None, description="Filter by tag"),
-    current_user: User = Depends(get_current_active_user),
-    redis_client: aioredis.Redis = Depends(get_redis_client),
-):
-    """
-    Retrieves the count of open vulnerabilities grouped by severity from Redis.
-    """
-    stats_vuln_count(organization, tag, current_user, redis_client)
-
-
-@api_router.get(
-    "/domains/total/",
-    response_model=TotalDomainsResponse,
-    tags=["Stats"],
-)
-async def get_total_domains(
-    organization: str = Query(None, description="Filter by organization ID"),
-    tag: str = Query(None, description="Filter by tag"),
-    current_user: User = Depends(get_current_active_user),
-):
-    stats_total_domains(organization, tag, current_user)
-
-
-@api_router.get(
-    "/by-org/",
-    response_model=List[ByOrgItem],
-    tags=["Stats"],
-)
-async def get_by_org(
-    organization: str = Query(None, description="Filter by organization ID"),
-    tag: str = Query(None, description="Filter by tag"),
-    current_user: User = Depends(get_current_active_user),
-    redis_client: aioredis.Redis = Depends(get_redis_client),
-):
-    """
-    Retrieves the count of open vulnerabilities grouped by organization from Redis.
-    """
-    stats_get_org_count_by_id(organization, tag, current_user, redis_client)
-
-
-# ========================================
-#   Testing
-# ========================================
-
-
-# Healthcheck endpoint
-@api_router.get("/healthcheck", tags=["Testing"])
-async def healthcheck():
-    """
-    Healthcheck endpoint.
-
-    Returns:
-        dict: A dictionary containing the health status of the application.
-    """
-    return {"status": "ok"}
-
-
-# ========================================
-#   Users
-# ========================================
-
-
-@api_router.post(
-    "/users/me/acceptTerms",
-    response_model=UserSchema,
-    dependencies=[Depends(get_current_active_user)],
-    tags=["Users"],
-)
-async def call_accept_terms(
-    version_data: VersionModel, current_user: User = Depends(get_current_active_user)
-):
-    """Accept the latest terms of service."""
-
-    return accept_terms(version_data, current_user)
-
-
-@api_router.get("/users/me", tags=["Users"])
-async def read_users_me(current_user: User = Depends(get_current_active_user)):
-    return get_me(current_user)
-
-
-@api_router.delete(
-    "/users/{userId}",
-    response_model=OrganizationSchema.GenericMessageResponseModel,
-    dependencies=[Depends(get_current_active_user)],
-    tags=["Users"],
-)
-async def call_delete_user(
-    userId: str, current_user: User = Depends(get_current_active_user)
-):
-    """Delete user."""
-    return delete_user(userId, current_user)
-
-
-@api_router.get(
-    "/users",
-    response_model=List[UserResponseV2],
-    dependencies=[Depends(get_current_active_user)],
-    tags=["Users"],
-)
-async def call_get_users(current_user: User = Depends(get_current_active_user)):
-    """Get all users."""
-    return get_users(current_user)
-
-
-@api_router.get(
-    "/users/regionId/{regionId}",
-    response_model=List[UserSchema],
-    dependencies=[Depends(get_current_active_user)],
-    tags=["Users"],
-)
-async def call_get_users_by_region_id(
-    regionId, current_user: User = Depends(get_current_active_user)
-):
-    """
-    Call get_users_by_region_id()
-    Args:
-        request : The HTTP request containing query parameters.
-
-    Raises:
-        HTTPException: If the user is not authorized or no users are found.
-
-    Returns:
-        List[User]: A list of users matching the filter criteria.
-    """
-    return get_users_by_region_id(regionId, current_user)
-
-
-@api_router.get(
-    "/users/state/{state}",
-    response_model=List[UserSchema],
-    dependencies=[Depends(get_current_active_user)],
-    tags=["Users"],
-)
-async def call_get_users_by_state(
-    state, current_user: User = Depends(get_current_active_user)
-):
-    """
-    Call get_users_by_state()
-    Args:
-        request : The HTTP request containing query parameters.
-
-    Raises:
-        HTTPException: If the user is not authorized or no users are found.
-
-    Returns:
-        List[User]: A list of users matching the filter criteria.
-    """
-    return get_users_by_state(state, current_user)
-
-
-@api_router.get(
-    "/v2/users",
-    response_model=List[UserResponseV2],
-    dependencies=[Depends(get_current_active_user)],
-    tags=["Users"],
-)
-async def call_get_users_v2(
-    state: Optional[str] = Query(None),
-    regionId: Optional[str] = Query(None),
-    invitePending: Optional[bool] = Query(None),
-    current_user: User = Depends(get_current_active_user),
-):
-    """Get users with filter."""
-    return get_users_v2(state, regionId, invitePending, current_user)
-
-
-@api_router.put(
-    "/v2/users/{user_id}",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=UserResponseV2,
-    tags=["Users"],
-)
-async def update_user_v2_view(
-    user_id: str,
-    user_data: UpdateUserV2,
-    current_user: User = Depends(get_current_active_user),
-):
-    """Update a particular user."""
-    return update_user_v2(user_id, user_data, current_user)
-
-
-@api_router.post("/users/{userId}", tags=["Users"])
-async def call_update_user(
-    userId, body, current_user: User = Depends(get_current_active_user)
-):
-    """
-    Update a user by ID.
-    Args:
-        userId : The ID of the user to update.
-        request : The HTTP request containing authorization and target for update.
-
-    Raises:
-        HTTPException: If the user is not authorized or the user is not found.
-
-    Returns:
-        JSONResponse: The result of the update.
-    """
-    return update_user(userId, body, current_user)
-
-
-@api_router.put(
-    "/users/{user_id}/register/approve",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=RegisterUserResponse,
-    tags=["Users"],
-)
-async def register_approve(
-    user_id: str, current_user: User = Depends(get_current_active_user)
-):
-    """Approve a registered user."""
-    return user.approve_user_registration(user_id, current_user)
-
-
-@api_router.put(
-    "/users/{user_id}/register/deny",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=RegisterUserResponse,
-    tags=["Users"],
-)
-async def register_deny(
-    user_id: str, current_user: User = Depends(get_current_active_user)
-):
-    """Deny a registered user."""
-    return user.deny_user_registration(user_id, current_user)
-
-
-@api_router.post(
-    "/users",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=NewUserResponseModel,
-    tags=["Users"],
-)
-async def invite_user(
-    new_user: NewUser, current_user: User = Depends(get_current_active_user)
-):
-    """Invite a user."""
-    return user.invite(new_user, current_user)
-
-
-# ========================================
-#   Vulnerabilities
-# ========================================
-
-
-@api_router.post(
-    "/vulnerabilities/search",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=List[VulnerabilitySchema],
-    tags=["Vulnerabilities"],
-)
-async def call_search_vulnerabilities(
-    vulnerability_search: VulnerabilitySearch,
-    current_user: User = Depends(get_current_active_user),
-):
-    try:
-        return search_vulnerabilities(vulnerability_search, current_user)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@api_router.post("/vulnerabilities/export", tags=["Vulnerabilities"])
-async def export_vulnerabilities():
-    try:
-        pass
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@api_router.get(
-    "/vulnerabilities/{vulnerabilityId}",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=VulnerabilitySchema,
-    tags=["Vulnerabilities"],
-)
-async def call_get_vulnerability_by_id(vuln_id):
-    """
-    Get vulnerability by id.
-    Returns:
-        object: a single Vulnerability object.
-    """
-    return get_vulnerability_by_id(vuln_id)
-
-
-@api_router.put(
-    "/vulnerabilities/{vulnerabilityId}",
-    dependencies=[Depends(get_current_active_user)],
-    response_model=VulnerabilitySchema,
-    tags=["Vulnerabilities"],
-)
-async def call_update_vulnerability(
-    vuln_id,
-    data: VulnerabilitySchema,
-    current_user: User = Depends(get_current_active_user),
-):
-    """
-    Update vulnerability by id.
-
-    Returns:
-        object: a single vulnerability object that has been modified.
-    """
-    return update_vulnerability(vuln_id, data, current_user)
