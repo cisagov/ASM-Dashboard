@@ -391,9 +391,9 @@ data "aws_ssm_parameter" "xpanse_api_key" { name = var.ssm_xpanse_api_key }
 
 data "aws_ssm_parameter" "whoisxml_api_key" { name = var.ssm_whoisxml_api_key }
 
-data "aws_ssm_parameter" "qualys_username" { name = var.ssm_qualys_username}
+data "aws_ssm_parameter" "qualys_username" { name = var.ssm_qualys_username }
 
-data "aws_ssm_parameter" "qualys_password" { name = var.ssm_qualys_password}
+data "aws_ssm_parameter" "qualys_password" { name = var.ssm_qualys_password }
 
 data "aws_ssm_parameter" "xpanse_auth_id" { name = var.ssm_xpanse_auth_id }
 
