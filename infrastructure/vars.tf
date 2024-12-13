@@ -333,6 +333,18 @@ variable "ssm_whoisxml_api_key" {
   default     = "/crossfeed/staging/WHOIS_XML_KEY"
 }
 
+variable "ssm_qualys_username" {
+  description = "ssm_qualys_username"
+  type        = string
+  default     = "/crossfeed/staging/QUALYS_USERNAME"
+}
+
+variable "ssm_qualys_password" {
+  description = "ssm_qualys_password"
+  type        = string
+  default     = "/crossfeed/staging/QUALYS_PASSWORD"
+}
+
 variable "ssm_xpanse_auth_id" {
   description = "ssm_xpanse_auth_id"
   type        = string

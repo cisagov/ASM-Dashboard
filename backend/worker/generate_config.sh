@@ -44,6 +44,10 @@ api_key=${INTELX_API_KEY}
 api_key=${XPANSE_API_KEY}
 auth_id=${XPANSE_AUTH_ID}
 
+[was]
+username=${QUALYS_USERNAME}
+password=${QUALYS_PASSWORD}
+
 
 EOF
 

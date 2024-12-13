@@ -11,7 +11,8 @@ const SCAN_LIST = [
   'cybersixgill',
   'shodan',
   'xpanse',
-  'asmSync'
+  'asmSync',
+  'qualys'
 ];
 
 if (process.env.IS_LOCAL) {
@@ -160,7 +161,9 @@ async function startLocalContainers(
           `PE_API_URL=${process.env.PE_API_URL}`,
           `PE_API_KEY=${process.env.PE_API_KEY}`,
           `CF_API_KEY=${process.env.CF_API_KEY}`,
-          `WHOIS_XML_KEY=${process.env.WHOIS_XML_KEY}`
+          `WHOIS_XML_KEY=${process.env.WHOIS_XML_KEY}`,
+          `QUALYS_USERNAME=${process.env.QUALYS_USERNAME}`,
+          `QUALYS_PASSWORD=${process.env.QUALYS_PASSWORD}`
         ]
       } as any);
       await container.start();
@@ -223,7 +226,7 @@ export const handler: Handler = async (event) => {
       await startDesiredTasks(scanType, desiredCount);
     } else {
       console.log(
-        'Shodan, ASMSync, DNSTwist, IntelX, Xpanse, and Cybersixgill are the only script types available right now. Must be all lowercase.'
+        'Shodan, Qualys, ASMSync, DNSTwist, IntelX, Xpanse, and Cybersixgill are the only script types available right now. Must be all lowercase.'
       );
     }
   } catch (error) {
