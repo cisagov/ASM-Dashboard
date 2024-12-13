@@ -523,6 +523,8 @@ def get_stats_org_ids(current_user, filters):
     organizations_filter = (
         filters.filters.organizations if filters and filters.filters else []
     )
+    if organizations_filter == [""]:
+        organizations_filter = []
     tags_filter = filters.filters.tags if filters and filters.filters else []
 
     # Final list of organization IDs

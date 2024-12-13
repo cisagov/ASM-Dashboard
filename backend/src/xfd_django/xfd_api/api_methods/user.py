@@ -65,7 +65,30 @@ def get_me(current_user):
             "id": role.id,
             "role": role.role,
             "approved": role.approved,
-            "organization": model_to_dict(role.organization)
+            "organization": {
+                **model_to_dict(
+                    role.organization,
+                    fields=[
+                        "acronym",
+                        "name",
+                        "rootDomains",
+                        "ipBlocks",
+                        "isPassive",
+                        "pendingDomains",
+                        "country",
+                        "state",
+                        "regionId",
+                        "stateFips",
+                        "stateName",
+                        "county",
+                        "countyFips",
+                        "type",
+                        "parent",
+                        "createdBy",
+                    ],
+                ),
+                "id": str(role.organization.id),  # Explicitly add the ID
+            }
             if role.organization
             else None,
         }
