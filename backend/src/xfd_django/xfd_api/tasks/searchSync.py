@@ -64,6 +64,8 @@ async def handler(command_options):
                 [
                     {
                         "id": str(domain.id),
+                        "createdAt": domain.createdAt,
+                        "updatedAt": domain.updatedAt,
                         "name": domain.name,
                         "reverseName": domain.reverseName,
                         "ip": domain.ip,
