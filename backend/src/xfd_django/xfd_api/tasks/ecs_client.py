@@ -25,7 +25,7 @@ class ECSClient:
         self.ecs = boto3.client("ecs") if not self.is_local else None
         self.cloudwatch_logs = boto3.client("logs") if not self.is_local else None
 
-    async def run_command(self, command_options):
+    def run_command(self, command_options):
         """Launches an ECS task or Docker container with the given command options."""
         scan_id = command_options["scanId"]
         scan_name = command_options["scanName"]
@@ -166,7 +166,7 @@ class ECSClient:
                 f"{event['timestamp']} {event['message']}" for event in events
             )
 
-    async def get_num_tasks(self):
+    def get_num_tasks(self):
         """Retrieves the number of running tasks associated with the Fargate worker."""
         if self.is_local:
             containers = self.docker.containers.list(

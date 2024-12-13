@@ -92,8 +92,8 @@ def get_org_memberships(current_user) -> list[str]:
     """Returns the organization IDs that a user is a member of."""
     # Check if the user has a 'roles' attribute and it's not None
 
-    roles = Role.objects.filter(userId=current_user)
-    return [role.organizationId.id for role in roles if role.organizationId]
+    roles = Role.objects.filter(user=current_user)
+    return [role.organization.id for role in roles if role.organization]
 
 
 async def get_user_domains(user_id: str) -> List[str]:
@@ -107,8 +107,8 @@ async def get_user_domains(user_id: str) -> List[str]:
             return []
 
         # Fetch organization IDs associated with the user
-        organization_ids_qs = Role.objects.filter(userId__id=user_id).values_list(
-            "organizationId", flat=True
+        organization_ids_qs = Role.objects.filter(user__id=user_id).values_list(
+            "organization", flat=True
         )
         organization_ids = await sync_to_async(lambda qs: list(qs))(organization_ids_qs)
 
@@ -117,7 +117,7 @@ async def get_user_domains(user_id: str) -> List[str]:
 
         # Fetch domain names associated with these organizations
         domain_names_qs = Domain.objects.filter(
-            organizationId__in=organization_ids
+            organization__in=organization_ids
         ).values_list("name", flat=True)
         domain_list = await sync_to_async(lambda qs: list(qs))(domain_names_qs)
 
@@ -127,22 +127,22 @@ async def get_user_domains(user_id: str) -> List[str]:
         return []
 
 
-def get_user_service_ids(user_id):
+def get_user_service_ids(current_user):
     """
     Retrieves service IDs associated with the organizations the user belongs to.
     """
-    # Get organization IDs the user is a member of
-    organization_ids = Role.objects.filter(userId=user_id).values_list(
-        "organizationId", flat=True
-    )
 
+    # Get organization IDs the user is a member of
+    organization_ids = Role.objects.filter(user=current_user).values_list(
+        "organization", flat=True
+    )
     # Get domain IDs associated with these organizations
-    domain_ids = Domain.objects.filter(organizationId__in=organization_ids).values_list(
+    domain_ids = Domain.objects.filter(organization__in=organization_ids).values_list(
         "id", flat=True
     )
 
     # Get service IDs associated with these domains
-    service_ids = Service.objects.filter(domainId__in=domain_ids).values_list(
+    service_ids = Service.objects.filter(domain__in=domain_ids).values_list(
         "id", flat=True
     )
 
@@ -152,8 +152,8 @@ def get_user_service_ids(user_id):
 async def get_user_organization_ids(user_id: str) -> List[str]:
     try:
         # Fetch organization IDs associated with the user
-        organization_ids_qs = Role.objects.filter(userId__id=user_id).values_list(
-            "organizationId__id", flat=True
+        organization_ids_qs = Role.objects.filter(user__id=user_id).values_list(
+            "organization__id", flat=True
         )
         organization_ids = await sync_to_async(list)(organization_ids_qs)
         return [str(org_id) for org_id in organization_ids]
@@ -166,12 +166,12 @@ def get_user_ports(user_id):
     Retrieves port numbers associated with the organizations the user belongs to.
     """
     # Get organization IDs the user is a member of
-    organization_ids = Role.objects.filter(userId=user_id).values_list(
-        "organizationId", flat=True
+    organization_ids = Role.objects.filter(user=user_id).values_list(
+        "organization", flat=True
     )
 
     # Get domain IDs associated with these organizations
-    domain_ids = Domain.objects.filter(organizationId__in=organization_ids).values_list(
+    domain_ids = Domain.objects.filter(organization__in=organization_ids).values_list(
         "id", flat=True
     )
 
@@ -261,7 +261,7 @@ def get_user_by_api_key(api_key: str):
         api_key_instance = ApiKey.objects.get(hashedKey=hashed_key)
         api_key_instance.lastUsed = datetime.now(timezone.utc)
         api_key_instance.save(update_fields=["lastUsed"])
-        return api_key_instance.userId
+        return api_key_instance.user
     except ApiKey.DoesNotExist:
         print("API Key not found")
         return None
@@ -513,3 +513,84 @@ def matches_user_region(current_user, user_region_id: str) -> bool:
 
     # Compare the region IDs
     return user_region_id == current_user.regionId
+
+
+def get_stats_org_ids(current_user, filters):
+    """Get organization ids that a user has access to for the stats. Includes filter."""
+
+    # Extract filters from the Pydantic model
+    regions_filter = filters.filters.regions if filters and filters.filters else []
+    organizations_filter = (
+        filters.filters.organizations if filters and filters.filters else []
+    )
+    if organizations_filter == [""]:
+        organizations_filter = []
+    tags_filter = filters.filters.tags if filters and filters.filters else []
+
+    # Final list of organization IDs
+    organization_ids = set()
+
+    # Case 1: Explicit organization IDs in filters
+    if organizations_filter:
+        # Check user type restrictions for provided organization IDs
+        for org_id in organizations_filter:
+            if (
+                is_global_view_admin(current_user)
+                or (is_regional_admin_for_organization(current_user, org_id))
+                or (is_org_admin(current_user, org_id))
+            ):
+                organization_ids.add(org_id)
+
+        if not organization_ids:
+            raise HTTPException(
+                status_code=403,
+                detail="User does not have access to the specified organizations.",
+            )
+
+    # Case 2: Global view admin (if no explicit organization filter)
+    elif is_global_view_admin(current_user):
+        # Get organizations by region
+        if regions_filter:
+            organizations_by_region = Organization.objects.filter(
+                regionId__in=regions_filter
+            ).values_list("id", flat=True)
+            organization_ids.update(organizations_by_region)
+
+        # Get organizations by tag
+        for tag_id in tags_filter:
+            organizations_by_tag = get_tag_organizations(current_user, tag_id)
+            organization_ids.update(organizations_by_tag)
+
+    # Case 3: Regional admin
+    elif current_user.userType in ["regionalAdmin"]:
+        user_region_id = current_user.regionId
+
+        # Allow only organizations in the user's region
+        organizations_in_region = Organization.objects.filter(
+            regionId=user_region_id
+        ).values_list("id", flat=True)
+        organization_ids.update(organizations_in_region)
+
+        # Apply filters within the user's region
+        if regions_filter and user_region_id in regions_filter:
+            organization_ids.update(organizations_in_region)
+
+        # Include organizations by tag within the same region
+        for tag_id in tags_filter:
+            tag_organizations = get_tag_organizations(current_user, tag_id)
+            regional_tag_organizations = [
+                org_id
+                for org_id in tag_organizations
+                if get_organization_region(org_id) == user_region_id
+            ]
+            organization_ids.update(regional_tag_organizations)
+
+    # Case 4: Standard user
+    else:
+        # Allow only organizations where the user is a member
+        user_organization_ids = current_user.roles.values_list(
+            "organization_id", flat=True
+        )
+        organization_ids.update(user_organization_ids)
+
+    return organization_ids

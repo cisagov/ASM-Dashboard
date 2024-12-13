@@ -118,7 +118,7 @@ def create_api_key_for_user(user):
     ApiKey.objects.create(
         hashedKey=hashed_key,
         lastFour=key[-4:],
-        userId=user,
+        user=user,
         createdAt=datetime.utcnow(),
         updatedAt=datetime.utcnow(),
     )
@@ -168,7 +168,8 @@ def create_sample_services_and_vulnerabilities(domain):
     # Add random vulnerabilities
     if random.random() < PROB_SAMPLE_VULNERABILITIES:
         Vulnerability.objects.create(
-            title="Sample Vulnerability",
+            title="Sample Vulnerability "
+            + "".join(random.choices("ABCDEFGHIJKLMNOPQRSTUVWXYZ", k=3)),
             domain=domain,
             service=None,
             description="Sample description",

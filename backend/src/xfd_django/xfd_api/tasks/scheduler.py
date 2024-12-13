@@ -6,12 +6,19 @@ from itertools import islice
 import os
 
 # Third-Party Libraries
+import django
 from django.utils import timezone
 
-from ..helpers.getScanOrganizations import get_scan_organizations
-from ..models import Organization, Scan, ScanTask
-from ..schema_models.scan import SCAN_SCHEMA
-from .ecs_client import ECSClient
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
+os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
+
+django.setup()
+
+# Third-Party Libraries
+from xfd_api.helpers.getScanOrganizations import get_scan_organizations
+from xfd_api.models import Organization, Scan, ScanTask
+from xfd_api.schema_models.scan import SCAN_SCHEMA
+from xfd_api.tasks.ecs_client import ECSClient
 
 
 def chunk(iterable, size):
@@ -32,20 +39,18 @@ class Scheduler:
         self.queued_scan_tasks = []
         self.orgs_per_scan_task = 1
 
-    async def initialize(
-        self, scans, organizations, queued_scan_tasks, orgs_per_scan_task
-    ):
+    def initialize(self, scans, organizations, queued_scan_tasks, orgs_per_scan_task):
         """Initialize."""
         self.scans = scans
         self.organizations = organizations
         self.queued_scan_tasks = queued_scan_tasks
         self.orgs_per_scan_task = orgs_per_scan_task
-        self.num_existing_tasks = await self.ecs.get_num_tasks()
+        self.num_existing_tasks = self.ecs.get_num_tasks()
 
         print(f"Number of running Fargate tasks: {self.num_existing_tasks}")
         print(f"Number of queued scan tasks: {len(self.queued_scan_tasks)}")
 
-    async def launch_single_scan_task(
+    def launch_single_scan_task(
         self,
         organizations=None,
         scan=None,
@@ -91,7 +96,7 @@ class Scheduler:
 
         try:
             if task_type == "fargate":
-                result = await self.ecs.run_command(command_options)
+                result = self.ecs.run_command(command_options)
                 if not result.get("tasks"):
                     print(
                         f"Failed to start Fargate task for scan {scan.name}, failures: {result.get('failures')}"
@@ -119,7 +124,7 @@ class Scheduler:
 
         scan_task.save()
 
-    async def launch_scan_task(self, organizations=None, scan=None):
+    def launch_scan_task(self, organizations=None, scan=None):
         """Launch scan task."""
         organizations = organizations or []
 
@@ -136,7 +141,7 @@ class Scheduler:
             num_chunks = min(num_chunks, 100)
 
             for chunk_number in range(num_chunks):
-                await self.launch_single_scan_task(
+                self.launch_single_scan_task(
                     organizations=organizations,
                     scan=scan,
                     chunk_number=chunk_number,
@@ -144,7 +149,7 @@ class Scheduler:
                 )
         else:
             # Launch a single scan task when num_chunks is None or 0
-            await self.launch_single_scan_task(organizations=organizations, scan=scan)
+            self.launch_single_scan_task(organizations=organizations, scan=scan)
 
     def reached_scan_limit(self):
         """Check scan limit."""
@@ -152,7 +157,7 @@ class Scheduler:
             self.num_existing_tasks + self.num_launched_tasks
         ) >= self.max_concurrent_tasks
 
-    async def run(self):
+    def run(self):
         """Run scheduler."""
         for scan in self.scans:
             prev_num_launched_tasks = self.num_launched_tasks
@@ -165,7 +170,7 @@ class Scheduler:
             if scan_schema.global_scan:
                 if not self.should_run_scan(scan):
                     continue
-                await self.launch_scan_task(scan=scan)
+                self.launch_scan_task(scan=scan)
             else:
                 organizations = (
                     get_scan_organizations(scan)
@@ -178,17 +183,17 @@ class Scheduler:
                     if self.should_run_scan(scan=scan, organization=org)
                 ]
                 for org_chunk in chunk(orgs_to_launch, self.orgs_per_scan_task):
-                    await self.launch_scan_task(organizations=org_chunk, scan=scan)
+                    self.launch_scan_task(organizations=org_chunk, scan=scan)
 
             if self.num_launched_tasks > prev_num_launched_tasks:
                 scan.lastRun = timezone.now()
                 scan.manualRunPending = False
                 scan.save()
 
-    async def run_queued(self):
+    def run_queued(self):
         """Run queued scans."""
         for scan_task in self.queued_scan_tasks:
-            await self.launch_single_scan_task(scan_task=scan_task, scan=scan_task.scan)
+            self.launch_single_scan_task(scan_task=scan_task, scan=scan_task.scan)
 
     def should_run_scan(self, scan, organization=None):
         """Check if the scan should run."""
@@ -202,7 +207,6 @@ class Scheduler:
 
         # Always run scans that have manualRunPending set to True.
         if scan.manualRunPending:
-            print("Manual run pending")
             return True
 
         # Function to filter the scan tasks based on whether it's global or organization-specific.
@@ -263,7 +267,7 @@ class Scheduler:
         return True
 
 
-async def handler(event):
+def handler(event, context):
     """Handler for manually invoking the scheduler to run scans."""
     print("Running scheduler...")
 
@@ -294,7 +298,7 @@ async def handler(event):
     )
 
     scheduler = Scheduler()
-    await scheduler.initialize(
+    scheduler.initialize(
         scans=scans,
         organizations=organizations,
         queued_scan_tasks=queued_scan_tasks,
@@ -302,7 +306,7 @@ async def handler(event):
         or int(os.getenv("SCHEDULER_ORGS_PER_SCANTASK", "1")),
     )
 
-    await scheduler.run_queued()
-    await scheduler.run()
+    scheduler.run_queued()
+    scheduler.run()
 
     print("Finished running scheduler.")

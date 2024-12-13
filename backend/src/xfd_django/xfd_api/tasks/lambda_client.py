@@ -20,14 +20,14 @@ class LambdaClient:
                 "lambda", region_name=os.getenv("AWS_REGION", "us-east-1")
             )
 
-    async def run_command(self, name: str):
+    def run_command(self, name: str):
         """Invokes a lambda function with the given name."""
 
         print(f"Invoking lambda function: {name}")
         if self.is_local:
             # If running locally, directly call the scheduler function
-            await scheduler({})
-            return {"status": 202, "message": ""}
+            scheduler({}, {})
+            return {"status": 200, "message": ""}
         else:
             # Invoke the lambda function asynchronously
             response = self.lambda_client.invoke(

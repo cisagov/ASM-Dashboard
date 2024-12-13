@@ -421,8 +421,9 @@ def test_list_saved_searches_by_global_view_returns_none(create_global_view):
         "/saved-searches",
         headers={"Authorization": "Bearer " + create_jwt_token(global_view_user)},
     )
+
     assert response.status_code == 200
-    assert len(response.json()) == 0
+    assert response.json()["count"] == 0
 
     # Cleanup
     search.delete()
@@ -465,9 +466,11 @@ def test_list_saved_searches_by_user_only_gets_their_search(
         "/saved-searches",
         headers={"Authorization": "Bearer " + create_jwt_token(primary_user)},
     )
+    response_data = response.json()["result"]
+
     assert response.status_code == 200
-    assert len(response.json()) == 1
-    assert response.json()[0]["id"] == str(search.id)
+    assert response.json()["count"] == 1
+    assert response_data[0]["id"] == str(search.id)
 
     # Cleanup
     search.delete()

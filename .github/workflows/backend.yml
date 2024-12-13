@@ -138,7 +138,7 @@ jobs:
         working-directory: ./backend
 
   deploy_staging:
-    needs: [build_worker, lint, test, test_worker]
+    needs: [lint, test, test_worker]
     runs-on: ubuntu-latest
     environment: staging
     concurrency: '1'
@@ -234,12 +234,12 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           SLS_DEBUG: '*'
 
-      # - name: Deploy worker
-      #   run: npm run deploy-worker-integration
-      #   working-directory: backend
-      #   env:
-      #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Deploy worker
+        run: npm run deploy-worker-integration
+        working-directory: backend
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Run syncdb
         run: |

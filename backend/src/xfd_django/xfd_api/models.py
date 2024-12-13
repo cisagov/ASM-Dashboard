@@ -19,7 +19,7 @@ class ApiKey(models.Model):
     lastUsed = models.DateTimeField(db_column="lastUsed", blank=True, null=True)
     hashedKey = models.TextField(db_column="hashedKey")
     lastFour = models.TextField(db_column="lastFour")
-    userId = models.ForeignKey(
+    user = models.ForeignKey(
         "User",
         models.CASCADE,
         db_column="userId",
@@ -643,7 +643,12 @@ class Vulnerability(models.Model):
         db_column="kevResults", blank=True, null=True, default=dict
     )
     domain = models.ForeignKey(
-        Domain, on_delete=models.CASCADE, db_column="domainId", blank=True, null=True
+        Domain,
+        on_delete=models.CASCADE,
+        db_column="domainId",
+        blank=True,
+        null=True,
+        related_name="vulnerabilities",
     )
     service = models.ForeignKey(
         Service, models.DO_NOTHING, db_column="serviceId", blank=True, null=True
@@ -713,7 +718,12 @@ class Webpage(models.Model):
     )
     headers = models.JSONField()
     domainId = models.ForeignKey(
-        Domain, models.DO_NOTHING, db_column="domainId", blank=True, null=True
+        Domain,
+        models.DO_NOTHING,
+        db_column="domainId",
+        blank=True,
+        null=True,
+        related_name="webpages",
     )
     discoveredById = models.ForeignKey(
         Scan, models.DO_NOTHING, db_column="discoveredById", blank=True, null=True
