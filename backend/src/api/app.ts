@@ -27,6 +27,8 @@ import { Organization, User, UserType, connectToDatabase } from '../models';
 import * as jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import fetch from 'node-fetch';
+import logger_lz from '../tools/lambda-logger';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import * as searchOrganizations from './organizationSearch';
 import { Logger, RecordMessage } from '../tools/logger';
 
@@ -55,9 +57,11 @@ const handlerToExpress =
         headers: req.headers,
         path: req.originalUrl
       },
-      {}
+      {},
+      req.context
     );
-    // Add additional status codes that we may return for succesfull requests
+    // Set HSTS header to ensure that the browser enforces HTTPS
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000');
 
     if (message && action) {
       const logger = new Logger(req);
@@ -78,6 +82,30 @@ const handlerToExpress =
       res.status(statusCode).send(sanitizer.sanitize(body));
     }
   };
+
+const logHeaders = (req, res, next) => {
+  const sanitizedHeaders = { ...req.headers };
+  // Remove or replace sensitive headers
+  delete sanitizedHeaders['authorization'];
+
+  res.on('finish', () => {
+    const logInfo = {
+      httpMethod: req.method,
+      protocol: req.protocol,
+      originalURL: req.originalUrl,
+      path: req.path,
+      statusCode: res.statusCode,
+      headers: sanitizedHeaders,
+      userEmail: req.requestContext.authorizer
+        ? req.requestContext.authorizer.email || 'undefined'
+        : 'undefined'
+    };
+
+    logger_lz.info(`Request Info: ${JSON.stringify(logInfo)}`);
+  });
+
+  next();
+};
 
 const app = express();
 
@@ -108,21 +136,21 @@ app.use(
       directives: {
         defaultSrc: [
           "'self'",
-          'https://cognito-idp.us-east-1.amazonaws.com',
-          'https://api.staging-cd.crossfeed.cyber.dhs.gov'
+          `${process.env.COGNITO_URL}`,
+          `${process.env.BACKEND_DOMAIN}`
         ],
         frameSrc: ["'self'"],
         imgSrc: [
           "'self'",
           'data:',
-          'https://staging-cd.crossfeed.cyber.dhs.gov',
+          `${process.env.FRONTEND_DOMAIN}`,
           'https://www.ssa.gov',
           'https://www.dhs.gov'
         ],
         objectSrc: ["'none'"],
         scriptSrc: [
           "'self'",
-          'https://api.staging-cd.crossfeed.cyber.dhs.gov',
+          `${process.env.BACKEND_DOMAIN}`,
           'https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js',
           'https://www.ssa.gov/accessibility/andi/fandi.js',
           'https://www.ssa.gov/accessibility/andi/andi.js',
@@ -213,12 +241,15 @@ app.post('/auth/okta-callback', async (req, res) => {
     const tokenEndpoint = `https://${domain}/oauth2/token`;
     const tokenData = `grant_type=authorization_code&client_id=${clientId}&code=${code}&redirect_uri=${callbackUrl}&scope=openid`;
 
+    process.env.HTTPS_PROXY = 'http://proxy.lz.us-cert.gov:8080';
+    process.env.HTTP_PROXY = 'http://proxy.lz.us-cert.gov:8080';
     const response = await fetch(tokenEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: tokenData
+      body: tokenData,
+      agent: new HttpsProxyAgent('http://proxy.lz.us-cert.gov:8080')
     });
     const { id_token, access_token, refresh_token } = await response.json();
 
@@ -416,7 +447,8 @@ const matomoProxy = createProxyMiddleware({
     if (proxyRes.headers['transfer-encoding'] === 'chunked') {
       proxyRes.headers['transfer-encoding'] = '';
     }
-  }
+  },
+  logLevel: 'silent'
 });
 
 /**
@@ -430,7 +462,8 @@ const peProxy = createProxyMiddleware({
   target: process.env.PE_API_URL,
   pathRewrite: function (path) {
     return path.replace(/^\/pe/, '');
-  }
+  },
+  logLevel: 'silent'
 });
 
 app.use(
@@ -514,6 +547,7 @@ const checkGlobalAdminOrRegionAdmin = async (
 // needing to sign the terms of service yet
 const authenticatedNoTermsRoute = express.Router();
 authenticatedNoTermsRoute.use(checkUserLoggedIn);
+authenticatedNoTermsRoute.use(logHeaders);
 authenticatedNoTermsRoute.get('/users/me', handlerToExpress(users.me));
 authenticatedNoTermsRoute.post(
   '/users/me/acceptTerms',
@@ -529,6 +563,7 @@ const authenticatedRoute = express.Router();
 
 authenticatedRoute.use(checkUserLoggedIn);
 authenticatedRoute.use(checkUserSignedTerms);
+authenticatedRoute.use(logHeaders);
 
 authenticatedRoute.post('/api-keys', handlerToExpress(apiKeys.generate));
 authenticatedRoute.delete('/api-keys/:keyId', handlerToExpress(apiKeys.del));
