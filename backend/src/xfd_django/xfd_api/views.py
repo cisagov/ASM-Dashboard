@@ -62,12 +62,8 @@ from .schema_models import stat_schema
 from .schema_models.api_key import ApiKey as ApiKeySchema
 from .schema_models.cpe import Cpe as CpeSchema
 from .schema_models.cve import Cve as CveSchema
-from .schema_models.domain import (
-    DomainSearch,
-    DomainSearchResponse,
-)
 from .schema_models.domain import Domain as DomainSchema
-from .schema_models.domain import DomainSearch
+from .schema_models.domain import DomainSearch, DomainSearchResponse
 from .schema_models.notification import Notification as NotificationSchema
 from .schema_models.saved_search import (
     SavedSearchCreate,
@@ -75,7 +71,6 @@ from .schema_models.saved_search import (
     SavedSearchUpdate,
 )
 from .schema_models.saved_search import SavedSearch as SavedSearchSchema
-from .schema_models.search import DomainSearchBody, SearchResponse
 from .schema_models.search import DomainSearchBody, SearchResponse
 from .schema_models.user import (
     NewUser,
