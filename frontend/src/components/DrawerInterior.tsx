@@ -179,7 +179,6 @@ export const DrawerInterior: React.FC<Props> = (props) => {
       )
     : [];
 
-  console.log('facets', facets['vulnerabilities.severity']);
   const titleCaseSeverityFacet = facets['vulnerabilities.severity']
     ? facets['vulnerabilities.severity'][0].data.map(
         (d: { value: string; count: number }) => {
