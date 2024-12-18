@@ -48,6 +48,7 @@ from .api_methods.user import (
     update_user_v2,
 )
 from .api_methods.vulnerability import (
+    export_vulnerabilities,
     get_vulnerability_by_id,
     search_vulnerabilities,
     update_vulnerability,
@@ -63,7 +64,7 @@ from .schema_models.api_key import ApiKey as ApiKeySchema
 from .schema_models.cpe import Cpe as CpeSchema
 from .schema_models.cve import Cve as CveSchema
 from .schema_models.domain import Domain as DomainSchema
-from .schema_models.domain import DomainSearch, DomainSearchResponse
+from .schema_models.domain import DomainSearch, DomainSearchResponse, GetDomainResponse
 from .schema_models.notification import Notification as NotificationSchema
 from .schema_models.saved_search import (
     SavedSearchCreate,
@@ -84,6 +85,7 @@ from .schema_models.vulnerability import (
     VulnerabilitySearch,
     VulnerabilitySearchResponse,
 )
+from .schema_models.vulnerability import GetVulnerabilityResponse
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
 
 # Define API router
@@ -172,6 +174,11 @@ async def pe_proxy(
     return await proxy.proxy_request(request, os.getenv("PE_API_URL", ""), path)
 
 
+# ========================================
+#   CPE/CVE Endpoints
+# ========================================
+
+
 @api_router.get(
     "/cpes/{cpe_id}",
     # dependencies=[Depends(get_current_active_user)],
@@ -217,6 +224,11 @@ async def call_get_cves_by_name(cve_name):
     return get_cves_by_name(cve_name)
 
 
+# ========================================
+#   Domain Endpoints
+# ========================================
+
+
 @api_router.post(
     "/domain/search",
     dependencies=[Depends(get_current_active_user)],
@@ -226,9 +238,8 @@ async def call_get_cves_by_name(cve_name):
 async def call_search_domains(
     domain_search: DomainSearch, current_user: User = Depends(get_current_active_user)
 ):
-    domains = search_domains(domain_search, current_user)
-    print(f"Domains: {domains}")
-    return DomainSearchResponse(results=domains)
+    domains, count = search_domains(domain_search, current_user)
+    return DomainSearchResponse(result=domains, count=count)
 
 
 @api_router.post(
@@ -236,9 +247,11 @@ async def call_search_domains(
     dependencies=[Depends(get_current_active_user)],
     tags=["Domains"],
 )
-async def call_export_domains(domain_search: DomainSearch):
+async def call_export_domains(
+    domain_search: DomainSearch, current_user: User = Depends(get_current_active_user)
+):
     try:
-        return export_domains(domain_search)
+        return export_domains(domain_search, current_user)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -246,16 +259,17 @@ async def call_export_domains(domain_search: DomainSearch):
 @api_router.get(
     "/domain/{domain_id}",
     dependencies=[Depends(get_current_active_user)],
-    # response_model=GetDomainResponse,
+    response_model=GetDomainResponse,
     tags=["Get domain by id"],
 )
 async def call_get_domain_by_id(domain_id: str):
-    """
-    Get domain by id.
-    Returns:
-        object: a single Domain object.
-    """
+    """Get domain by id."""
     return get_domain_by_id(domain_id)
+
+
+# ========================================
+#   Vulnerability Endpoints
+# ========================================
 
 
 @api_router.post(
@@ -268,31 +282,46 @@ async def call_search_vulnerabilities(
     vulnerability_search: VulnerabilitySearch,
     current_user: User = Depends(get_current_active_user),
 ):
-    vulnerabilities = search_vulnerabilities(vulnerability_search, current_user)
-    return VulnerabilitySearchResponse(results=vulnerabilities)
+    """Search vulnerabilities."""
+    vulnerabilities, count = search_vulnerabilities(vulnerability_search, current_user)
 
+    if vulnerability_search.groupBy:
+        # Handle grouped results appropriately
+        return VulnerabilitySearchResponse(result=vulnerabilities, count=count)
 
-@api_router.post("/vulnerabilities/export")
-async def export_vulnerabilities():
     try:
-        pass
+        # Convert each ORM instance to a Pydantic model
+        result = [GetVulnerabilityResponse.model_validate(v) for v in vulnerabilities]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Serialization error: {str(e)}")
+
+    return VulnerabilitySearchResponse(result=result, count=count)
+
+
+@api_router.post(
+    "/vulnerabilities/export",
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Vulnerabilities"],
+)
+async def get_export_vulnerabilities(
+    vulnerability_search: VulnerabilitySearch,
+    current_user: User = Depends(get_current_active_user),
+):
+    """Export vulnerabilities."""
+    return export_vulnerabilities(vulnerability_search, current_user)
 
 
 @api_router.get(
     "/vulnerabilities/{vulnerability_id}",
     dependencies=[Depends(get_current_active_user)],
-    response_model=VulnerabilitySchema,
+    response_model=GetVulnerabilityResponse,
     tags=["Vulnerabilities"],
 )
-async def call_get_vulnerability_by_id(vulnerability_id):
-    """
-    Get vulnerability by id.
-    Returns:
-        object: a single Vulnerability object.
-    """
-    return get_vulnerability_by_id(vulnerability_id)
+async def call_get_vulnerability_by_id(
+    vulnerability_id, current_user: User = Depends(get_current_active_user)
+):
+    """Get vulnerability by id."""
+    return get_vulnerability_by_id(vulnerability_id, current_user)
 
 
 @api_router.put(
