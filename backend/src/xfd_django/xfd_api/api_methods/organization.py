@@ -1084,6 +1084,7 @@ def search_organizations_task(search_body, current_user: User):
         client = ESClient()
 
         # Construct the Elasticsearch query
+
         query_body: Dict[str, Any] = {"query": {"bool": {"must": [], "filter": []}}}
 
         # Use match_all if searchTerm is empty

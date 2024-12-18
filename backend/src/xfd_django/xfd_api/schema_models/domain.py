@@ -7,7 +7,7 @@ from typing import Any, List, Optional
 from uuid import UUID
 
 # Third-Party Libraries
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, field_validator
 
 
 class Domain(BaseModel):
@@ -53,6 +53,7 @@ class DomainFilters(BaseModel):
     organizationName: Optional[str] = None
     vulnerabilities: Optional[str] = None
     tag: Optional[str] = None
+    name: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -69,6 +70,13 @@ class DomainSearch(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class DomainSearchResponse(BaseModel):
+    """List of Domain objects"""
+
+    result: List["GetDomainResponse"]
+    count: int
 
 
 class TotalDomainsResponse(BaseModel):
@@ -109,6 +117,7 @@ class VulnerabilityResponse(BaseModel):
     severity: str
     state: str
     createdAt: Optional[datetime] = None
+    cve: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -139,5 +148,22 @@ class GetDomainResponse(BaseModel):
     webpages: Optional[List[WebpageResponse]] = []
 
     class Config:
-        orm_mode = True
         from_attributes = True
+
+    @field_validator("services", mode="before")
+    def ensure_services_list(cls, v):
+        if hasattr(v, "all"):
+            return list(v.all())
+        return v
+
+    @field_validator("vulnerabilities", mode="before")
+    def ensure_vulns_list(cls, v):
+        if hasattr(v, "all"):
+            return list(v.all())
+        return v
+
+    @field_validator("webpages", mode="before")
+    def ensure_webpages_list(cls, v):
+        if hasattr(v, "all"):
+            return list(v.all())
+        return v

@@ -1,5 +1,5 @@
 # Standard Python Libraries
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import secrets
 
@@ -12,22 +12,18 @@ logger = logging.getLogger(__name__)
 from fastapi.testclient import TestClient
 import pytest
 from xfd_api.auth import create_jwt_token
-from xfd_api.models import User, UserType, Vulnerability
+from xfd_api.models import Domain, Organization, Service, User, UserType, Vulnerability
 from xfd_django.asgi import app
 
 client = TestClient(app)
 
-test_id = "c0effe93-3647-475a-a0c5-0b629c348588"
 bad_id = "c0effe93-3647-475a-a0c5-0b629c348590"
-filters = {
-    "id": "d39a8536-0b64-45b6-b621-5d954329221c",
+search_fields = {
     "title": "DNS Twist Domains",
     "cpe": "cpe:/a:openbsd:openssh:7.4",
     "severity": "Low",
-    "domain": "84313a29-0009-45dc-8a2d-1ff7e0ba0030",
     "state": "open",
     "substate": "unconfirmed",
-    "organization": "fff159cb-efc8-4ea8-be51-e6b65e38d3e9",
     "isKev": False,
 }
 
@@ -47,7 +43,82 @@ def user():
 
 
 @pytest.fixture
-def create_vulnerability():
+def organization():
+    organization = Organization.objects.create(
+        name="Test Organization",
+        rootDomains=["crossfeed.local"],
+        ipBlocks=[],
+        isPassive=False,
+    )
+    yield organization
+    organization.delete()
+
+
+@pytest.fixture
+def domain(organization):
+    domain = Domain.objects.create(
+        reverseName="local.crossfeed.example",
+        ip="127.116.195.151",  # Ensure this IP is the one you expect
+        organization=organization,
+        name="example.crossfeed.local",
+        isFceb=True,
+    )
+    assert domain.organization == organization
+    yield domain
+    domain.delete()
+
+
+@pytest.fixture
+def service(domain):
+    service = Service.objects.create(
+        serviceSource="shodan",
+        port="80",
+        service="http",
+        products="test test test",
+        censysIpv4Results={},
+        intrigueIdentResults={},
+        shodanResults={},
+        wappalyzerResults=[],
+        domain=domain,
+    )
+    assert service.domain == domain
+    yield service
+    service.delete()
+
+
+@pytest.fixture
+def vulnerability(domain, service):
+    vulnerability = Vulnerability.objects.create(
+        title=search_fields["title"],
+        cpe=search_fields["cpe"],
+        severity=search_fields["severity"],
+        description="Test description",
+        references=[],
+        needsPopulation=False,
+        state=search_fields["state"],
+        substate=search_fields["substate"],
+        source="test",
+        notes="test",
+        actions=[],
+        structuredData={},
+        isKev=search_fields["isKev"],
+        domain=domain,
+        service=service,
+    )
+    assert vulnerability.domain == domain
+    assert vulnerability.service == service
+    assert vulnerability.title == search_fields["title"]
+    assert vulnerability.cpe == search_fields["cpe"]
+    assert vulnerability.severity == search_fields["severity"]
+    assert vulnerability.state == search_fields["state"]
+    assert vulnerability.substate == search_fields["substate"]
+    assert vulnerability.isKev == search_fields["isKev"]
+    yield vulnerability
+    vulnerability.delete()
+
+
+@pytest.fixture
+def old_vulnerability():
     vulnerability = Vulnerability.objects.create(
         title="Old Vulnerability",
         description="Old description.",
@@ -70,20 +141,22 @@ def create_vulnerability():
 
 
 @pytest.mark.django_db(transaction=True)
-def test_get_vulnerability_by_id(user):
+def test_get_vulnerability_by_id(user, vulnerability):
     # Get vulnerability by Id.
     response = client.get(
-        f"/vulnerabilities/{test_id}",
+        f"/vulnerabilities/{str(vulnerability.id)}",
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
     data = response.json()
 
     assert response.status_code == 200
-    assert data["id"] == test_id
+    assert data["id"] == str(vulnerability.id)
+    assert data["domain_id"] == str(vulnerability.domain.id)
+    assert data["severity"] == vulnerability.severity
 
 
 @pytest.mark.django_db(transaction=True)
-def test_get_vulnerability_by_id_fails_404(user):
+def test_get_vulnerability_by_id_fails_404(user, vulnerability):
     # Get error 404 if vulnerability does not exist
     response = client.get(
         f"/vulnerabilities/{bad_id}",
@@ -94,9 +167,9 @@ def test_get_vulnerability_by_id_fails_404(user):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_update_vulnerability(user, create_vulnerability):
-    vulnerability = create_vulnerability
-
+def test_update_vulnerability(user, vulnerability):
+    original_vuln_id = str(vulnerability.id)
+    now = datetime.now()
     new_data = {
         "id": str(vulnerability.id),
         "createdAt": str(vulnerability.createdAt),
@@ -108,8 +181,8 @@ def test_update_vulnerability(user, create_vulnerability):
         "cpe": vulnerability.cpe,
         "description": "Updated description.",
         "references": None,
-        "severity": "High",
-        "cvss": 7.5,
+        "severity": "Medium",
+        "cvss": None,
         "needsPopulation": False,
         "state": vulnerability.state,
         "substate": vulnerability.substate,
@@ -118,12 +191,12 @@ def test_update_vulnerability(user, create_vulnerability):
         "actions": ["action1"],
         "structuredData": {"key": "value"},
         "isKev": True,
-        "domain_id": None,
-        "service_id": None,
+        "domain_id": str(vulnerability.domain.id),
+        "service_id": str(vulnerability.service.id),
     }
 
     response = client.put(
-        f"/vulnerabilities/{vulnerability.id}",
+        f"/vulnerabilities/{str(vulnerability.id)}",
         json=new_data,
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
@@ -136,13 +209,17 @@ def test_update_vulnerability(user, create_vulnerability):
     assert vulnerability.needsPopulation == new_data["needsPopulation"]
     assert vulnerability.source == new_data["source"]
     assert vulnerability.notes == new_data["notes"]
+    assert vulnerability.severity == new_data["severity"]
+    assert vulnerability.cvss == new_data["cvss"]
+    assert vulnerability.isKev == new_data["isKev"]
+    assert vulnerability.actions == new_data["actions"]
 
-    assert vulnerability.id == vulnerability.id
+    assert str(vulnerability.id) == original_vuln_id
 
 
 @pytest.mark.django_db(transaction=True)
-def test_update_vulnerability_fails_404(user, create_vulnerability):
-    vulnerability = create_vulnerability
+def test_update_vulnerability_fails_404(user, vulnerability):
+    vulnerability = vulnerability
     new_data = {
         "id": str(vulnerability.id),
         "createdAt": str(vulnerability.createdAt),
@@ -154,7 +231,7 @@ def test_update_vulnerability_fails_404(user, create_vulnerability):
         "cpe": vulnerability.cpe,
         "description": "Updated description.",
         "references": None,
-        "severity": "High",
+        "severity": "Medium",
         "cvss": 7.5,
         "needsPopulation": False,
         "state": vulnerability.state,
@@ -164,8 +241,8 @@ def test_update_vulnerability_fails_404(user, create_vulnerability):
         "actions": ["action1"],
         "structuredData": {"key": "value"},
         "isKev": True,
-        "domain_id": None,
-        "service_id": None,
+        "domain_id": str(vulnerability.domain.id),
+        "service_id": str(vulnerability.service.id),
     }
 
     response = client.put(
@@ -177,8 +254,8 @@ def test_update_vulnerability_fails_404(user, create_vulnerability):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_update_vulnerability_fails_422(user, create_vulnerability):
-    vulnerability = create_vulnerability
+def test_update_vulnerability_fails_422(user, vulnerability):
+    vulnerability = vulnerability
 
     new_data = {
         "title": "Updated Vulnerability",
@@ -210,175 +287,266 @@ def test_update_vulnerability_fails_422(user, create_vulnerability):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_id(user):
+def test_search_vulnerabilities_id(user, vulnerability):
     # Search vulnerabilities by ip.
     response = client.post(
         "/vulnerabilities/search",
-        json={"page": 1, "filters": {"id": filters["id"]}, "pageSize": 25},
+        json={"page": 1, "filters": {"id": str(vulnerability.id)}, "pageSize": 25},
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
     assert response.status_code == 200
     data = response.json()
-    assert data is not None
-    for vulnerability in data:
-        assert vulnerability["id"] == filters["id"]
+    assert data is not None, "Response is empty"
+    assert "results" in data, "Response does not contain 'results' key"
+    assert len(data["results"]) > 0, "No results found for the given ID"
+    for vuln in data["results"]:
+        assert vuln["id"] == str(
+            vulnerability.id
+        ), f"Vulnerability ID {vuln['id']} does not match the expected {vulnerability.id}"
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_by_title(user):
+def test_search_vulnerabilities_by_title(user, vulnerability):
     # Test search vulnerabilities by title
 
     response = client.post(
         "/vulnerabilities/search",
-        json={"page": 1, "filters": {"title": filters["title"]}, "pageSize": 25},
+        json={"page": 1, "filters": {"title": search_fields["title"]}, "pageSize": 25},
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
     assert response.status_code == 200
     data = response.json()
-    assert data is not None
-    for vulnerability in data:
-        assert vulnerability["title"] == filters["title"]
+    assert data is not None, "Response is empty"
+    assert "results" in data, "Response does not contain 'results' key"
+    assert len(data["results"]) > 0, "No results found for the given title"
+    for vuln in data["results"]:
+        assert (
+            vuln["title"] == search_fields["title"]
+        ), f"Vulnerability title {vuln['title']} does not match the expected {search_fields['title']}"
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_by_cpe(user):
+def test_search_vulnerabilities_by_cpe(user, vulnerability):
     # Test search vulnerabilities by cpe
     response = client.post(
         "/vulnerabilities/search",
-        json={"page": 1, "filters": {"cpe": filters["cpe"]}, "pageSize": 25},
+        json={"page": 1, "filters": {"cpe": search_fields["cpe"]}, "pageSize": 25},
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
     assert response.status_code == 200
     data = response.json()
-    assert data is not None
-    for vulnerability in data:
-        assert vulnerability["cpe"] == filters["cpe"]
+
+    assert data is not None, "Response is empty"
+    assert "results" in data, "Response does not contain 'results' key"
+    assert len(data["results"]) > 0, "No results found for the given CPE"
+
+    for vuln in data["results"]:
+        assert (
+            vuln["cpe"] == search_fields["cpe"]
+        ), f"Vulnerability CPE {vuln['cpe']} does not match the expected {search_fields['cpe']}"
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_by_severity(user):
+def test_search_vulnerabilities_by_severity(user, vulnerability):
     # Test search vulnerabilities by severity
     response = client.post(
         "/vulnerabilities/search",
-        json={"page": 1, "filters": {"severity": filters["severity"]}, "pageSize": 25},
+        json={
+            "page": 1,
+            "filters": {"severity": search_fields["severity"]},
+            "pageSize": 25,
+        },
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
     assert response.status_code == 200
     data = response.json()
-    assert data is not None
-    for vulnerability in data:
-        assert vulnerability["severity"] == filters["severity"]
+
+    assert data is not None, "Response is empty"
+    assert "results" in data, "Response does not contain 'results' key"
+
+    assert len(data["results"]) > 0, "No results found for the given severity"
+
+    for vuln in data["results"]:
+        assert (
+            vuln["severity"] == search_fields["severity"]
+        ), f"Vulnerability severity {vuln['severity']} does not match the expected {search_fields['severity']}"
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_by_domain_id(user):
+def test_search_vulnerabilities_by_domain_id(user, vulnerability):
     # Test search vulnerabilities by domain id
+    domain_id = str(vulnerability.domain.id)
     response = client.post(
         "/vulnerabilities/search",
-        json={"page": 1, "filters": {"domain": filters["domain"]}, "pageSize": 25},
+        json={"page": 1, "filters": {"domain": domain_id}, "pageSize": 25},
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
     assert response.status_code == 200
+
     data = response.json()
-    assert data is not None
-    for vulnerability in data:
-        assert vulnerability["domain_id"] == filters["domain"]
+
+    assert data is not None, "Response is empty"
+    assert "results" in data, "Response does not contain 'results' key"
+    assert len(data["results"]) > 0, "No vulnerabilities found for the given domain"
+
+    for vuln in data["results"]:
+        assert (
+            str(vuln["domain_id"]) == domain_id
+        ), f"Vulnerability with ID {vuln['id']} does not have the expected domain_id {domain_id}"
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_by_state(user):
-    # Test search vulnerabilities by state
+def test_search_vulnerabilities_by_state(user, vulnerability):
+    state_to_search = search_fields["state"]
+
     response = client.post(
         "/vulnerabilities/search",
-        json={"page": 1, "filters": {"state": filters["state"]}, "pageSize": 25},
+        json={"page": 1, "filters": {"state": state_to_search}, "pageSize": 25},
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
     assert response.status_code == 200
+
     data = response.json()
-    assert data is not None
-    for vulnerability in data:
-        assert vulnerability["state"] == filters["state"]
+
+    assert data is not None, "Response is empty"
+    assert "results" in data, "Response does not contain 'results' key"
+    assert len(data["results"]) > 0, "No vulnerabilities found for the given state"
+
+    for vuln in data["results"]:
+        assert (
+            vuln["state"] == state_to_search
+        ), f"Vulnerability with ID {vuln['id']} does not have the expected state {state_to_search}"
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_by_substate(user):
-    # Test search vulnerabilities by state
+def test_search_vulnerabilities_by_substate(user, vulnerability):
+    substate_to_search = search_fields["substate"]
+
     response = client.post(
         "/vulnerabilities/search",
-        json={"page": 1, "filters": {"substate": filters["substate"]}, "pageSize": 25},
+        json={"page": 1, "filters": {"substate": substate_to_search}, "pageSize": 25},
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
     assert response.status_code == 200
+
     data = response.json()
-    assert data is not None
-    for vulnerability in data:
-        assert vulnerability["substate"] == filters["substate"]
+
+    assert data is not None, "Response is empty"
+    assert "results" in data, "Response does not contain 'results' key"
+    assert len(data["results"]) > 0, "No vulnerabilities found for the given substate"
+
+    for vuln in data["results"]:
+        assert (
+            vuln["substate"] == substate_to_search
+        ), f"Vulnerability with ID {vuln['id']} does not have the expected substate {substate_to_search}"
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_by_organization_id(user):
-    # Test search vulnerabilities by state
+def test_search_vulnerabilities_by_organization_id(user, vulnerability):
+    organization_id = str(vulnerability.domain.organization.id)
+
     response = client.post(
         "/vulnerabilities/search",
         json={
             "page": 1,
-            "filters": {"organization": filters["organization"]},
+            "filters": {"organization": organization_id},
             "pageSize": 25,
         },
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
     assert response.status_code == 200
+
     data = response.json()
-    assert data is not None
+    assert data is not None, "Response is empty"
+    assert "results" in data, "Response does not contain 'results' key"
+    assert len(data["results"]) > 0, "No results found for the given organization"
+
+    for vulnerability_data in data["results"]:
+        domain_id = vulnerability_data.get("domain_id", None)
+        if domain_id:
+            domain = Domain.objects.get(id=domain_id)
+            assert (
+                str(domain.organization.id) == organization_id
+            ), f"Vulnerability with ID {vulnerability_data.get('id', 'N/A')} does not belong to the expected organization"
+        else:
+            print(
+                f"Warning: 'domain_id' key not found in vulnerability with ID {vulnerability_data.get('id', 'N/A')}"
+            )
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_by_is_kev(user):
-    # Test search vulnerabilities by state
+def test_search_vulnerabilities_by_is_kev(user, vulnerability):
+    is_kev_to_search = search_fields["isKev"]
+
     response = client.post(
         "/vulnerabilities/search",
-        json={"page": 1, "filters": {"isKev": filters["isKev"]}, "pageSize": 25},
+        json={"page": 1, "filters": {"isKev": is_kev_to_search}, "pageSize": 25},
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
     assert response.status_code == 200
+
     data = response.json()
-    assert data is not None
-    for vulnerability in data:
-        assert vulnerability["isKev"] == filters["isKev"]
+
+    assert data is not None, "Response is empty"
+    assert "results" in data, "Response does not contain 'results' key"
+    assert (
+        len(data["results"]) > 0
+    ), f"No vulnerabilities found for the given isKev value {is_kev_to_search}"
+
+    for vuln in data["results"]:
+        assert (
+            vuln["isKev"] == is_kev_to_search
+        ), f"Vulnerability with ID {vuln['id']} does not have the expected 'isKev' value {is_kev_to_search}"
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_by_multiple_criteria(user):
-    # Test search vulnerabilities by state
+def test_search_vulnerabilities_by_multiple_criteria(user, vulnerability):
+    state_to_search = search_fields["state"]
+    substate_to_search = search_fields["substate"]
+
     response = client.post(
         "/vulnerabilities/search",
         json={
             "page": 1,
-            "filters": {"state": filters["state"], "substate": filters["substate"]},
+            "filters": {
+                "state": state_to_search,
+                "substate": substate_to_search,
+            },
             "pageSize": 25,
         },
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
     assert response.status_code == 200
+
     data = response.json()
-    assert data is not None
-    for vulnerability in data:
-        assert vulnerability["state"] == filters["state"]
-        assert vulnerability["substate"] == filters["substate"]
+
+    assert data is not None, "Response is empty"
+    assert "results" in data, "Response does not contain 'results' key"
+    assert (
+        len(data["results"]) > 0
+    ), f"No vulnerabilities found for the given 'state' = {state_to_search} and 'substate' = {substate_to_search}"
+
+    for vuln in data["results"]:
+        assert (
+            vuln["state"] == state_to_search
+        ), f"Vulnerability with ID {vuln['id']} does not have the expected 'state' value {state_to_search}"
+        assert (
+            vuln["substate"] == substate_to_search
+        ), f"Vulnerability with ID {vuln['id']} does not have the expected 'substate' value {substate_to_search}"
 
 
 @pytest.mark.django_db(transaction=True)
-def test_search_vulnerabilities_does_not_exist(user):
+def test_search_vulnerabilities_does_not_exist(user, vulnerability):
     # Test search vulnerabilities by state
     response = client.post(
         "/vulnerabilities/search",
