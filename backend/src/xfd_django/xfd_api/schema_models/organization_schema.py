@@ -202,3 +202,17 @@ class OrganizationSearchBody(BaseModel):
 
     regions: Optional[List[str]]
     searchTerm: str
+
+
+class FilterSchema(BaseModel):
+    """Elastic search orgnaization model."""
+
+    regions: Optional[List[str]] = []
+    organizations: Optional[List[str]] = []
+    tags: Optional[List[str]] = []
+
+
+class StatsPayloadSchema(BaseModel):
+    """Elastic search orgnaization model."""
+
+    filters: Optional[FilterSchema]

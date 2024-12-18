@@ -9,13 +9,13 @@ import csv
 # Third-Party Libraries
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.http import Http404
 from fastapi import HTTPException
 
 from ..auth import get_org_memberships, get_user_organization_ids, is_global_view_admin
 from ..helpers.filter_helpers import filter_domains, sort_direction
-from ..models import Domain
+from ..models import Domain, Service
 from ..schema_models.domain import DomainFilters, DomainSearch
 
 
@@ -26,8 +26,67 @@ def get_domain_by_id(domain_id: str):
         object: a single Domain object.
     """
     try:
-        domain = Domain.objects.get(id=domain_id)
-        return domain
+        domain = (
+            Domain.objects.select_related("organization")
+            .prefetch_related(
+                "vulnerabilities",
+                Prefetch(
+                    "services",
+                    queryset=Service.objects.only(
+                        "id", "port", "service", "lastSeen", "products"
+                    ),
+                ),
+            )
+            .filter(id=domain_id)
+            .first()
+        )
+        # The Domain model includes related fields (e.g., organization, vulnerabilities, services)
+        # which are Django ORM objects themselves and cannot be directly serialized into JSON.
+        # Serialize domain object and its relations
+        domain_data = {
+            "id": domain.id,
+            "name": domain.name,
+            "ip": domain.ip,
+            "createdAt": domain.createdAt,
+            "updatedAt": domain.updatedAt,
+            "country": domain.country,
+            "cloudHosted": domain.cloudHosted,
+            "organization": {
+                "id": domain.organization.id,
+                "name": domain.organization.name,
+            }
+            if domain.organization
+            else None,
+            "vulnerabilities": [
+                {
+                    "id": vulnerability.id,
+                    "title": vulnerability.title,
+                    "severity": vulnerability.severity,
+                    "description": vulnerability.description,
+                    "state": vulnerability.state,
+                    "createdAt": vulnerability.createdAt,
+                }
+                for vulnerability in domain.vulnerabilities.all()
+            ],
+            "services": [
+                {
+                    "id": service.id,
+                    "port": service.port,
+                    "lastSeen": service.lastSeen,
+                    "products": service.products,
+                }
+                for service in domain.services.all()
+            ],
+            "webpages": [
+                {
+                    "url": webpage.url,
+                    "status": webpage.status,
+                    "responseSize": webpage.responseSize,
+                }
+                for webpage in domain.webpages.all()
+            ],
+        }
+        return domain_data
     except Domain.DoesNotExist:
         raise HTTPException(status_code=404, detail="Domain not found.")
     except Exception as e:
@@ -80,62 +139,3 @@ def export_domains(domain_filters: DomainFilters):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-async def stats_total_domains(organization, tag, current_user):
-    """
-    Get total number of domains
-    Returns:
-        int: total number of domains
-    """
-    try:
-        # Base QuerySet
-        queryset = Domain.objects.all()
-
-        # Apply filtering logic at the endpoint
-        # Check if the user is a global admin
-        is_admin = is_global_view_admin(current_user)
-
-        # Get user's accessible organizations
-        if not is_admin:
-            user_org_ids = await get_user_organization_ids(current_user)
-            if not user_org_ids:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="User does not belong to any organizations.",
-                )
-            queryset = queryset.filter(organizationId__id__in=user_org_ids)
-        else:
-            user_org_ids = None  # Admin has access to all organizations
-
-        # Apply organization filter
-        if organization:
-            if user_org_ids is not None and organization not in user_org_ids:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="User does not have access to the specified organization.",
-                )
-            queryset = queryset.filter(organizationId__id=organization)
-
-        # Apply tag filter
-        if tag:
-            tag_org_ids = get_tag_organization_ids(tag)
-            if user_org_ids is not None:
-                accessible_org_ids = set(user_org_ids).intersection(tag_org_ids)
-                if not accessible_org_ids:
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="No accessible organizations found for the specified tag.",
-                    )
-                queryset = queryset.filter(organizationId__id__in=accessible_org_ids)
-            else:
-                queryset = queryset.filter(organizationId__id__in=tag_org_ids)
-
-        # Get total count
-        total_domains = await sync_to_async(queryset.count)()
-
-        # Return the count in the expected schema
-        return {"value": total_domains}
-
-    except HTTPException as http_exc:
-        raise http_exc

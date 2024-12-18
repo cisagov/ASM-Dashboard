@@ -26,7 +26,7 @@ class LambdaClient:
         print(f"Invoking lambda function: {name}")
         if self.is_local:
             # If running locally, directly call the scheduler function
-            scheduler({})
+            scheduler({}, {})
             return {"status": 200, "message": ""}
         else:
             # Invoke the lambda function asynchronously

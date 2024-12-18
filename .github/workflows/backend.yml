@@ -117,6 +117,26 @@ jobs:
           DB_USERNAME: crossfeed
           DB_PASSWORD: password
 
+  build_worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Restore npm cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-node-
+      - name: Install dependencies
+        run: npm ci
+      - name: Build worker container
+        run: npm run build-worker
+        working-directory: ./backend
+
   deploy_staging:
     needs: [lint, test, test_worker]
     runs-on: ubuntu-latest
@@ -208,11 +228,18 @@ jobs:
           SLS_DEBUG: '*'
 
       - name: Deploy backend
-        run: npx sls deploy --stage=integration --force
+        run: npx sls deploy --stage=integration
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           SLS_DEBUG: '*'
+
+      - name: Deploy worker
+        run: npm run deploy-worker-integration
+        working-directory: backend
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Run syncdb
         run: |

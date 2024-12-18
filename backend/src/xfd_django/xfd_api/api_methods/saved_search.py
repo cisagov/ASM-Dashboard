@@ -3,7 +3,6 @@
 
 # Standard Python Libraries
 from datetime import datetime, timezone
-import json
 import uuid
 
 # Third-Party Libraries
@@ -11,7 +10,6 @@ from django.http import JsonResponse
 from fastapi import HTTPException
 
 from ..models import SavedSearch, User
-from ..schema_models.saved_search import SavedSearchFilters
 
 
 def validate_name(value: str):
@@ -28,6 +26,33 @@ def validate_name(value: str):
 def create_saved_search(request):
     validate_name(request.get("name"))
     try:
+        # Process filter values when selecting organizations
+        def process_filter_values(values):
+            processed_values = []
+            for value in values:
+                if isinstance(value, dict):
+                    # Include only the required fields
+                    processed_values.append(
+                        {
+                            "id": value.get("id"),
+                            "name": value.get("name"),
+                            "regionId": value.get("regionId"),
+                            "rootDomains": value.get("rootDomains", []),
+                        }
+                    )
+                else:
+                    processed_values.append(value)
+            return processed_values
+
+        filters = [
+            {
+                "type": f.type,
+                "field": f.field,
+                "values": process_filter_values(f.values),
+            }
+            for f in request.get("filters", [])
+        ]
+
         search = SavedSearch.objects.create(
             name=request.get("name"),
             count=request.get("count", 0),  # Default to 0 if count does not exist
@@ -35,13 +60,7 @@ def create_saved_search(request):
             sortField=request.get("sortField", ""),
             searchTerm=request.get("searchTerm", ""),
             searchPath=request.get("searchPath", ""),
-            filters=[
-                {
-                    "type": "any",
-                    "field": request.get("field", ""),
-                    "values": [request.get("values", "")],
-                }
-            ],
+            filters=filters,
             createdById=request.get("createdById"),
         )
 
@@ -142,24 +161,52 @@ def update_saved_search(request, user):
     if not uuid.UUID(request["saved_search_id"]):
         raise HTTPException(status_code=404, detail={"error": "Invalid UUID"})
     try:
+        # Process filter values when selecting organizations
+        def process_filter_values(values):
+            processed_values = []
+            for value in values:
+                if isinstance(value, dict):
+                    # Include only the required fields
+                    processed_values.append(
+                        {
+                            "id": value.get("id"),
+                            "name": value.get("name"),
+                            "regionId": value.get("regionId"),
+                            "rootDomains": value.get("rootDomains", []),
+                        }
+                    )
+                else:
+                    processed_values.append(value)
+            return processed_values
+
+        filters = [
+            {
+                "type": f.type,
+                "field": f.field,
+                "values": process_filter_values(f.values),
+            }
+            for f in request.get("filters", [])
+        ]
+
         saved_search = SavedSearch.objects.get(id=request["saved_search_id"])
         if saved_search.createdById.id != user.id:
             raise HTTPException(status_code=404, detail="Saved search not found")
 
+        name = request["name"].strip()
+        if name == "":
+            raise HTTPException(status_code=400, detail="Name cannot be empty")
+
         saved_search.name = request["name"]
         saved_search.updatedAt = datetime.now(timezone.utc)
         saved_search.searchTerm = request["searchTerm"]
-        validate_name(request.get("name"))
-
         saved_search.save()
         response = {
             "name": saved_search.name,
-            "updatedAt": saved_search.updatedAt,
             "searchTerm": saved_search.searchTerm,
             "sortDirection": saved_search.sortDirection,
             "sortField": saved_search.sortField,
             "count": saved_search.count,
-            "filters": saved_search.filters,
+            "filters": filters,
             "searchPath": saved_search.searchPath,
         }
     except User.DoesNotExist:
