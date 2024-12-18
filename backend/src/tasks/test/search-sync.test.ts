@@ -45,7 +45,7 @@ describe('search_sync', () => {
       domain
     }).save();
 
-    await searchSync();
+    await searchSync(organization.id);
     // {
     //   organizationId: organization.id,
     //   organizationName: 'organizationName',
@@ -72,7 +72,7 @@ describe('search_sync', () => {
       updatedAt: new Date('9999-10-11')
     }).save();
 
-    await searchSync();
+    await searchSync(organization.id);
     //   {
     //   organizationId: organization.id,
     //   organizationName: 'organizationName',
@@ -99,7 +99,7 @@ describe('search_sync', () => {
       updatedAt: new Date('9999-9-11')
     }).save();
 
-    await searchSync();
+    await searchSync(organization.id);
     // {
     //   organizationId: organization.id,
     //   organizationName: 'organizationName',
@@ -124,7 +124,7 @@ describe('search_sync', () => {
       updatedAt: new Date('9999-10-11')
     }).save();
 
-    await searchSync();
+    await searchSync(organization.id);
     // {
     //   organizationId: organization.id,
     //   organizationName: 'organizationName',
@@ -150,7 +150,7 @@ describe('search_sync', () => {
       updatedAt: new Date('9999-9-11')
     }).save();
 
-    await searchSync();
+    await searchSync(organization.id);
     // {
     //   organizationId: organization.id,
     //   organizationName: 'organizationName',
@@ -178,7 +178,7 @@ describe('search_sync', () => {
       syncedAt: new Date('9999-10-10')
     }).save();
 
-    await searchSync();
+    await searchSync(organization.id);
     // {
     //   organizationId: organization.id,
     //   organizationName: 'organizationName',
@@ -206,7 +206,7 @@ describe('search_sync', () => {
       syncedAt: new Date('9999-10-10')
     }).save();
 
-    await searchSync();
+    await searchSync(organization.id);
     // {
     //   organizationId: organization.id,
     //   organizationName: 'organizationName',
@@ -239,7 +239,7 @@ describe('search_sync', () => {
       domain
     }).save();
 
-    await searchSync();
+    await searchSync(organization.id);
     // {
     //   organizationId: organization.id,
     //   organizationName: 'organizationName',
@@ -279,7 +279,7 @@ describe('search_sync', () => {
       )
     );
 
-    await searchSync();
+    await searchSync(organization.id);
     // {
     //   organizationId: organization.id,
     //   scanId: 'scanId',

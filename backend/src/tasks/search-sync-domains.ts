@@ -11,7 +11,7 @@ import pRetry from 'p-retry';
 export const DOMAIN_CHUNK_SIZE = typeof jest === 'undefined' ? 50 : 10;
 export const ORGANIZATION_CHUNK_SIZE = typeof jest === 'undefined' ? 50 : 10;
 
-export const handler = async () => {
+export const handler = async (organizationId?: string) => {
   console.log('Running searchSync');
   await connectToDatabase();
 
@@ -33,10 +33,10 @@ export const handler = async () => {
     .groupBy('domain.id, organization.id, vulnerabilities.id, services.id')
     .select(['domain.id']);
 
-  // if (organizationId) {
-  //   // This parameter is used for testing only
-  //   qs.where('organization.id=:org', { org: organizationId });
-  // }
+  if (organizationId) {
+    // This parameter is used for testing only
+    qs.where('organization.id=:org', { org: organizationId });
+  }
 
   qs.andWhere(
     '(domain."isFceb" = true OR (domain."isFceb" = false AND domain."fromCidr" = true))'
