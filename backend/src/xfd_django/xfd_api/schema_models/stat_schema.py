@@ -54,28 +54,10 @@ class Domain(BaseModel):
 
 
 class LatestVulnerability(BaseModel):
-    id: str
     createdAt: datetime
-    updatedAt: datetime
-    lastSeen: Optional[datetime]
     title: str
-    cve: Optional[str]
-    cwe: Optional[str]
-    cpe: Optional[str]
     description: Optional[str]
-    references: List[str]
-    cvss: Optional[float]
     severity: Optional[str]
-    needsPopulation: bool
-    state: str
-    substate: str
-    source: str
-    notes: Optional[str]
-    actions: List[dict]
-    structuredData: dict
-    isKev: bool
-    kevResults: dict
-    domain: Domain
 
 
 class MostCommonVulnerability(BaseModel):

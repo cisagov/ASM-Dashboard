@@ -3,8 +3,10 @@
   "description": "",
   "devDependencies": {
     "serverless": "^3.30",
+    "serverless-better-credentials": "^2.0.0",
     "serverless-domain-manager": "^7.0",
     "serverless-dotenv-plugin": "^6.0.0",
+    "serverless-plugin-ifelse": "^1.0.7",
     "serverless-python-requirements": "^6.1.1"
   },
   "license": "ISC",

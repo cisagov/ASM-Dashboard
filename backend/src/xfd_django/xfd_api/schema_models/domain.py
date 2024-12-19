@@ -103,8 +103,8 @@ class ProductResponse(BaseModel):
 class ServiceResponse(BaseModel):
     id: UUID
     port: int
-    lastSeen: Optional[str] = None
-    products: List[ProductResponse]
+    lastSeen: Optional[datetime] = None
+    products: List[Any]
 
     class Config:
         orm_mode = True

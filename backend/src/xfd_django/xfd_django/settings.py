@@ -33,7 +33,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 # TODO: GET THAT LATER
 SECRET_KEY = os.getenv("DJANGO_KEY")
-
+CROSSFEED_SUPPORT_EMAIL_SENDER = os.getenv("CROSSFEED_SUPPORT_EMAIL_SENDER")
+CROSSFEED_SUPPORT_EMAIL_REPLYTO = os.getenv("CROSSFEED_SUPPORT_EMAIL_REPLYTO")
+FRONTEND_DOMAIN = os.getenv("FRONTEND_DOMAIN")
 IS_LOCAL = os.getenv("IS_LOCAL")
 
 # JWT Secret Key

@@ -29,7 +29,7 @@ class S3Client:
                 config=boto3.session.Config(
                     s3={"addressing_style": "virtual"},
                     retries={"max_attempts": 3},
-                    http={"keep_alive": False},
+                    signature_version="s3v4",
                 ),
             )
 

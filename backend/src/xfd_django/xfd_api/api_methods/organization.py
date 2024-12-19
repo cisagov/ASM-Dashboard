@@ -11,7 +11,6 @@ from fastapi import HTTPException, status
 
 from ..auth import (
     get_org_memberships,
-    get_user_organization_ids,
     is_global_view_admin,
     is_global_write_admin,
     is_org_admin,
@@ -995,15 +994,11 @@ def list_organizations_v2(state, regionId, current_user):
         ):
             return []
 
-        # TODO: MAKE SURE IF Just a normal org member they can only get their org
-        # Define filter for organizations based on admin status
-        # org_filter = {}
-        # if not is_global_view_admin(current_user):
-        #     org_filter["id__in"] = get_org_memberships(current_user)
-        # org_filter["parent"] = None
-
         # Prepare the filter criteria
         filter_criteria = Q()
+
+        if not is_global_view_admin(current_user):
+            filter_criteria &= Q(id__in=get_org_memberships(current_user))
 
         if state:
             filter_criteria &= Q(state__in=state)
@@ -1038,30 +1033,6 @@ def list_organizations_v2(state, regionId, current_user):
                 "county": org.county,
                 "countyFips": org.countyFips,
                 "type": org.type,
-                "userRoles": [
-                    {
-                        "id": str(role.id),
-                        "role": role.role,
-                        "approved": role.approved,
-                        "user": {
-                            "id": str(role.user.id),
-                            "email": role.user.email,
-                            "firstName": role.user.firstName,
-                            "lastName": role.user.lastName,
-                            "fullName": role.user.fullName,
-                        },
-                    }
-                    for role in org.userRoles.all()
-                ],
-                "tags": [
-                    {
-                        "id": str(tag.id),
-                        "createdAt": tag.createdAt.isoformat(),
-                        "updatedAt": tag.updatedAt.isoformat(),
-                        "name": tag.name,
-                    }
-                    for tag in org.tags.all()
-                ],
             }
             for org in organizations
         ]

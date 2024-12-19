@@ -200,7 +200,7 @@ resource "aws_db_instance" "matomo_db" {
   engine_version                      = "10.6"
   skip_final_snapshot                 = true
   availability_zone                   = var.matomo_availability_zone
-  multi_az                            = false
+  multi_az                            = true
   backup_retention_period             = 35
   storage_encrypted                   = true
   iam_database_authentication_enabled = true
@@ -219,9 +219,12 @@ resource "aws_db_instance" "matomo_db" {
   vpc_security_group_ids = [var.is_dmz ? aws_security_group.allow_internal[0].id : aws_security_group.allow_internal_lz[0].id]
 
   tags = {
-    Project = var.project
-    Stage   = var.stage
-    Owner   = "Crossfeed managed resource"
+    Project  = var.project
+    Stage    = var.stage
+    Owner    = "Crossfeed managed resource"
+    ART      = "No Art"
+    POC      = "Lamar Steward   Craig Duhn"
+    PocEmail = "lamar.stewart@cisa.dhs.gov"
   }
 }
 
