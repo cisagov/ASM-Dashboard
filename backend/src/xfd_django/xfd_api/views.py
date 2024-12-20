@@ -102,7 +102,7 @@ async def get_redis_client(request: Request):
 
 
 # ========================================
-#   Analytics
+#   Analytic Endpoints
 # ========================================
 
 
