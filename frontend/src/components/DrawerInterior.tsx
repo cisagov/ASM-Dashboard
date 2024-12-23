@@ -179,14 +179,16 @@ export const DrawerInterior: React.FC<Props> = (props) => {
       )
     : [];
 
+  // To-Do: Create array(s) to handle permutations of null and N/A values
   const titleCaseSeverityFacet = facets['vulnerabilities.severity']
     ? facets['vulnerabilities.severity'][0].data.map(
         (d: { value: string; count: number }) => {
           if (
-            d.value === 'null' ||
             d.value === null ||
+            d.value === 'null' ||
+            d.value === 'NULL' ||
+            d.value === undefined ||
             d.value === '' ||
-            d.value === 'undefined' ||
             d.value === 'N/A'
           ) {
             return { value: 'N/A', count: d.count };
