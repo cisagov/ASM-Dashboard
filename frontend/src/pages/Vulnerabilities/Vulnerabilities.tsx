@@ -314,8 +314,17 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
 
     const severityLevels: string[] = ['Low', 'Medium', 'High', 'Critical'];
 
+    // const NA_SEVERITY_Levels = [null, undefined, 'NULL', 'N/A'];
+
     const formatSeverity = (severity: string) => {
-      if (severity === null || severity === '' || severity === 'N/A') {
+      if (
+        severity === null ||
+        severity === 'null' ||
+        severity === 'NULL' ||
+        severity === undefined ||
+        severity === '' ||
+        severity === 'N/A'
+      ) {
         return 'N/A';
       } else if (severityLevels.includes(titleCase(severity))) {
         return titleCase(severity);
@@ -350,6 +359,9 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
       state: vuln.state + (vuln.substate ? ` (${vuln.substate})` : '')
     };
   });
+
+  const vulRowsSeverities = vulnerabilities.map((vuln) => vuln.severity);
+  console.log('vulRows', vulRowsSeverities);
 
   const vulCols: GridColDef[] = [
     {
