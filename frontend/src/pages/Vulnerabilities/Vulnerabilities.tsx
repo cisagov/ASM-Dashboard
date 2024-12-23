@@ -314,7 +314,7 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
 
     const severityLevels: string[] = ['Low', 'Medium', 'High', 'Critical'];
 
-    // const NA_SEVERITY_Levels = [null, undefined, 'NULL', 'N/A'];
+    // To-Do: Create array(s) to handle permutations of null and N/A values
 
     const formatSeverity = (severity: string) => {
       if (
