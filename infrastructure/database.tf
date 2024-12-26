@@ -37,7 +37,7 @@ resource "aws_db_instance" "db" {
   allow_major_version_upgrade         = true
   skip_final_snapshot                 = true
   availability_zone                   = data.aws_availability_zones.available.names[0]
-  multi_az                            = false
+  multi_az                            = true
   backup_retention_period             = 35
   storage_encrypted                   = true
   iam_database_authentication_enabled = true
@@ -56,8 +56,11 @@ resource "aws_db_instance" "db" {
   vpc_security_group_ids = [var.is_dmz ? aws_security_group.allow_internal[0].id : aws_security_group.allow_internal_lz[0].id]
 
   tags = {
-    Project = "Crossfeed"
-    Owner   = "Crossfeed managed resource"
+    Project  = "Crossfeed"
+    Owner    = "Crossfeed managed resource"
+    ART      = "No Art"
+    POC      = "Lamar Steward   Craig Duhn"
+    PocEmail = "lamar.stewart@cisa.dhs.gov"
   }
 }
 

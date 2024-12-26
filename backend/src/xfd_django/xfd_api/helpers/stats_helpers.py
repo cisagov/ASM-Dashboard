@@ -6,7 +6,7 @@ import json
 # Third-Party Libraries
 import django
 from django.conf import settings
-from django.db.models import CharField, Count, F, Value
+from django.db.models import CharField, Count, Q
 from django.db.models.functions import Concat
 from fastapi import HTTPException
 import redis
@@ -63,7 +63,9 @@ def populate_stats_cache(
         # Build queryset with optional filters
         queryset = model.objects.all()
         if filters:
-            queryset = queryset.filter(**filters)
+            queryset = queryset.filter(**filters).filter(
+                Q(domain__isFceb=True) | Q(domain__fromCidr=True)  # Apply OR condition
+            )
 
         # Apply custom ID annotation if provided
         if custom_id:
@@ -111,7 +113,11 @@ async def get_total_count(filtered_org_ids):
     """
     try:
         # Query the database for the total count of domains in the filtered organizations
-        total_count = Domain.objects.filter(organization__in=filtered_org_ids).count()
+        total_count = (
+            Domain.objects.filter(organization__in=filtered_org_ids)
+            .filter(Q(isFceb=True) | Q(fromCidr=True))
+            .count()
+        )
         return total_count
 
     except Exception as e:

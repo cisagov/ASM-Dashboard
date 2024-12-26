@@ -369,6 +369,8 @@ async def get_jwt_from_code(auth_code: str):
         callback_url = os.getenv("REACT_APP_COGNITO_CALLBACK_URL")
         client_id = os.getenv("REACT_APP_COGNITO_CLIENT_ID")
         domain = os.getenv("REACT_APP_COGNITO_DOMAIN")
+        proxy_url = os.getenv("LZ_PROXY_URL")
+
         scope = "openid"
         authorize_token_url = f"https://{domain}/oauth2/token"
         authorize_token_body = {
@@ -382,8 +384,16 @@ async def get_jwt_from_code(auth_code: str):
             "Content-Type": "application/x-www-form-urlencoded",
         }
 
+        # Set up proxies if PROXY_URL is defined
+        proxies = None
+        if proxy_url:
+            proxies = {"http": proxy_url, "https": proxy_url}
+
         response = requests.post(
-            authorize_token_url, headers=headers, data=urlencode(authorize_token_body)
+            authorize_token_url,
+            headers=headers,
+            data=urlencode(authorize_token_body),
+            proxies=proxies,
         )
         token_response = response.json()
         # Convert the id_token to bytes

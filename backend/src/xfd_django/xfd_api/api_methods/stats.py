@@ -239,7 +239,7 @@ async def get_severity_stats(
 
 
 async def stats_latest_vulns(
-    filter_data, current_user, redis_client, max_results=100, filtered_org_ids=None
+    filter_data, current_user, redis_client, max_results=50, filtered_org_ids=None
 ):
     """
     Retrieve the latest vulnerabilities from Elasticache filtered by user.
@@ -255,14 +255,18 @@ async def stats_latest_vulns(
                     detail="No organizations found for the user with the specified filters.",
                 )
 
+        # Generate all Redis keys at once
+        redis_keys = [f"latest_vulnerabilities:{org_id}" for org_id in filtered_org_ids]
+
+        # Use MGET to fetch all keys in a single operation
+        results = await redis_client.mget(*redis_keys)
+
         vulnerabilities = []
 
-        # Fetch data from Redis for each organization
-        for org_id in filtered_org_ids:
-            redis_key = f"latest_vulnerabilities:{org_id}"
-            org_vulnerabilities = await redis_client.get(redis_key)
-            if org_vulnerabilities:
-                vulnerabilities.extend(json.loads(org_vulnerabilities))
+        # Process the results, skip None values
+        for data in results:
+            if data:
+                vulnerabilities.extend(json.loads(data))
 
         # Limit the results to the maximum specified
         vulnerabilities = sorted(vulnerabilities, key=lambda x: x["createdAt"])[
@@ -288,7 +292,7 @@ async def stats_latest_vulns(
 
 
 async def stats_most_common_vulns(
-    filter_data, current_user, redis_client, max_results=100, filtered_org_ids=None
+    filter_data, current_user, redis_client, max_results=10, filtered_org_ids=None
 ):
     """
     Retrieve the most common vulnerabilities from Elasticache filtered by user.
@@ -304,25 +308,25 @@ async def stats_most_common_vulns(
                     detail="No organizations found for the user with the specified filters.",
                 )
 
+        # Generate all Redis keys at once
+        redis_keys = [
+            f"most_common_vulnerabilities:{org_id}" for org_id in filtered_org_ids
+        ]
+
+        # Use MGET to fetch all keys in a single operation
+        results = await redis_client.mget(*redis_keys)
+
         vulnerabilities = []
 
-        # Fetch data from Redis for each organization
-        for org_id in filtered_org_ids:
-            redis_key = f"most_common_vulnerabilities:{org_id}"
-            org_vulnerabilities = await redis_client.get(redis_key)
-            if org_vulnerabilities:
-                vulnerabilities.extend(json.loads(org_vulnerabilities))
+        # Process the results, skip None values
+        for data in results:
+            if data:
+                vulnerabilities.extend(json.loads(data))
 
         # Limit the results to the maximum specified
-        vulnerabilities = sorted(
-            vulnerabilities, key=lambda x: x["count"], reverse=True
-        )[:max_results]
-
-        if not vulnerabilities:
-            raise HTTPException(
-                status_code=404,
-                detail="No vulnerabilities found for the user's organizations in cache.",
-            )
+        vulnerabilities = sorted(vulnerabilities, key=lambda x: x["count"])[
+            :max_results
+        ]
 
         return vulnerabilities
 

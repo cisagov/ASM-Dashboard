@@ -5,7 +5,7 @@ import os
 # Third-Party Libraries
 import django
 from django.conf import settings
-from django.db.models import CharField, Count, F, Value
+from django.db.models import CharField, Count, F, Q, Value
 from django.db.models.functions import Concat
 import redis
 
@@ -69,7 +69,7 @@ def populate_num_vulns_cache(event, context):
     )
 
 
-def populate_latest_vulns_cache(event, context, max_results=100):
+def populate_latest_vulns_cache(event, context):
     """
     Populate Redis with the latest vulnerabilities for each organization.
     """
@@ -89,8 +89,11 @@ def populate_latest_vulns_cache(event, context, max_results=100):
                 domain__isnull=False,
                 domain__organization__isnull=False,
             )
+            .filter(
+                Q(domain__isFceb=True) | Q(domain__fromCidr=True)  # Apply OR condition
+            )
             .select_related("domain", "domain__organization")
-            .order_by("createdAt")[:max_results]
+            .order_by("createdAt")
         )
 
         # Organize vulnerabilities by organization
@@ -98,50 +101,10 @@ def populate_latest_vulns_cache(event, context, max_results=100):
         for vuln in vulnerabilities:
             org_id = str(vuln.domain.organization.id)  # Organization ID
             vuln_data = {
-                "id": str(vuln.id),
                 "createdAt": vuln.createdAt.isoformat(),
-                "updatedAt": vuln.updatedAt.isoformat(),
-                "lastSeen": vuln.lastSeen.isoformat() if vuln.lastSeen else None,
                 "title": vuln.title,
-                "cve": vuln.cve,
-                "cwe": vuln.cwe,
-                "cpe": vuln.cpe,
                 "description": vuln.description,
-                "references": vuln.references,
-                "cvss": str(vuln.cvss) if vuln.cvss else None,
                 "severity": vuln.severity,
-                "needsPopulation": vuln.needsPopulation,
-                "state": vuln.state,
-                "substate": vuln.substate,
-                "source": vuln.source,
-                "notes": vuln.notes,
-                "actions": vuln.actions,
-                "structuredData": vuln.structuredData,
-                "isKev": vuln.isKev,
-                "kevResults": vuln.kevResults,
-                "domain": {
-                    "id": str(vuln.domain.id),
-                    "createdAt": vuln.domain.createdAt.isoformat(),
-                    "updatedAt": vuln.domain.updatedAt.isoformat(),
-                    "syncedAt": vuln.domain.syncedAt.isoformat()
-                    if vuln.domain.syncedAt
-                    else None,
-                    "ip": vuln.domain.ip,
-                    "fromRootDomain": vuln.domain.fromRootDomain,
-                    "subdomainSource": vuln.domain.subdomainSource,
-                    "ipOnly": vuln.domain.ipOnly,
-                    "reverseName": vuln.domain.reverseName,
-                    "name": vuln.domain.name,
-                    "screenshot": vuln.domain.screenshot,
-                    "country": vuln.domain.country,
-                    "asn": vuln.domain.asn,
-                    "cloudHosted": vuln.domain.cloudHosted,
-                    "fromCidr": vuln.domain.fromCidr,
-                    "isFceb": vuln.domain.isFceb,
-                    "ssl": vuln.domain.ssl,
-                    "censysCertificatesResults": vuln.domain.censysCertificatesResults,
-                    "trustymailResults": vuln.domain.trustymailResults,
-                },
             }
             if org_id not in vulnerabilities_by_org:
                 vulnerabilities_by_org[org_id] = []
@@ -164,7 +127,7 @@ def populate_latest_vulns_cache(event, context, max_results=100):
         }
 
 
-def populate_most_common_vulns_cache(event, context, max_results=100):
+def populate_most_common_vulns_cache(event, context):
     """
     Populate Redis with the most common vulnerabilities grouped by title, description, and severity.
     """
@@ -184,9 +147,12 @@ def populate_most_common_vulns_cache(event, context, max_results=100):
                 domain__isnull=False,
                 domain__organization__isnull=False,
             )
+            .filter(
+                Q(domain__isFceb=True) | Q(domain__fromCidr=True)  # Apply OR condition
+            )
             .values("title", "description", "severity", "domain__organization_id")
             .annotate(count=Count("id"))
-            .order_by("-count")[:max_results]
+            .order_by("-count")
         )
 
         # Organize vulnerabilities by organization
@@ -257,6 +223,9 @@ def populate_by_org_cache(event, context):
                 state="open",
                 domain__isnull=False,
                 domain__organization__isnull=False,
+            )
+            .filter(
+                Q(domain__isFceb=True) | Q(domain__fromCidr=True)  # Apply OR condition
             )
             .values("domain__organization__id", "domain__organization__name")
             .annotate(value=Count("id"))

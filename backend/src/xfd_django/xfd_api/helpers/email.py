@@ -10,10 +10,28 @@ from jinja2 import Template
 from .s3_client import S3Client
 
 
+def _setup_proxy():
+    """
+    If LZ_PROXY_URL is set in the environment, configure the HTTPS/HTTP proxy.
+    This ensures that outbound connections go through the specified proxy.
+    """
+    proxy_url = os.getenv("LZ_PROXY_URL")
+    if proxy_url:
+        os.environ["HTTPS_PROXY"] = proxy_url
+        os.environ["HTTP_PROXY"] = proxy_url
+    else:
+        # If not set, ensure these are not set so traffic is direct
+        os.environ.pop("HTTPS_PROXY", None)
+        os.environ.pop("HTTP_PROXY", None)
+
+
 def send_invite_email(email, organization=None):
     """Send an invitation email to the specified address."""
-    frontend_domain = settings("FRONTEND_DOMAIN")
-    reply_to = settings("CROSSFEED_SUPPORT_EMAIL_REPLYTO")
+
+    _setup_proxy()  # Setup proxy if LZ_PROXY_URL is defined
+
+    frontend_domain = settings.FRONTEND_DOMAIN
+    reply_to = settings.CROSSFEED_SUPPORT_EMAIL_REPLYTO
 
     org_name_part = f"the {organization.name} organization on " if organization else ""
     message = f"""
@@ -39,9 +57,12 @@ def send_invite_email(email, organization=None):
 
 def send_email(recipient, subject, body):
     """Send an email using AWS SES."""
-    ses_client = boto3.client("ses", region_name="us-east-1")
-    sender = settings("CROSSFEED_SUPPORT_EMAIL_SENDER")
-    reply_to = settings("CROSSFEED_SUPPORT_EMAIL_REPLYTO")
+
+    _setup_proxy()  # Setup proxy if LZ_PROXY_URL is defined
+
+    ses_client = boto3.client("ses", region_name=os.getenv("EMAIL_REGION"))
+    sender = settings.CROSSFEED_SUPPORT_EMAIL_SENDER
+    reply_to = settings.CROSSFEED_SUPPORT_EMAIL_REPLYTO
 
     email_params = {
         "Source": sender,
@@ -62,6 +83,8 @@ def send_registration_approved_email(
 ):
     """Send registration approved email."""
     try:
+        _setup_proxy()  # Setup proxy if LZ_PROXY_URL is defined
+
         # Initialize S3 client and fetch email template
         client = S3Client()
         html_template = client.get_email_asset(template)
@@ -74,13 +97,13 @@ def send_registration_approved_email(
         data = {
             "firstName": first_name,
             "lastName": last_name,
-            "domain": settings("FRONTEND_DOMAIN"),
+            "domain": settings.FRONTEND_DOMAIN,
         }
         html_to_send = template.render(data)
 
         # Email configuration
-        sender = settings("CROSSFEED_SUPPORT_EMAIL_SENDER")
-        reply_to = settings("CROSSFEED_SUPPORT_EMAIL_REPLYTO")
+        sender = settings.CROSSFEED_SUPPORT_EMAIL_SENDER
+        reply_to = settings.CROSSFEED_SUPPORT_EMAIL_REPLYTO
 
         email_params = {
             "Source": sender,
@@ -92,8 +115,8 @@ def send_registration_approved_email(
             "ReplyToAddresses": [reply_to],
         }
         # SES client
-        if not settings("IS_LOCAL"):
-            ses_client = boto3.client("ses", region_name="us-east-1")
+        if not settings.IS_LOCAL:
+            ses_client = boto3.client("ses", region_name=os.getenv("EMAIL_REGION"))
             # Send email
             ses_client.send_email(**email_params)
             print("Email sent successfully to:", recipient)
@@ -110,6 +133,8 @@ def send_registration_denied_email(
 ):
     """Send registration denied email."""
     try:
+        _setup_proxy()  # Setup proxy if LZ_PROXY_URL is defined
+
         # Initialize S3 client and fetch email template
         client = S3Client()
         html_template = client.get_email_asset(template)
@@ -126,8 +151,8 @@ def send_registration_denied_email(
         html_to_send = template.render(data)
 
         # Email configuration
-        sender = settings("CROSSFEED_SUPPORT_EMAIL_SENDER")
-        reply_to = settings("CROSSFEED_SUPPORT_EMAIL_REPLYTO")
+        sender = settings.CROSSFEED_SUPPORT_EMAIL_SENDER
+        reply_to = settings.CROSSFEED_SUPPORT_EMAIL_REPLYTO
 
         email_params = {
             "Source": sender,
@@ -139,8 +164,8 @@ def send_registration_denied_email(
             "ReplyToAddresses": [reply_to],
         }
         # SES client
-        if not settings("IS_LOCAL"):
-            ses_client = boto3.client("ses", region_name="us-east-1")
+        if not settings.IS_LOCAL:
+            ses_client = boto3.client("ses", region_name=os.getenv("EMAIL_REGION"))
             # Send email
             ses_client.send_email(**email_params)
             print("Email sent successfully to:", recipient)
