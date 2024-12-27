@@ -114,6 +114,8 @@ services:
       - MYSQL_ROOT_PASSWORD=password
     logging:
       driver: none
+    ports:
+      - 3306:3306
 
   matomo:
     image: matomo:3.14.1
@@ -133,6 +135,9 @@ services:
       - MATOMO_GENERAL_ASSUME_SECURE_PROTOCOL=1
     logging:
       driver: none
+    ports:
+      - "8080:80"
+
   rabbitmq:
     image: 'rabbitmq:3.8-management'
     ports:
