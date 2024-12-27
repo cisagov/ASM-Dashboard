@@ -328,8 +328,7 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
       if (severityLevels.includes(titleCaseSev)) {
         return titleCaseSev;
       }
-      console.log('severity', severity);
-      console.log('titleCaseSev', titleCaseSev);
+
       if (
         titleCaseSev === null ||
         titleCaseSev === undefined ||
@@ -370,11 +369,6 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
       state: vuln.state + (vuln.substate ? ` (${vuln.substate})` : '')
     };
   });
-
-  const vulnSeverities = vulnerabilities.map((vuln) => vuln.severity);
-  console.log('vulnSevs', vulnSeverities);
-  const vulRowsSeverities = vulRows.map((vuln) => vuln.severity);
-  console.log('vulnRowsSevs', vulRowsSeverities);
 
   const vulCols: GridColDef[] = [
     {
