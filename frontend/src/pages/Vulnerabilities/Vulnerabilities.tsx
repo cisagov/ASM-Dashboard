@@ -413,27 +413,13 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
       flex: 0.5,
       sortComparator: (v1, v2, cellParams1, cellParams2) => {
         const severityLevels: Record<string, number> = {
-          'N/A': 0,
-          Low: 1,
-          Medium: 2,
-          High: 3,
-          Critical: 4,
-          Other: 5
+          'N/A': 1,
+          Low: 2,
+          Medium: 3,
+          High: 4,
+          Critical: 5,
+          Other: 6
         };
-        if (
-          cellParams1.value === 'N/A' &&
-          cellParams2.value !== 'N/A' &&
-          cellParams2.value !== 'Other'
-        ) {
-          return -1;
-        }
-        if (
-          cellParams2.value === 'N/A' &&
-          cellParams1.value !== 'N/A' &&
-          cellParams1.value !== 'Other'
-        ) {
-          return 1;
-        }
         return (
           severityLevels[cellParams1.value] - severityLevels[cellParams2.value]
         );
