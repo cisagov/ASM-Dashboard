@@ -312,28 +312,39 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
     const titleCase = (str: string) =>
       str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 
-    const severityLevels: string[] = ['Low', 'Medium', 'High', 'Critical'];
+    const severityLevels: string[] = [
+      'N/A',
+      'Low',
+      'Medium',
+      'High',
+      'Critical',
+      'Other'
+    ];
 
     // To-Do: Create array(s) to handle permutations of null and N/A values
 
-    const formatSeverity = (severity: string) => {
+    const formatSeverity = (severity?: any) => {
+      const titleCaseSev = titleCase(severity);
+      if (severityLevels.includes(titleCaseSev)) {
+        return titleCaseSev;
+      }
+      console.log('severity', severity);
+      console.log('titleCaseSev', titleCaseSev);
       if (
-        severity === null ||
-        severity === 'null' ||
-        severity === 'NULL' ||
-        severity === undefined ||
-        severity === '' ||
-        severity === 'N/A'
+        titleCaseSev === null ||
+        titleCaseSev === undefined ||
+        titleCaseSev === 'Null' ||
+        titleCaseSev === 'N/a' ||
+        titleCaseSev === 'undefined' ||
+        titleCaseSev === ''
       ) {
         return 'N/A';
-      } else if (severityLevels.includes(titleCase(severity))) {
-        return titleCase(severity);
       } else {
         return 'Other';
       }
     };
 
-    const severity = formatSeverity(vuln.severity ?? '');
+    const severity = formatSeverity(vuln.severity ?? 'N/A');
 
     return {
       id: vuln.id,
@@ -360,8 +371,10 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
     };
   });
 
-  const vulRowsSeverities = vulnerabilities.map((vuln) => vuln.severity);
-  console.log('vulRows', vulRowsSeverities);
+  const vulnSeverities = vulnerabilities.map((vuln) => vuln.severity);
+  console.log('vulnSevs', vulnSeverities);
+  const vulRowsSeverities = vulRows.map((vuln) => vuln.severity);
+  console.log('vulnRowsSevs', vulRowsSeverities);
 
   const vulCols: GridColDef[] = [
     {
@@ -400,21 +413,39 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
       flex: 0.5,
       sortComparator: (v1, v2, cellParams1, cellParams2) => {
         const severityLevels: Record<string, number> = {
+          'N/A': 0,
           Low: 1,
           Medium: 2,
           High: 3,
-          Critical: 4
+          Critical: 4,
+          Other: 5
         };
+        if (
+          cellParams1.value === 'N/A' &&
+          cellParams2.value !== 'N/A' &&
+          cellParams2.value !== 'Other'
+        ) {
+          return -1;
+        }
+        if (
+          cellParams2.value === 'N/A' &&
+          cellParams1.value !== 'N/A' &&
+          cellParams1.value !== 'Other'
+        ) {
+          return 1;
+        }
         return (
           severityLevels[cellParams1.value] - severityLevels[cellParams2.value]
         );
       },
       renderCell: (cellValues: GridRenderCellParams) => {
         const severityLevels: Record<string, number> = {
+          NA: 0,
           Low: 1,
           Medium: 2,
           High: 3,
-          Critical: 4
+          Critical: 4,
+          Other: 5
         };
         return (
           <Stack>
