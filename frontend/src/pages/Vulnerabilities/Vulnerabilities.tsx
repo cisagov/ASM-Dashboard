@@ -321,21 +321,14 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
       'Other'
     ];
 
-    // To-Do: Create array(s) to handle permutations of null and N/A values
-
     const formatSeverity = (severity?: any) => {
       const titleCaseSev = titleCase(severity);
       if (severityLevels.includes(titleCaseSev)) {
         return titleCaseSev;
       }
-
       if (
-        titleCaseSev === null ||
-        titleCaseSev === undefined ||
-        titleCaseSev === 'Null' ||
-        titleCaseSev === 'N/a' ||
-        titleCaseSev === 'undefined' ||
-        titleCaseSev === ''
+        !titleCaseSev ||
+        ['Null', 'N/a', 'undefined', ''].includes(titleCaseSev)
       ) {
         return 'N/A';
       } else {
@@ -369,6 +362,10 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
       state: vuln.state + (vuln.substate ? ` (${vuln.substate})` : '')
     };
   });
+  const vulnSev = vulnerabilities.map((vuln) => vuln.severity);
+  console.log('vulnSev', vulnSev);
+  const vulRowsSev = vulRows.map((vuln) => vuln.severity);
+  console.log('vulRows', vulRowsSev);
 
   const vulCols: GridColDef[] = [
     {
