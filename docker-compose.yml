@@ -118,7 +118,7 @@ services:
       - 3306:3306
 
   matomo:
-    image: matomo:3.14.1
+    image: matomo:5.2.1
     user: root
     networks:
       - backend
