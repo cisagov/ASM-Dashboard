@@ -362,10 +362,6 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
       state: vuln.state + (vuln.substate ? ` (${vuln.substate})` : '')
     };
   });
-  const vulnSev = vulnerabilities.map((vuln) => vuln.severity);
-  console.log('vulnSev', vulnSev);
-  const vulRowsSev = vulRows.map((vuln) => vuln.severity);
-  console.log('vulRows', vulRowsSev);
 
   const vulCols: GridColDef[] = [
     {
