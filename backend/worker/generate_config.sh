@@ -25,7 +25,7 @@ client_id=${SIXGILL_CLIENT_ID}
 client_secret=${SIXGILL_CLIENT_SECRET}
 
 [whoisxml]
-key=
+key=${WHOIS_XML_KEY}
 
 [intelx]
 api_key=${INTELX_API_KEY}
@@ -43,6 +43,10 @@ api_key=${INTELX_API_KEY}
 [xpanse]
 api_key=${XPANSE_API_KEY}
 auth_id=${XPANSE_AUTH_ID}
+
+[was]
+username=${QUALYS_USERNAME}
+password=${QUALYS_PASSWORD}
 
 
 EOF
