@@ -871,10 +871,7 @@ def test_approve_role_by_global_admin_succeeds():
     )
 
     role = Role.objects.create(
-        role="user",
-        approved=False,
-        organization=organization,
-        user=user2
+        role="user", approved=False, organization=organization, user=user2
     )
 
     response = client.post(
@@ -918,10 +915,7 @@ def test_approve_role_by_global_view_fails():
     )
 
     role = Role.objects.create(
-        role="user",
-        approved=False,
-        organization=organization,
-        user=user2
+        role="user", approved=False, organization=organization, user=user2
     )
 
     response = client.post(
@@ -971,10 +965,7 @@ def test_approve_role_by_org_admin_succeeds():
     )
 
     role = Role.objects.create(
-        role="user",
-        approved=False,
-        organization=organization,
-        user=user2
+        role="user", approved=False, organization=organization, user=user2
     )
 
     response = client.post(
@@ -1024,10 +1015,7 @@ def test_approve_role_by_org_user_fails():
     )
 
     role = Role.objects.create(
-        role="user",
-        approved=False,
-        organization=organization,
-        user=user2
+        role="user", approved=False, organization=organization, user=user2
     )
 
     response = client.post(
@@ -1071,10 +1059,7 @@ def test_remove_role_by_global_admin_succeeds():
     )
 
     role = Role.objects.create(
-        role="user",
-        approved=False,
-        organization=organization,
-        user=user2
+        role="user", approved=False, organization=organization, user=user2
     )
 
     response = client.post(
@@ -1116,10 +1101,7 @@ def test_remove_role_by_global_view_fails():
     )
 
     role = Role.objects.create(
-        role="user",
-        approved=False,
-        organization=organization,
-        user=user2
+        role="user", approved=False, organization=organization, user=user2
     )
 
     response = client.post(
@@ -1167,10 +1149,7 @@ def test_remove_role_by_org_admin_succeeds():
     )
 
     role = Role.objects.create(
-        role="user",
-        approved=False,
-        organization=organization,
-        user=user2
+        role="user", approved=False, organization=organization, user=user2
     )
 
     response = client.post(
@@ -1218,10 +1197,7 @@ def test_remove_role_by_org_user_fails():
     )
 
     role = Role.objects.create(
-        role="user",
-        approved=False,
-        organization=organization,
-        user=user2
+        role="user", approved=False, organization=organization, user=user2
     )
 
     response = client.post(

@@ -45,7 +45,7 @@ def get_domain_by_id(domain_id: str):
     except Exception as e:
         print(e)
         raise HTTPException(status_code=404, detail="Domain not found.")
-    
+
     try:
         # The Domain model includes related fields (e.g., organization, vulnerabilities, services)
         # which are Django ORM objects themselves and cannot be directly serialized into JSON.

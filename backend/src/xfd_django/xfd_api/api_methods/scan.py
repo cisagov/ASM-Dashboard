@@ -236,6 +236,7 @@ def update_scan(scan_id: str, scan_data: NewScan, current_user):
         scan.save()
 
         return {
+            "id": scan.id,
             "name": scan.name,
             "arguments": scan.arguments,
             "frequency": scan.frequency,

@@ -151,7 +151,7 @@ def test_get_vulnerability_by_id(user, vulnerability):
 
     assert response.status_code == 200
     assert data["id"] == str(vulnerability.id)
-    assert data["domain_id"] == str(vulnerability.domain.id)
+    assert data["domain"]["id"] == str(vulnerability.domain.id)
     assert data["severity"] == vulnerability.severity
 
 
@@ -298,9 +298,9 @@ def test_search_vulnerabilities_id(user, vulnerability):
     assert response.status_code == 200
     data = response.json()
     assert data is not None, "Response is empty"
-    assert "results" in data, "Response does not contain 'results' key"
-    assert len(data["results"]) > 0, "No results found for the given ID"
-    for vuln in data["results"]:
+    assert "result" in data, "Response does not contain 'result' key"
+    assert len(data["result"]) > 0, "No result found for the given ID"
+    for vuln in data["result"]:
         assert vuln["id"] == str(
             vulnerability.id
         ), f"Vulnerability ID {vuln['id']} does not match the expected {vulnerability.id}"
@@ -319,9 +319,9 @@ def test_search_vulnerabilities_by_title(user, vulnerability):
     assert response.status_code == 200
     data = response.json()
     assert data is not None, "Response is empty"
-    assert "results" in data, "Response does not contain 'results' key"
-    assert len(data["results"]) > 0, "No results found for the given title"
-    for vuln in data["results"]:
+    assert "result" in data, "Response does not contain 'result' key"
+    assert len(data["result"]) > 0, "No result found for the given title"
+    for vuln in data["result"]:
         assert (
             vuln["title"] == search_fields["title"]
         ), f"Vulnerability title {vuln['title']} does not match the expected {search_fields['title']}"
@@ -340,10 +340,10 @@ def test_search_vulnerabilities_by_cpe(user, vulnerability):
     data = response.json()
 
     assert data is not None, "Response is empty"
-    assert "results" in data, "Response does not contain 'results' key"
-    assert len(data["results"]) > 0, "No results found for the given CPE"
+    assert "result" in data, "Response does not contain 'result' key"
+    assert len(data["result"]) > 0, "No result found for the given CPE"
 
-    for vuln in data["results"]:
+    for vuln in data["result"]:
         assert (
             vuln["cpe"] == search_fields["cpe"]
         ), f"Vulnerability CPE {vuln['cpe']} does not match the expected {search_fields['cpe']}"
@@ -366,11 +366,11 @@ def test_search_vulnerabilities_by_severity(user, vulnerability):
     data = response.json()
 
     assert data is not None, "Response is empty"
-    assert "results" in data, "Response does not contain 'results' key"
+    assert "result" in data, "Response does not contain 'result' key"
 
-    assert len(data["results"]) > 0, "No results found for the given severity"
+    assert len(data["result"]) > 0, "No result found for the given severity"
 
-    for vuln in data["results"]:
+    for vuln in data["result"]:
         assert (
             vuln["severity"] == search_fields["severity"]
         ), f"Vulnerability severity {vuln['severity']} does not match the expected {search_fields['severity']}"
@@ -379,10 +379,10 @@ def test_search_vulnerabilities_by_severity(user, vulnerability):
 @pytest.mark.django_db(transaction=True)
 def test_search_vulnerabilities_by_domain_id(user, vulnerability):
     # Test search vulnerabilities by domain id
-    domain_id = str(vulnerability.domain.id)
+    domain_name = str(vulnerability.domain.name)
     response = client.post(
         "/vulnerabilities/search",
-        json={"page": 1, "filters": {"domain": domain_id}, "pageSize": 25},
+        json={"page": 1, "filters": {"domain": domain_name}, "pageSize": 25},
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
@@ -391,13 +391,13 @@ def test_search_vulnerabilities_by_domain_id(user, vulnerability):
     data = response.json()
 
     assert data is not None, "Response is empty"
-    assert "results" in data, "Response does not contain 'results' key"
-    assert len(data["results"]) > 0, "No vulnerabilities found for the given domain"
+    assert "result" in data, "Response does not contain 'result' key"
+    assert len(data["result"]) > 0, "No vulnerabilities found for the given domain"
 
-    for vuln in data["results"]:
+    for vuln in data["result"]:
         assert (
-            str(vuln["domain_id"]) == domain_id
-        ), f"Vulnerability with ID {vuln['id']} does not have the expected domain_id {domain_id}"
+            str(vuln["domain"]["name"]) == domain_name
+        ), f"Vulnerability with ID {vuln['id']} does not have the expected domain_id {domain_name}"
 
 
 @pytest.mark.django_db(transaction=True)
@@ -415,10 +415,10 @@ def test_search_vulnerabilities_by_state(user, vulnerability):
     data = response.json()
 
     assert data is not None, "Response is empty"
-    assert "results" in data, "Response does not contain 'results' key"
-    assert len(data["results"]) > 0, "No vulnerabilities found for the given state"
+    assert "result" in data, "Response does not contain 'result' key"
+    assert len(data["result"]) > 0, "No vulnerabilities found for the given state"
 
-    for vuln in data["results"]:
+    for vuln in data["result"]:
         assert (
             vuln["state"] == state_to_search
         ), f"Vulnerability with ID {vuln['id']} does not have the expected state {state_to_search}"
@@ -439,10 +439,10 @@ def test_search_vulnerabilities_by_substate(user, vulnerability):
     data = response.json()
 
     assert data is not None, "Response is empty"
-    assert "results" in data, "Response does not contain 'results' key"
-    assert len(data["results"]) > 0, "No vulnerabilities found for the given substate"
+    assert "result" in data, "Response does not contain 'result' key"
+    assert len(data["result"]) > 0, "No vulnerabilities found for the given substate"
 
-    for vuln in data["results"]:
+    for vuln in data["result"]:
         assert (
             vuln["substate"] == substate_to_search
         ), f"Vulnerability with ID {vuln['id']} does not have the expected substate {substate_to_search}"
@@ -466,10 +466,10 @@ def test_search_vulnerabilities_by_organization_id(user, vulnerability):
 
     data = response.json()
     assert data is not None, "Response is empty"
-    assert "results" in data, "Response does not contain 'results' key"
-    assert len(data["results"]) > 0, "No results found for the given organization"
+    assert "result" in data, "Response does not contain 'result' key"
+    assert len(data["result"]) > 0, "No result found for the given organization"
 
-    for vulnerability_data in data["results"]:
+    for vulnerability_data in data["result"]:
         domain_id = vulnerability_data.get("domain_id", None)
         if domain_id:
             domain = Domain.objects.get(id=domain_id)
@@ -497,12 +497,12 @@ def test_search_vulnerabilities_by_is_kev(user, vulnerability):
     data = response.json()
 
     assert data is not None, "Response is empty"
-    assert "results" in data, "Response does not contain 'results' key"
+    assert "result" in data, "Response does not contain 'result' key"
     assert (
-        len(data["results"]) > 0
+        len(data["result"]) > 0
     ), f"No vulnerabilities found for the given isKev value {is_kev_to_search}"
 
-    for vuln in data["results"]:
+    for vuln in data["result"]:
         assert (
             vuln["isKev"] == is_kev_to_search
         ), f"Vulnerability with ID {vuln['id']} does not have the expected 'isKev' value {is_kev_to_search}"
@@ -531,12 +531,12 @@ def test_search_vulnerabilities_by_multiple_criteria(user, vulnerability):
     data = response.json()
 
     assert data is not None, "Response is empty"
-    assert "results" in data, "Response does not contain 'results' key"
+    assert "result" in data, "Response does not contain 'result' key"
     assert (
-        len(data["results"]) > 0
+        len(data["result"]) > 0
     ), f"No vulnerabilities found for the given 'state' = {state_to_search} and 'substate' = {substate_to_search}"
 
-    for vuln in data["results"]:
+    for vuln in data["result"]:
         assert (
             vuln["state"] == state_to_search
         ), f"Vulnerability with ID {vuln['id']} does not have the expected 'state' value {state_to_search}"

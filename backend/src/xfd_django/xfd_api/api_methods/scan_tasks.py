@@ -15,6 +15,7 @@ from ..tasks.ecs_client import ECSClient
 PAGE_SIZE = 15
 
 
+# POST: /scan-tasks/search
 def list_scan_tasks(search_data: Optional[ScanTaskSearch], current_user):
     """List scans tasks based on search filter."""
     try:
@@ -75,12 +76,12 @@ def list_scan_tasks(search_data: Optional[ScanTaskSearch], current_user):
             else:
                 scan_data = {
                     "id": str(task.scan.id),
-                    "createdAt": task.scan.createdAt.isoformat() + "Z",
-                    "updatedAt": task.scan.updatedAt.isoformat() + "Z",
+                    "createdAt": task.scan.createdAt.isoformat(),
+                    "updatedAt": task.scan.updatedAt.isoformat(),
                     "name": task.scan.name,
                     "arguments": task.scan.arguments,
                     "frequency": task.scan.frequency,
-                    "lastRun": task.scan.lastRun.isoformat() + "Z"
+                    "lastRun": task.scan.lastRun.isoformat()
                     if task.scan.lastRun
                     else None,
                     "isGranular": task.scan.isGranular,
@@ -91,31 +92,27 @@ def list_scan_tasks(search_data: Optional[ScanTaskSearch], current_user):
             results.append(
                 {
                     "id": str(task.id),
-                    "createdAt": task.createdAt.isoformat() + "Z",
-                    "updatedAt": task.updatedAt.isoformat() + "Z",
+                    "createdAt": task.createdAt.isoformat(),
+                    "updatedAt": task.updatedAt.isoformat(),
                     "status": task.status,
                     "type": task.type,
                     "fargateTaskArn": task.fargateTaskArn,
                     "input": task.input,
                     "output": task.output,
-                    "requestedAt": task.requestedAt.isoformat() + "Z"
+                    "requestedAt": task.requestedAt.isoformat()
                     if task.requestedAt
                     else None,
-                    "startedAt": task.startedAt.isoformat() + "Z"
-                    if task.startedAt
-                    else None,
-                    "finishedAt": task.finishedAt.isoformat() + "Z"
+                    "startedAt": task.startedAt.isoformat() if task.startedAt else None,
+                    "finishedAt": task.finishedAt.isoformat()
                     if task.finishedAt
                     else None,
-                    "queuedAt": task.queuedAt.isoformat() + "Z"
-                    if task.queuedAt
-                    else None,
+                    "queuedAt": task.queuedAt.isoformat() if task.queuedAt else None,
                     "scan": scan_data,
                     "organizations": [
                         {
                             "id": str(org.id),
-                            "createdAt": org.createdAt.isoformat() + "Z",
-                            "updatedAt": org.updatedAt.isoformat() + "Z",
+                            "createdAt": org.createdAt.isoformat(),
+                            "updatedAt": org.updatedAt.isoformat(),
                             "acronym": org.acronym,
                             "name": org.name,
                             "rootDomains": org.rootDomains,
@@ -148,6 +145,7 @@ def list_scan_tasks(search_data: Optional[ScanTaskSearch], current_user):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# POST: /scan-tasks/{scan_task_id}/kill
 def kill_scan_task(scan_task_id, current_user):
     """Kill a particular scan task."""
     try:
@@ -185,6 +183,7 @@ def kill_scan_task(scan_task_id, current_user):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# GET: /scan-tasks/{scan_task_id}/logs
 def get_scan_task_logs(scan_task_id, current_user):
     """Get scan task logs."""
     try:

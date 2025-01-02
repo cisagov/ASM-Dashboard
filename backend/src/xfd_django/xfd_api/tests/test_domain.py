@@ -226,7 +226,9 @@ def test_search_domain_by_organization(user, vulnerability):
     assert len(data["result"]) > 0, "No result found for the given organization"
 
     for domain in data["result"]:
-        assert domain["organization"]['name'] == str(vulnerability.domain.organization.name)
+        assert domain["organization"]["name"] == str(
+            vulnerability.domain.organization.name
+        )
 
 
 @pytest.mark.django_db(transaction=True)
