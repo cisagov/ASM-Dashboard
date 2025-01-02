@@ -1,6 +1,9 @@
+# Standard Python Libraries
 import json
-import pika  # For RabbitMQ
+
+# Third-Party Libraries
 from django.core.management.base import BaseCommand
+import pika  # For RabbitMQ
 from xfd_api.tasks.scanExecution import handler as scan_execution
 
 
@@ -8,10 +11,18 @@ class Command(BaseCommand):
     help = "Run local scan execution and send messages to RabbitMQ"
 
     def add_arguments(self, parser):
-        parser.add_argument("--scan-type", type=str, required=True, help="Type of scan to execute.")
-        parser.add_argument("--desired-count", type=int, default=1, help="Number of scans to run.")
-        parser.add_argument("--api-key-list", type=str, default="", help="Comma-separated API keys.")
-        parser.add_argument("--org-list", type=str, nargs="+", help="List of organizations.")
+        parser.add_argument(
+            "--scan-type", type=str, required=True, help="Type of scan to execute."
+        )
+        parser.add_argument(
+            "--desired-count", type=int, default=1, help="Number of scans to run."
+        )
+        parser.add_argument(
+            "--api-key-list", type=str, default="", help="Comma-separated API keys."
+        )
+        parser.add_argument(
+            "--org-list", type=str, nargs="+", help="List of organizations."
+        )
         parser.add_argument("--queue", type=str, help="RabbitMQ queue name.")
 
     def handle(self, *args, **options):
@@ -36,7 +47,9 @@ class Command(BaseCommand):
     @staticmethod
     def send_message_to_queue(message, queue):
         try:
-            connection = pika.BlockingConnection(pika.ConnectionParameters(host="rabbitmq"))
+            connection = pika.BlockingConnection(
+                pika.ConnectionParameters(host="rabbitmq")
+            )
             channel = connection.channel()
 
             # Declare the queue
@@ -47,7 +60,9 @@ class Command(BaseCommand):
                 exchange="",
                 routing_key=queue,
                 body=json.dumps(message),
-                properties=pika.BasicProperties(delivery_mode=2),  # Make message persistent
+                properties=pika.BasicProperties(
+                    delivery_mode=2
+                ),  # Make message persistent
             )
 
             print("Message sent:", message)

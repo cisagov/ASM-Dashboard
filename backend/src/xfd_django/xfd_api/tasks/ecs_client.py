@@ -1,6 +1,7 @@
 """AWS Elastic Container Service Client."""
 
 # Standard Python Libraries
+import datetime
 import json
 import os
 
@@ -156,15 +157,25 @@ class ECSClient:
             return "\n".join(line for line in log_stream.decode("utf-8").splitlines())
         else:
             log_stream_name = f"worker/main/{fargate_task_arn.split('/')[-1]}"
+
+            # Fetch logs from AWS CloudWatch
             response = self.cloudwatch_logs.get_log_events(
                 logGroupName=os.getenv("FARGATE_LOG_GROUP_NAME"),
                 logStreamName=log_stream_name,
                 startFromHead=True,
             )
-            events = response["events"]
-            return "\n".join(
-                f"{event['timestamp']} {event['message']}" for event in events
+
+            # Process and format the logs
+            events = response.get("events", [])
+            if not events:
+                return ""
+
+            # Format the logs as "timestamp message"
+            formatted_logs = "\n".join(
+                f"{datetime.utcfromtimestamp(event['timestamp'] / 1000).isoformat()} {event['message']}"
+                for event in events
             )
+            return formatted_logs
 
     def get_num_tasks(self):
         """Retrieves the number of running tasks associated with the Fargate worker."""

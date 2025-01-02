@@ -3,15 +3,17 @@ import os
 
 # Third-Party Libraries
 import django
-from django.utils.timezone import now
 from django.db.utils import OperationalError
+from django.utils.timezone import now
 
 # Django setup
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 django.setup()
 
+# Third-Party Libraries
 from xfd_api.models import ScanTask
+
 
 def handler(event, context):
     """
@@ -57,7 +59,10 @@ def handler(event, context):
         )
         scan_task.save()
 
-        return {"statusCode": 200, "body": f"ScanTask {scan_task.id} updated successfully."}
+        return {
+            "statusCode": 200,
+            "body": f"ScanTask {scan_task.id} updated successfully.",
+        }
 
     except Exception as e:
         return {"statusCode": 500, "body": str(e)}

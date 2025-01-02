@@ -3,9 +3,10 @@ import asyncio
 from typing import Optional
 
 # Third-Party Libraries
-from django.db.models import Prefetch, Q
-from xfd_api.models import Organization, Domain, Cidr
 from django.db import transaction
+from django.db.models import Prefetch, Q
+from xfd_api.models import Cidr, Domain, Organization
+
 
 async def check_ip_in_cidr(ip: str, acronym: str) -> bool:
     """
@@ -13,12 +14,18 @@ async def check_ip_in_cidr(ip: str, acronym: str) -> bool:
     """
     try:
         # Fetch the organization by acronym with related CIDRs
-        organization = Organization.objects.prefetch_related("cidrs").filter(acronym=acronym).first()
+        organization = (
+            Organization.objects.prefetch_related("cidrs")
+            .filter(acronym=acronym)
+            .first()
+        )
         if not organization or not organization.cidrs.exists():
             return False
 
         # Check if the IP is within any CIDR
-        return Cidr.objects.filter(network__contains=ip, id__in=organization.cidrs.values_list("id", flat=True)).exists()
+        return Cidr.objects.filter(
+            network__contains=ip, id__in=organization.cidrs.values_list("id", flat=True)
+        ).exists()
     except Exception as e:
         print(f"Error checking IP in CIDR: {e}")
         return False
@@ -29,6 +36,7 @@ async def check_org_is_fceb(acronym: str) -> bool:
     Checks if the organization (or its parent organizations) belongs to the EXECUTIVE sector.
     """
     try:
+
         def is_executive(organization: Organization) -> bool:
             # Check if the current organization belongs to the EXECUTIVE sector
             if organization.sectors.filter(acronym="EXECUTIVE").exists():
@@ -39,7 +47,11 @@ async def check_org_is_fceb(acronym: str) -> bool:
             return False
 
         # Fetch the organization by acronym with its sectors and parent
-        organization = Organization.objects.prefetch_related("sectors", "parent").filter(acronym=acronym).first()
+        organization = (
+            Organization.objects.prefetch_related("sectors", "parent")
+            .filter(acronym=acronym)
+            .first()
+        )
         if not organization:
             return False
 
@@ -78,13 +90,17 @@ async def handler(command_options):
             if is_executive:
                 # Mark all domains as isFceb = True
                 domains_to_update = organization.domains.all()
-                Domain.objects.filter(id__in=[domain.id for domain in domains_to_update]).update(isFceb=True)
+                Domain.objects.filter(
+                    id__in=[domain.id for domain in domains_to_update]
+                ).update(isFceb=True)
                 print(f"Marked all domains in {organization_name} as isFceb=True.")
             else:
                 # Update domains' fromCidr status
                 for domain in organization.domains.all():
                     if domain.ip:
-                        from_cidr = await check_ip_in_cidr(domain.ip, organization.acronym)
+                        from_cidr = await check_ip_in_cidr(
+                            domain.ip, organization.acronym
+                        )
                         if domain.fromCidr != from_cidr:
                             domain.fromCidr = from_cidr
                             domain.save()  # Save domain only if `fromCidr` changes

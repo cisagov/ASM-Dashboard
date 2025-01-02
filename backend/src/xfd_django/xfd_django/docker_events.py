@@ -1,5 +1,8 @@
+# Standard Python Libraries
 import asyncio
 import json
+
+# Third-Party Libraries
 from docker import DockerClient
 from docker.errors import DockerException
 

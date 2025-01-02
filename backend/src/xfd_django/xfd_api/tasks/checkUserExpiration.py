@@ -1,11 +1,14 @@
-import os
+# Standard Python Libraries
 from datetime import datetime, timedelta
-from django.utils.timezone import now
-from django.db.models import Q
-from django.conf import settings
+import os
+
+# Third-Party Libraries
 import boto3
-import django
 from botocore.exceptions import ClientError
+import django
+from django.conf import settings
+from django.db.models import Q
+from django.utils.timezone import now
 
 # Django setup
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
@@ -13,8 +16,9 @@ os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 django.setup()
 
 
-from xfd_api.models import User
+# Third-Party Libraries
 from xfd_api.helpers.email import send_email
+from xfd_api.models import User
 
 # AWS Configuration
 cognito_client = boto3.client("cognito-idp", region_name=os.getenv("AWS_REGION"))
@@ -111,7 +115,9 @@ def check_user_expiration():
 
             # Remove from database
             user.delete()
-            print(f"Removed user {user.email} from the database due to 90 days of inactivity.")
+            print(
+                f"Removed user {user.email} from the database due to 90 days of inactivity."
+            )
         except ClientError as e:
             print(f"Error removing user {user.email}: {e}")
 
@@ -122,7 +128,10 @@ def handler(event, context):
     """
     try:
         check_user_expiration()
-        return {"statusCode": 200, "body": "User expiration check completed successfully."}
+        return {
+            "statusCode": 200,
+            "body": "User expiration check completed successfully.",
+        }
     except Exception as e:
         print(f"Error during user expiration check: {e}")
         return {"statusCode": 500, "body": str(e)}
