@@ -53,81 +53,39 @@ serviceStatsCache:
   events:
     - schedule:
         rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
-  package:
-    include:
-      - src/**
-      - requirements.txt
-    exclude:
-      - node_modules/**
 
 portStatsCache:
   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_ports_cache
   events:
     - schedule:
         rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
-  package:
-    include:
-      - src/**
-      - requirements.txt
-    exclude:
-      - node_modules/**
 
 numVulnsCache:
   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_num_vulns_cache
   events:
     - schedule:
         rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
-  package:
-    include:
-      - src/**
-      - requirements.txt
-    exclude:
-      - node_modules/**
 
 latestVulnsCache:
   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_latest_vulns_cache
   events:
     - schedule:
         rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
-  package:
-    include:
-      - src/**
-      - requirements.txt
-    exclude:
-      - node_modules/**
 
 mostCommonVulnsCache:
   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_most_common_vulns_cache
   events:
     - schedule:
         rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
-  package:
-    include:
-      - src/**
-      - requirements.txt
-    exclude:
-      - node_modules/**
 
 severityCache:
   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_severity_cache
   events:
     - schedule:
         rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
-  package:
-    include:
-      - src/**
-      - requirements.txt
-    exclude:
-      - node_modules/**
 
 byOrgCache:
   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_by_org_cache
   events:
     - schedule:
         rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
-  package:
-    include:
-      - src/**
-      - requirements.txt
-    exclude:
-      - node_modules/**

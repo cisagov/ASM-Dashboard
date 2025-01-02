@@ -1,8 +1,9 @@
 # Standard Libraries
+# Standard Python Libraries
+import json
 import os
 import random
 import re
-import json
 
 # Third-Party Libraries
 import boto3
@@ -17,16 +18,27 @@ django.setup()
 
 # Initialize AWS clients
 
-SCAN_LIST = ['dnstwist', 'intelx', 'cybersixgill', 'shodan', 'xpanse', 'asmSync','qualys']
+SCAN_LIST = [
+    "dnstwist",
+    "intelx",
+    "cybersixgill",
+    "shodan",
+    "xpanse",
+    "asmSync",
+    "qualys",
+]
 QUEUE_URL = os.getenv("QUEUE_URL")
 
 # Conditionally import Docker if in local environment
 docker = None
 if os.getenv("IS_LOCAL"):
+    # Third-Party Libraries
     from docker import DockerClient
-    docker = DockerClient(base_url='unix://var/run/docker.sock')
+
+    docker = DockerClient(base_url="unix://var/run/docker.sock")
 else:
     ecs_client = boto3.client("ecs")
+
 
 def to_snake_case(input_string):
     """Convert a string to snake-case."""
@@ -50,7 +62,9 @@ def start_desired_tasks(scan_type, desired_count, shodan_api_keys=None):
         if os.getenv("IS_LOCAL"):
             # Use local Docker environment
             print("Starting local containers...")
-            start_local_containers(current_batch_count, scan_type, queue_url, shodan_api_key)
+            start_local_containers(
+                current_batch_count, scan_type, queue_url, shodan_api_key
+            )
         else:
             # Use AWS ECS
             try:
@@ -61,7 +75,7 @@ def start_desired_tasks(scan_type, desired_count, shodan_api_keys=None):
                         "awsvpcConfiguration": {
                             "assignPublicIp": "ENABLED",
                             "securityGroups": [os.getenv("FARGATE_SG_ID")],
-                            "subnets": [os.getenv("FARGATE_SUBNET_ID")]
+                            "subnets": [os.getenv("FARGATE_SUBNET_ID")],
                         }
                     },
                     platformVersion="1.4.0",
@@ -74,11 +88,14 @@ def start_desired_tasks(scan_type, desired_count, shodan_api_keys=None):
                                 "environment": [
                                     {"name": "SERVICE_TYPE", "value": scan_type},
                                     {"name": "SERVICE_QUEUE_URL", "value": queue_url},
-                                    {"name": "PE_SHODAN_API_KEYS", "value": shodan_api_key}
-                                ]
+                                    {
+                                        "name": "PE_SHODAN_API_KEYS",
+                                        "value": shodan_api_key,
+                                    },
+                                ],
                             }
                         ]
-                    }
+                    },
                 )
                 print(f"Tasks started: {current_batch_count}")
             except ClientError as e:
@@ -116,8 +133,8 @@ def start_local_containers(count, scan_type, queue_url, shodan_api_key=""):
                     f"PE_SHODAN_API_KEYS={shodan_api_key}",
                     f"WHOIS_XML_KEY={os.getenv('WHOIS_XML_KEY')}",
                     f"QUALYS_USERNAME={os.getenv('QUALYS_USERNAME')}",
-                    f"QUALYS_PASSWORD={os.getenv('QUALYS_PASSWORD')}"
-                ]
+                    f"QUALYS_PASSWORD={os.getenv('QUALYS_PASSWORD')}",
+                ],
             )
             container.start()
             print(f"Started container: {container_name}")
@@ -139,11 +156,16 @@ def handler(event, context):
 
         if scan_type == "shodan":
             api_key_list = event.get("apiKeyList", "")
-            shodan_api_keys = [key.strip() for key in api_key_list.split(",")] if api_key_list else []
+            shodan_api_keys = (
+                [key.strip() for key in api_key_list.split(",")] if api_key_list else []
+            )
 
             if len(shodan_api_keys) < desired_count:
                 print("Not enough API keys provided for Shodan tasks.")
-                return {"statusCode": 400, "body": "Failed: insufficient API keys for Shodan."}
+                return {
+                    "statusCode": 400,
+                    "body": "Failed: insufficient API keys for Shodan.",
+                }
 
             start_desired_tasks(scan_type, desired_count, shodan_api_keys)
         elif scan_type in SCAN_LIST:
