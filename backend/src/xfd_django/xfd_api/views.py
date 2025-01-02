@@ -905,13 +905,14 @@ async def export_endpoint(
     response_model=stat_schema.StatsResponse,
     tags=["Stats"],
 )
-async def get_services(
+async def get_stats_combined(
     filter_data: OrganizationSchema.StatsPayloadSchema,
+    request: Request,
     current_user: User = Depends(get_current_active_user),
     redis_client=Depends(get_redis_client),
 ):
     """Retrieve all stats from Elasticache filtered by user."""
-    return await get_stats(filter_data, current_user, redis_client)
+    return await get_stats(filter_data, current_user, redis_client, request)
 
 
 @api_router.post(
@@ -969,10 +970,11 @@ async def get_num_vulns_stats(
 )
 async def get_latest_vulnerabilities(
     filter_data: OrganizationSchema.StatsPayloadSchema,
+    request: Request,
     current_user: User = Depends(get_current_active_user),
     redis_client: aioredis.Redis = Depends(get_redis_client),
 ):
-    return await stats_latest_vulns(filter_data, current_user, redis_client)
+    return await stats_latest_vulns(filter_data, current_user, redis_client. request)
 
 
 @api_router.post(
@@ -983,10 +985,11 @@ async def get_latest_vulnerabilities(
 )
 async def get_most_common_vulns(
     filter_data: OrganizationSchema.StatsPayloadSchema,
+    request: Request,
     current_user: User = Depends(get_current_active_user),
     redis_client: aioredis.Redis = Depends(get_redis_client),
 ):
-    return await stats_most_common_vulns(filter_data, current_user, redis_client)
+    return await stats_most_common_vulns(filter_data, current_user, redis_client, request)
 
 
 @api_router.post(

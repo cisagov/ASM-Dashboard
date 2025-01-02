@@ -1,11 +1,12 @@
 # Standard Python Libraries
 from datetime import datetime
 import logging
+import json
 
 # Third-Party Libraries
-from pythonjsonlogger import jsonlogger
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+from starlette.responses import Response
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
@@ -15,25 +16,23 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
     def _configure_logger(self):
         logger = logging.getLogger("fastapi")
-        if not logger.handlers:  # Avoid duplicate handlers
+        logger.propagate = False  # Prevent duplicate logs
+        if not logger.handlers:
             log_handler = logging.StreamHandler()
-            formatter = jsonlogger.JsonFormatter(
-                "%(levelname)s RequestId: %(request_id)s %(asctime)s Request Info: %(message)s"
-            )
-            log_handler.setFormatter(formatter)
+            log_handler.setFormatter(logging.Formatter("%(message)s"))
             logger.addHandler(log_handler)
             logger.setLevel(logging.INFO)
         return logger
 
     async def dispatch(self, request: Request, call_next):
-        # Extract relevant request details
-        headers = dict(request.headers)
+        # Extract request details
         method = request.method
-        path = request.url.path
         protocol = request.url.scheme
         original_url = str(request.url)
+        path = request.url.path
+        headers = dict(request.headers)
 
-        # Get request ID from scope or set it to "undefined"
+        # Retrieve request ID
         aws_context = request.scope.get("aws.context", None)
         request_id = (
             getattr(aws_context, "aws_request_id", "undefined")
@@ -48,22 +47,45 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             else "undefined"
         )
 
-        # Proceed with the request
-        response = await call_next(request)
-
-        # Prepare log details
-        log_info = {
+        # Log the initial request
+        start_log = {
             "httpMethod": method,
             "protocol": protocol,
             "originalURL": original_url,
             "path": path,
+            "statusCode": None,  # Status is not known at this point
             "headers": headers,
             "userEmail": user_email,
-            "statusCode": response.status_code,
-            "timestamp": datetime.utcnow().isoformat(),
-            "requestId": request_id,
         }
+        self.logger.info(
+            f"INFO RequestId: {request_id} {datetime.utcnow().isoformat()}Z Request Info: {json.dumps(start_log)}"
+        )
 
-        # Log in JSON format
-        self.logger.info(log_info)
+        # Process the request and capture the response
+        start_time = datetime.utcnow()
+        response = await call_next(request)
+        end_time = datetime.utcnow()
+
+        # Update userEmail after endpoint execution if it was set
+        user_email = (
+            request.state.user_email
+            if hasattr(request.state, "user_email")
+            else user_email
+        )
+
+        # Log the completed request
+        end_log = {
+            "httpMethod": method,
+            "protocol": protocol,
+            "originalURL": original_url,
+            "path": path,
+            "statusCode": response.status_code,
+            "headers": headers,
+            "userEmail": user_email,
+            "durationMs": (end_time - start_time).total_seconds() * 1000,  # Response time in ms
+        }
+        self.logger.info(
+            f"INFO RequestId: {request_id} {end_time.isoformat()}Z Request Info: {json.dumps(end_log)}"
+        )
+
         return response

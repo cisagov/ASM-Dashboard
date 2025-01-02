@@ -13,6 +13,11 @@ import redis
 from xfd_api.models import Domain
 
 
+async def safe_redis_mget(redis_client, redis_keys, redis_semaphore):
+    """Safely perform Redis MGET with concurrency limit."""
+    async with redis_semaphore:
+        return await redis_client.mget(*redis_keys)
+    
 async def get_stats_count_from_cache(redis_client, redis_key_prefix, filtered_org_ids):
     """
     Generic function to fetch and aggregate stats from Redis.

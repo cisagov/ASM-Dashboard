@@ -18,6 +18,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 from redis import asyncio as aioredis
+from asyncio import Semaphore
 from xfd_django.middleware.middleware import LoggingMiddleware
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
@@ -101,7 +102,6 @@ def get_application() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.add_middleware(LoggingMiddleware)
 
     # Add security headers middleware
     @app.middleware("http")
@@ -109,6 +109,8 @@ def get_application() -> FastAPI:
         response = await call_next(request)
         return set_security_headers(response)
 
+    app.add_middleware(LoggingMiddleware)
+    
     app.include_router(api_router)
 
     @app.on_event("startup")
@@ -119,12 +121,16 @@ def get_application() -> FastAPI:
             f"redis://{settings.ELASTICACHE_ENDPOINT}",
             encoding="utf-8",
             decode_responses=True,
+            max_connections=100,
+            socket_timeout=5,
         )
+        app.state.redis_semaphore = Semaphore(20)
 
     @app.on_event("shutdown")
     async def redis_shutdown():
         """Shut down Redis connection."""
         await app.state.redis.close()
+        await app.state.redis.connection_pool.disconnect()
 
     return app
 
