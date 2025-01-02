@@ -17,6 +17,7 @@ custom:
     noDeploy:
       - boto3
       - botocore
+      - pika
 
   # Resource policies for GovCloud (Private) vs Non-GovCloud (Regional)
   privateResourcePolicy:

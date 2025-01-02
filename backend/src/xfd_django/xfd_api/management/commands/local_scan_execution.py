@@ -1,7 +1,7 @@
 import json
 import pika  # For RabbitMQ
 from django.core.management.base import BaseCommand
-from xfd_api.tasks.scan_execution import handler as scan_execution  # Import your handler
+from xfd_api.tasks.scanExecution import handler as scan_execution
 
 
 class Command(BaseCommand):
@@ -68,4 +68,4 @@ class Command(BaseCommand):
             "desiredCount": desired_count,
             "apiKeyList": api_key_list,
         }
-        scan_execution(payload, {}, lambda x, y: None)
+        scan_execution(payload, {})

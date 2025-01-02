@@ -23,3 +23,7 @@ populate-cache:
 	docker compose exec backend python manage.py populate_latest_vulns_cache
 	docker compose exec backend python manage.py populate_severity_count_cache
 	docker compose exec backend python manage.py populate_by_orgs_cache
+
+# Run scan execution locally with RabbitMQ and Docker
+local-scan-execution:
+	docker compose exec backend python manage.py local_scan_execution --scan-type=xpanse --desired-count=1 --org-list="National Science Foundation (NSF) - CISA"
