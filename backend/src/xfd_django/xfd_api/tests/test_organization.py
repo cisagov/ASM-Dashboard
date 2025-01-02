@@ -852,6 +852,15 @@ def test_approve_role_by_global_admin_succeeds():
         updatedAt=datetime.now(),
     )
 
+    user2 = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+
     organization = Organization.objects.create(
         name=f"test-{secrets.token_hex(4)}",
         rootDomains=["test-" + secrets.token_hex(4)],
@@ -865,6 +874,7 @@ def test_approve_role_by_global_admin_succeeds():
         role="user",
         approved=False,
         organization=organization,
+        user=user2
     )
 
     response = client.post(
@@ -889,6 +899,15 @@ def test_approve_role_by_global_view_fails():
         updatedAt=datetime.now(),
     )
 
+    user2 = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+
     organization = Organization.objects.create(
         name=f"test-{secrets.token_hex(4)}",
         rootDomains=["test-" + secrets.token_hex(4)],
@@ -902,6 +921,7 @@ def test_approve_role_by_global_view_fails():
         role="user",
         approved=False,
         organization=organization,
+        user=user2
     )
 
     response = client.post(
@@ -926,6 +946,15 @@ def test_approve_role_by_org_admin_succeeds():
         updatedAt=datetime.now(),
     )
 
+    user2 = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+
     organization = Organization.objects.create(
         name=f"test-{secrets.token_hex(4)}",
         rootDomains=["test-" + secrets.token_hex(4)],
@@ -945,6 +974,7 @@ def test_approve_role_by_org_admin_succeeds():
         role="user",
         approved=False,
         organization=organization,
+        user=user2
     )
 
     response = client.post(
@@ -969,6 +999,15 @@ def test_approve_role_by_org_user_fails():
         updatedAt=datetime.now(),
     )
 
+    user2 = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+
     organization = Organization.objects.create(
         name=f"test-{secrets.token_hex(4)}",
         rootDomains=["test-" + secrets.token_hex(4)],
@@ -988,6 +1027,7 @@ def test_approve_role_by_org_user_fails():
         role="user",
         approved=False,
         organization=organization,
+        user=user2
     )
 
     response = client.post(
@@ -1012,6 +1052,15 @@ def test_remove_role_by_global_admin_succeeds():
         updatedAt=datetime.now(),
     )
 
+    user2 = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+
     organization = Organization.objects.create(
         name=f"test-{secrets.token_hex(4)}",
         rootDomains=["test-" + secrets.token_hex(4)],
@@ -1025,6 +1074,7 @@ def test_remove_role_by_global_admin_succeeds():
         role="user",
         approved=False,
         organization=organization,
+        user=user2
     )
 
     response = client.post(
@@ -1047,6 +1097,15 @@ def test_remove_role_by_global_view_fails():
         updatedAt=datetime.now(),
     )
 
+    user2 = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+
     organization = Organization.objects.create(
         name=f"test-{secrets.token_hex(4)}",
         rootDomains=["test-" + secrets.token_hex(4)],
@@ -1060,6 +1119,7 @@ def test_remove_role_by_global_view_fails():
         role="user",
         approved=False,
         organization=organization,
+        user=user2
     )
 
     response = client.post(
@@ -1075,6 +1135,14 @@ def test_remove_role_by_global_view_fails():
 @pytest.mark.django_db(transaction=True)
 def test_remove_role_by_org_admin_succeeds():
     user = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+    user2 = User.objects.create(
         firstName="",
         lastName="",
         email=f"{secrets.token_hex(4)}@example.com",
@@ -1102,6 +1170,7 @@ def test_remove_role_by_org_admin_succeeds():
         role="user",
         approved=False,
         organization=organization,
+        user=user2
     )
 
     response = client.post(
@@ -1116,6 +1185,15 @@ def test_remove_role_by_org_admin_succeeds():
 @pytest.mark.django_db(transaction=True)
 def test_remove_role_by_org_user_fails():
     user = User.objects.create(
+        firstName="",
+        lastName="",
+        email=f"{secrets.token_hex(4)}@example.com",
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+
+    user2 = User.objects.create(
         firstName="",
         lastName="",
         email=f"{secrets.token_hex(4)}@example.com",
@@ -1143,6 +1221,7 @@ def test_remove_role_by_org_user_fails():
         role="user",
         approved=False,
         organization=organization,
+        user=user2
     )
 
     response = client.post(

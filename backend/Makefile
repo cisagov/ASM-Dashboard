@@ -9,6 +9,7 @@ syncdb-populate:
 	docker compose exec backend python manage.py syncdb --populate
 
 # Pytest
+# i.e. make pytest FILE=xfd_api/tests/test_domain.py
 pytest:
 	docker compose exec backend python manage.py makemigrations
 	docker compose exec backend pytest --no-migrations --reuse-db $(FILE)
