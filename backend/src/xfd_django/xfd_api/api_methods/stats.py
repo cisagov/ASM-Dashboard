@@ -6,7 +6,11 @@ import json
 from fastapi import HTTPException, Request
 from redis import asyncio as aioredis
 from xfd_api.auth import get_stats_org_ids
-from xfd_api.helpers.stats_helpers import get_stats_count_from_cache, get_total_count, safe_redis_mget
+from xfd_api.helpers.stats_helpers import (
+    get_stats_count_from_cache,
+    get_total_count,
+    safe_redis_mget,
+)
 
 
 # GET: /stats
@@ -241,7 +245,12 @@ async def get_severity_stats(
 
 
 async def stats_latest_vulns(
-    filter_data, current_user, redis_client, request: Request, max_results=50, filtered_org_ids=None
+    filter_data,
+    current_user,
+    redis_client,
+    request: Request,
+    max_results=50,
+    filtered_org_ids=None,
 ):
     """
     Retrieve the latest vulnerabilities from Elasticache filtered by user.
@@ -261,7 +270,9 @@ async def stats_latest_vulns(
         redis_keys = [f"latest_vulnerabilities:{org_id}" for org_id in filtered_org_ids]
 
         # Use MGET to fetch all keys in a single operation
-        results = await safe_redis_mget(redis_client, redis_keys, request.app.state.redis_semaphore)
+        results = await safe_redis_mget(
+            redis_client, redis_keys, request.app.state.redis_semaphore
+        )
 
         vulnerabilities = []
 
@@ -294,7 +305,12 @@ async def stats_latest_vulns(
 
 
 async def stats_most_common_vulns(
-    filter_data, current_user, redis_client, request: Request, max_results=10, filtered_org_ids=None
+    filter_data,
+    current_user,
+    redis_client,
+    request: Request,
+    max_results=10,
+    filtered_org_ids=None,
 ):
     """
     Retrieve the most common vulnerabilities from Elasticache filtered by user.
@@ -316,7 +332,9 @@ async def stats_most_common_vulns(
         ]
 
         # Use MGET to fetch all keys in a single operation
-        results = await safe_redis_mget(redis_client, redis_keys, request.app.state.redis_semaphore)
+        results = await safe_redis_mget(
+            redis_client, redis_keys, request.app.state.redis_semaphore
+        )
 
         vulnerabilities = []
 

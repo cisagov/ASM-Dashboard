@@ -974,7 +974,7 @@ async def get_latest_vulnerabilities(
     current_user: User = Depends(get_current_active_user),
     redis_client: aioredis.Redis = Depends(get_redis_client),
 ):
-    return await stats_latest_vulns(filter_data, current_user, redis_client. request)
+    return await stats_latest_vulns(filter_data, current_user, redis_client, request)
 
 
 @api_router.post(
@@ -989,7 +989,9 @@ async def get_most_common_vulns(
     current_user: User = Depends(get_current_active_user),
     redis_client: aioredis.Redis = Depends(get_redis_client),
 ):
-    return await stats_most_common_vulns(filter_data, current_user, redis_client, request)
+    return await stats_most_common_vulns(
+        filter_data, current_user, redis_client, request
+    )
 
 
 @api_router.post(

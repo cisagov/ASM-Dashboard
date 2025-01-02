@@ -2,6 +2,7 @@
 
 # Standard Python Libraries
 from datetime import datetime, timezone
+import json
 from typing import Optional
 
 # Third-Party Libraries
@@ -97,7 +98,12 @@ def list_scan_tasks(search_data: Optional[ScanTaskSearch], current_user):
                     "status": task.status,
                     "type": task.type,
                     "fargateTaskArn": task.fargateTaskArn,
-                    "input": task.input,
+                    "input": (
+                        task.input.replace("None", "null")
+                        .replace("True", "true")
+                        .replace("False", "false")
+                        .replace("'", '"')
+                    ),
                     "output": task.output,
                     "requestedAt": task.requestedAt.isoformat()
                     if task.requestedAt

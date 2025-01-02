@@ -1,7 +1,7 @@
 # Standard Python Libraries
 from datetime import datetime
-import logging
 import json
+import logging
 
 # Third-Party Libraries
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -82,7 +82,9 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             "statusCode": response.status_code,
             "headers": headers,
             "userEmail": user_email,
-            "durationMs": (end_time - start_time).total_seconds() * 1000,  # Response time in ms
+            "durationMs": round(
+                (end_time - start_time).total_seconds() * 1000, 2
+            ),  # Response time in ms
         }
         self.logger.info(
             f"INFO RequestId: {request_id} {end_time.isoformat()}Z Request Info: {json.dumps(end_log)}"

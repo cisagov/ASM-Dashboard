@@ -227,7 +227,6 @@ class Scheduler:
 
         # If there's a running or queued task, do not run another.
         if last_running_scan_task:
-            print("Already running or queued")
             return False
 
         # Check for the last finished scan task.

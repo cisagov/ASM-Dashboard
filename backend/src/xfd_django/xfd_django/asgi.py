@@ -8,7 +8,10 @@ https://docs.djangoproject.com/en/4.1/howto/deployment/asgi/
 """
 
 # Standard Python Libraries
+import asyncio
+from asyncio import Semaphore
 import os
+import threading
 
 # Third-Party Libraries
 import django
@@ -18,7 +21,8 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 from redis import asyncio as aioredis
-from asyncio import Semaphore
+from xfd_api.tasks.scheduler import handler as scheduler_handler
+from xfd_django.docker_events import listen_for_docker_events
 from xfd_django.middleware.middleware import LoggingMiddleware
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
@@ -110,7 +114,7 @@ def get_application() -> FastAPI:
         return set_security_headers(response)
 
     app.add_middleware(LoggingMiddleware)
-    
+
     app.include_router(api_router)
 
     @app.on_event("startup")
@@ -126,6 +130,15 @@ def get_application() -> FastAPI:
         )
         app.state.redis_semaphore = Semaphore(20)
 
+        # Run scheduler during local development. When deployed on AWS,
+        # the scheduler runs on a separate lambda function.
+        if settings.IS_LOCAL:
+            # Start listening for Docker events
+            run_docker_events_listener()
+
+            # Start the scheduler in local development
+            asyncio.create_task(run_scheduler())
+
     @app.on_event("shutdown")
     async def redis_shutdown():
         """Shut down Redis connection."""
@@ -133,6 +146,28 @@ def get_application() -> FastAPI:
         await app.state.redis.connection_pool.disconnect()
 
     return app
+
+
+def run_docker_events_listener():
+    """
+    Run the Docker events listener for local development in a separate thread.
+    """
+    thread = threading.Thread(target=listen_for_docker_events, daemon=True)
+    thread.start()
+    print("Docker events listener started in a separate thread.")
+
+
+async def run_scheduler():
+    """
+    Run the scheduler in local development.
+    """
+    try:
+        print("Starting local scheduler...")
+        while True:
+            await scheduler_handler({}, {})
+            await asyncio.sleep(120)  # Run every 120 seconds
+    except Exception as e:
+        print(f"Error running local scheduler: {e}")
 
 
 app = get_application()

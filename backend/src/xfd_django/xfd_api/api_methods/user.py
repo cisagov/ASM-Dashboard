@@ -47,62 +47,68 @@ def is_valid_uuid(val: str) -> bool:
 # GET: /users/me
 def get_me(current_user):
     """Get current user."""
-    # Fetch the user and related objects from the database
-    user = User.objects.prefetch_related(
-        Prefetch("roles", queryset=Role.objects.select_related("organization")),
-        Prefetch("apiKeys"),
-    ).get(id=str(current_user.id))
+    try:
+        # Fetch the user and related objects from the database
+        user = User.objects.prefetch_related(
+            Prefetch("roles", queryset=Role.objects.select_related("organization")),
+            Prefetch("apiKeys"),
+        ).get(id=str(current_user.id))
 
-    # Convert the user object to a dictionary
-    user_dict = model_to_dict(user)
+        # Convert the user object to a dictionary
+        user_dict = model_to_dict(user)
 
-    # Add id: model_to_dict does not automatically include
-    user_dict["id"] = str(user.id)
+        # Add id: model_to_dict does not automatically include
+        user_dict["id"] = str(user.id)
 
-    # Include roles with their related organization
-    user_dict["roles"] = [
-        {
-            "id": role.id,
-            "role": role.role,
-            "approved": role.approved,
-            "organization": {
-                **model_to_dict(
-                    role.organization,
-                    fields=[
-                        "acronym",
-                        "name",
-                        "rootDomains",
-                        "ipBlocks",
-                        "isPassive",
-                        "pendingDomains",
-                        "country",
-                        "state",
-                        "regionId",
-                        "stateFips",
-                        "stateName",
-                        "county",
-                        "countyFips",
-                        "type",
-                        "parent",
-                        "createdBy",
-                    ],
-                ),
-                "id": str(role.organization.id),  # Explicitly add the ID
+        # Include roles with their related organization
+        user_dict["roles"] = [
+            {
+                "id": role.id,
+                "role": role.role,
+                "approved": role.approved,
+                "organization": {
+                    **model_to_dict(
+                        role.organization,
+                        fields=[
+                            "acronym",
+                            "name",
+                            "rootDomains",
+                            "ipBlocks",
+                            "isPassive",
+                            "pendingDomains",
+                            "country",
+                            "state",
+                            "regionId",
+                            "stateFips",
+                            "stateName",
+                            "county",
+                            "countyFips",
+                            "type",
+                            "parent",
+                            "createdBy",
+                        ],
+                    ),
+                    "id": str(role.organization.id),  # Explicitly add the ID
+                }
+                if role.organization
+                else None,
             }
-            if role.organization
-            else None,
-        }
-        for role in user.roles.all()
-    ]
+            for role in user.roles.all()
+        ]
 
-    # Include API keys
-    user_dict["apiKeys"] = list(
-        user.apiKeys.values(
-            "id", "createdAt", "updatedAt", "lastUsed", "hashedKey", "lastFour"
+        # Include API keys
+        user_dict["apiKeys"] = list(
+            user.apiKeys.values(
+                "id", "createdAt", "updatedAt", "lastUsed", "hashedKey", "lastFour"
+            )
         )
-    )
 
-    return user_dict
+        return user_dict
+    except User.DoesNotExist:
+        return JsonResponse({"error": "User not found"}, status=404)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 
 # POST: /users/me/acceptTerms
