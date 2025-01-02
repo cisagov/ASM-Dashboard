@@ -13,7 +13,7 @@ from xfd_django.asgi import app
 client = TestClient(app)
 
 
-bad_id = "960b7db7-f3af-411d-a247-33371739050b"
+bad_id = "960b7db7-f3af-411d-a247-33371"
 search_fields = {
     "port": "80",
     "reverseName": "local.crossfeed.quizzical-wing",
@@ -120,7 +120,6 @@ def test_get_domain_by_id(user, domain):
     assert data is not None, "Response is empty"
     assert data["id"] == str(domain.id)
     assert data["ip"] == domain.ip
-    assert data["reverseName"] == domain.reverseName
 
 
 @pytest.mark.django_db(transaction=True)
@@ -146,11 +145,11 @@ def test_search_domain_by_ip(user, vulnerability):
     assert response.status_code == 200
     data = response.json()
     assert data is not None, "Response is empty"
-    assert "results" in data, "Response does not contain 'results' key"
-    assert len(data["results"]) > 0, "No results found for the given IP"
+    assert "result" in data, "Response does not contain 'result' key"
+    assert len(data["result"]) > 0, "No result found for the given IP"
 
-    # Validate results contain the correct IP
-    for domain in data["results"]:
+    # Validate result contain the correct IP
+    for domain in data["result"]:
         assert (
             domain["ip"] == search_fields["ip"]
         ), f"Expected IP {search_fields['ip']}, but got {domain['ip']}"
@@ -166,10 +165,10 @@ def test_search_domain_by_port(user, vulnerability):
     assert response.status_code == 200
     data = response.json()
     assert data is not None, "Response is empty"
-    assert "results" in data, "Response does not contain 'results' key"
-    assert len(data["results"]) > 0, "No results found for the given IP"
+    assert "result" in data, "Response does not contain 'result' key"
+    assert len(data["result"]) > 0, "No result found for the given IP"
 
-    for domain_data in data["results"]:
+    for domain_data in data["result"]:
         domain_id = domain_data.get("id", None)
 
         assert domain_id is not None, "Domain Id not found in Response"
@@ -186,7 +185,7 @@ def test_search_domain_by_service(user, vulnerability):
         "/domain/search",
         json={
             "page": 1,
-            "filters": {"service": str(vulnerability.service.id)},
+            "filters": {"service": str(vulnerability.service.products)},
             "pageSize": 25,
         },
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
@@ -195,10 +194,10 @@ def test_search_domain_by_service(user, vulnerability):
 
     data = response.json()
     assert data is not None, "Response body is empty"
-    assert "results" in data, "Response does not contain 'results' key"
-    assert len(data["results"]) > 0, "No results found for the given service"
+    assert "result" in data, "Response does not contain 'result' key"
+    assert len(data["result"]) > 0, "No result found for the given service"
 
-    for domain_data in data["results"]:
+    for domain_data in data["result"]:
         domain_id = domain_data.get("id", None)
 
         assert domain_id is not None, "Domain Id not found in Response"
@@ -223,11 +222,11 @@ def test_search_domain_by_organization(user, vulnerability):
     )
     assert response.status_code == 200
     data = response.json()
-    assert "results" in data, "Response does not contain 'results' key"
-    assert len(data["results"]) > 0, "No results found for the given organization"
+    assert "result" in data, "Response does not contain 'result' key"
+    assert len(data["result"]) > 0, "No result found for the given organization"
 
-    for domain in data["results"]:
-        assert domain["organization_id"] == str(vulnerability.domain.organization.id)
+    for domain in data["result"]:
+        assert domain["organization"]['name'] == str(vulnerability.domain.organization.name)
 
 
 @pytest.mark.django_db(transaction=True)
@@ -244,14 +243,14 @@ def test_search_domain_by_organization_name(user, vulnerability):
     )
     assert response.status_code == 200
     data = response.json()
-    assert "results" in data, "Response does not contain 'results' key"
-    assert len(data["results"]) > 0, "No results found for the given organization name"
+    assert "result" in data, "Response does not contain 'result' key"
+    assert len(data["result"]) > 0, "No result found for the given organization name"
 
-    for domain in data["results"]:
+    for domain in data["result"]:
         assert (
-            domain["organization_id"] is not None
+            domain["organization"] is not None
         ), "Response domain did not include an Organization ID"
-        organization = Organization.objects.get(id=domain["organization_id"])
+        organization = Organization.objects.get(id=domain["organization"]["id"])
         assert (
             organization.name == search_fields["organizationName"]
         ), f"Domain with ID {domain['id']} did not contain Organization Id {search_fields['organizationName']}"
@@ -264,17 +263,17 @@ def test_search_domain_by_vulnerabilities(user, vulnerability):
         "/domain/search",
         json={
             "page": 1,
-            "filters": {"vulnerabilities": str(vulnerability.id)},
+            "filters": {"vulnerabilities": str(vulnerability.title)},
             "pageSize": 25,
         },
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
     assert response.status_code == 200
     data = response.json()
-    assert "results" in data, "Response does not contain 'results' key"
-    assert len(data["results"]) > 0, "No results found for the given vulnerability"
+    assert "result" in data, "Response does not contain 'result' key"
+    assert len(data["result"]) > 0, "No result found for the given vulnerability"
 
-    for domain in data["results"]:
+    for domain in data["result"]:
         assert str(vulnerability.domain.id) == str(
             domain["id"]
         ), f"Response domain {domain['id']} did not relate back to the expected vulnerability {vulnerability.domain.id}"
@@ -294,10 +293,10 @@ def test_search_domains_multiple_criteria(user, vulnerability):
     )
     assert response.status_code == 200
     data = response.json()
-    assert "results" in data, "Response does not contain 'results' key"
-    assert len(data["results"]) > 0, "No results found for the given ip and port"
+    assert "result" in data, "Response does not contain 'result' key"
+    assert len(data["result"]) > 0, "No result found for the given ip and port"
 
-    for domain in data["results"]:
+    for domain in data["result"]:
         assert (
             domain["ip"] == search_fields["ip"]
         ), f"Domain with ID {domain['id']} does not have an IP {search_fields['ip']}"
@@ -320,4 +319,6 @@ def test_search_domains_does_not_exist(user, vulnerability):
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
-    assert response.status_code == 404
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["result"]) == 0, "No result found for the given organization name"

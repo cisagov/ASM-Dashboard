@@ -104,7 +104,7 @@ class ServiceResponse(BaseModel):
     id: UUID
     port: int
     lastSeen: Optional[datetime] = None
-    products: List[Any]
+    products: Any
 
     class Config:
         orm_mode = True
@@ -114,7 +114,7 @@ class ServiceResponse(BaseModel):
 class VulnerabilityResponse(BaseModel):
     id: UUID
     title: str
-    severity: str
+    severity: Optional[str] = None
     state: str
     createdAt: Optional[datetime] = None
     cve: Optional[str] = None
