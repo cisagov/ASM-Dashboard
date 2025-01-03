@@ -12,16 +12,9 @@ syncdb:
   timeout: 900
   handler: src/xfd_django/xfd_api/tasks/run_syncdb.handler
 
-pesyncdb:
-  timeout: 900
-  handler: src/tasks/pesyncdb.handler
-
 bastion:
   timeout: 900
   handler: src/xfd_django/xfd_api/tasks/bastion.handler
-
-makeGlobalAdmin:
-  handler: src/tasks/makeGlobalAdmin.handler
 
 checkUserExpiration:
   timeout: 300
