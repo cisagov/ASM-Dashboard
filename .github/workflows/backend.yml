@@ -78,9 +78,8 @@ jobs:
         run: make syncdb
 
       - name: Package with Serverless
-        run: npx sls package
+        run: npx serverless package
         env:
-          AWS_EC2_METADATA_DISABLED: 'true'
           SLS_DEBUG: '*'
 
       - name: Run pytest
