@@ -85,7 +85,7 @@ jobs:
         working-directory: ./backend
 
   deploy_staging:
-    needs: [lint, test, test_worker]
+    needs: [build_worker, test]
     runs-on: ubuntu-latest
     environment: staging
     concurrency: '1'
