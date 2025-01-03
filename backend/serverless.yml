@@ -17,7 +17,22 @@ custom:
     noDeploy:
       - boto3
       - botocore
+      - docker
+      - pytest
+      - pytest-django
+      - pytest-env
+      - pylint
+      - mypy
+      - mypy-extensions
+      - python-dotenv
       - pika
+      - isort
+      - black
+      - pipdeptree
+      - Jinja2
+      - MarkupSafe
+      - elasticsearch
+      - uvloop
 
   # Resource policies for GovCloud (Private) vs Non-GovCloud (Regional)
   privateResourcePolicy:
