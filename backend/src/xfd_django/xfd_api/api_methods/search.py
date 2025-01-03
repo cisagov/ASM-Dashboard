@@ -1,4 +1,4 @@
-# api_methods/search.py
+"""Search methods."""
 # Standard Python Libraries
 import csv
 import io
@@ -28,16 +28,16 @@ async def get_options(search_body, user) -> Dict[str, Any]:
             "organization_ids": [search_body.organization_id],
             "match_all_organizations": False,
         }
-    elif search_body.tag_id:
+    if search_body.tag_id:
         return {
-            "organization_ids": get_tag_organizations(search_body.tag_id),
+            "organization_ids": get_tag_organizations(user, search_body.tag_id),
             "match_all_organizations": False,
         }
-    else:
-        return {
-            "organization_ids": get_org_memberships(user),
-            "match_all_organizations": is_global_view_admin(user),
-        }
+
+    return {
+        "organization_ids": get_org_memberships(user),
+        "match_all_organizations": is_global_view_admin(user),
+    }
 
 
 async def fetch_all_results(

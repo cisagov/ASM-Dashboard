@@ -1,10 +1,8 @@
+"""Flag floating IPs."""
 # Standard Python Libraries
-import asyncio
-from typing import Optional
 
 # Third-Party Libraries
-from django.db import transaction
-from django.db.models import Prefetch, Q
+from django.db.models import Prefetch
 from xfd_api.models import Cidr, Domain, Organization
 
 

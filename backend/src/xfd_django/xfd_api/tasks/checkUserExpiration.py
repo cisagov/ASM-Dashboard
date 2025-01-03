@@ -1,13 +1,12 @@
+"""CheckUserExpiration."""
 # Standard Python Libraries
-from datetime import datetime, timedelta
+from datetime import timedelta
 import os
 
 # Third-Party Libraries
 import boto3
 from botocore.exceptions import ClientError
 import django
-from django.conf import settings
-from django.db.models import Q
 from django.utils.timezone import now
 
 # Django setup

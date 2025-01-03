@@ -1,3 +1,4 @@
+"""Run syncdb."""
 # Standard Python Libraries
 import os
 

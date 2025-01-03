@@ -14,6 +14,9 @@ pytest:
 	docker compose exec backend python manage.py makemigrations
 	docker compose exec backend pytest --no-migrations --reuse-db $(FILE)
 
+pylint:
+	docker compose exec backend sh -c "PYTHONPATH=/app pylint ."
+
 # Redis lambdas
 populate-cache:
 	docker compose exec backend python manage.py populate_services_cache
@@ -26,4 +29,4 @@ populate-cache:
 
 # Run scan execution locally with RabbitMQ and Docker
 local-scan-execution:
-	docker compose exec backend python manage.py local_scan_execution --scan-type=xpanse --desired-count=1 --org-list="National Science Foundation (NSF) - CISA"
+	docker compose exec backend python manage.py local_scan_execution --scan-type=dnstwist --desired-count=1 --org-list="National Science Foundation (NSF) - CISA"

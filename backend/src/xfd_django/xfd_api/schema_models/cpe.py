@@ -20,4 +20,6 @@ class Cpe(BaseModel):
     lastSeenAt: datetime
 
     class Config:
+        """Config."""
+
         from_attributes = True

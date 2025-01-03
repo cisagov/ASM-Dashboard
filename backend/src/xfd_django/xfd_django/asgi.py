@@ -96,7 +96,7 @@ def get_application() -> FastAPI:
     """get_application function."""
     # Import views after Django setup
     # Third-Party Libraries
-    from xfd_api.views import api_router
+    from xfd_api.views import api_router  # pylint: disable=C0415
 
     app = FastAPI(title=settings.PROJECT_NAME, debug=settings.DEBUG)
     app.add_middleware(
@@ -120,7 +120,7 @@ def get_application() -> FastAPI:
     @app.on_event("startup")
     async def startup():
         """Start up Redis with ElastiCache."""
-        # Initialize Redis with the ElastiCache endpoint using the modern Redis-Py Asyncio
+        # Initialize Redis with the ElastiCache endpoint
         app.state.redis = await aioredis.from_url(
             f"redis://{settings.ELASTICACHE_ENDPOINT}",
             encoding="utf-8",

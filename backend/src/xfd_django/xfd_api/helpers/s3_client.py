@@ -1,8 +1,8 @@
+"""S3 Client."""
 # Standard Python Libraries
 from datetime import datetime
 import os
 import random
-from urllib.parse import urlparse
 
 # Third-Party Libraries
 import boto3
@@ -10,7 +10,10 @@ from botocore.exceptions import ClientError
 
 
 class S3Client:
+    """S3 client."""
+
     def __init__(self, is_local=None):
+        """Initialize."""
         self.is_local = (
             is_local
             if is_local is not None

@@ -1,6 +1,5 @@
 """"VulnSync scan."""
 # Standard Python Libraries
-from datetime import datetime
 import os
 import time
 
@@ -8,7 +7,7 @@ import time
 import django
 import dns.resolver
 import requests
-from xfd_django.models import Domain, Organization, Service, Vulnerability
+from xfd_api.models import Domain, Organization, Service, Vulnerability
 
 # Django setup
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
@@ -141,14 +140,14 @@ def save_domain(vuln, org):
             service_ip = service_asset
             try:
                 service_domain = dns.resolver.resolve(service_ip, "PTR")[0].to_text()
-            except:
+            except Exception as e:
                 service_domain = service_ip
                 ip_only = True
         else:
             service_domain = service_asset
             try:
                 service_ip = dns.resolver.resolve(service_domain, "A")[0].to_text()
-            except:
+            except Exception as e:
                 service_ip = None
 
         domain, _ = Domain.objects.update_or_create(

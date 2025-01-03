@@ -1,3 +1,4 @@
+"""Update scan task status."""
 # Standard Python Libraries
 import os
 

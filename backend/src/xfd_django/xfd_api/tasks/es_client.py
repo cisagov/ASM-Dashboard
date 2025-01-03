@@ -1,3 +1,4 @@
+"""ES client."""
 # Standard Python Libraries
 import logging
 import os
@@ -29,6 +30,8 @@ domain_mapping = {
 
 
 class ESClient:
+    """ES Client."""
+
     def __init__(self):
         """Initializes the Elasticsearch client."""
         endpoint = os.getenv("ELASTICSEARCH_ENDPOINT")

@@ -56,6 +56,8 @@ class DomainFilters(BaseModel):
     name: Optional[str] = None
 
     class Config:
+        """Config."""
+
         from_attributes = True
 
 
@@ -69,6 +71,8 @@ class DomainSearch(BaseModel):
     pageSize: Optional[int] = 25
 
     class Config:
+        """Config."""
+
         from_attributes = True
 
 
@@ -80,38 +84,54 @@ class DomainSearchResponse(BaseModel):
 
 
 class TotalDomainsResponse(BaseModel):
+    """Total domain response."""
+
     value: int
 
     class Config:
+        """Config."""
+
         from_attributes = True
 
 
 class OrganizationResponse(BaseModel):
+    """Organization response."""
+
     id: UUID
     name: str
 
     class Config:
+        """Config."""
+
         orm_mode = True
         from_attributes = True
 
 
 class ProductResponse(BaseModel):
+    """Product response."""
+
     name: str
     version: Optional[str] = None
 
 
 class ServiceResponse(BaseModel):
+    """Service response."""
+
     id: UUID
     port: int
     lastSeen: Optional[datetime] = None
     products: Any
 
     class Config:
+        """Config."""
+
         orm_mode = True
         from_attributes = True
 
 
 class VulnerabilityResponse(BaseModel):
+    """Vulnerability response."""
+
     id: UUID
     title: str
     severity: Optional[str] = None
@@ -120,21 +140,29 @@ class VulnerabilityResponse(BaseModel):
     cve: Optional[str] = None
 
     class Config:
+        """Config."""
+
         orm_mode = True
         from_attributes = True
 
 
 class WebpageResponse(BaseModel):
+    """Webpage response."""
+
     url: str
     status: str
     responseSize: Optional[int] = None
 
     class Config:
+        """Config."""
+
         orm_mode = True
         from_attributes = True
 
 
 class GetDomainResponse(BaseModel):
+    """Get domain response."""
+
     id: UUID
     name: str
     ip: Optional[str] = None
@@ -148,22 +176,27 @@ class GetDomainResponse(BaseModel):
     webpages: Optional[List[WebpageResponse]] = []
 
     class Config:
+        """Config."""
+
         from_attributes = True
 
     @field_validator("services", mode="before")
     def ensure_services_list(cls, v):
+        """Ensure services."""
         if hasattr(v, "all"):
             return list(v.all())
         return v
 
     @field_validator("vulnerabilities", mode="before")
     def ensure_vulns_list(cls, v):
+        """Ensure vulns list."""
         if hasattr(v, "all"):
             return list(v.all())
         return v
 
     @field_validator("webpages", mode="before")
     def ensure_webpages_list(cls, v):
+        """Ensure webpages."""
         if hasattr(v, "all"):
             return list(v.all())
         return v

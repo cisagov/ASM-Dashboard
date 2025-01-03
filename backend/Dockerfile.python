@@ -10,6 +10,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the FastAPI application
 COPY src/xfd_django .
 
+# Copy the .pylintrc file
+COPY .pylintrc .
+
 # Set environment variable
 ENV DJANGO_SETTINGS_MODULE=xfd_django.settings
 

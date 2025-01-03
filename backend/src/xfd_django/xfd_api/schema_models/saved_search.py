@@ -1,7 +1,7 @@
 """Saved Search schemas."""
 # Standard Python Libraries
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 from uuid import UUID
 
 # Third-Party Libraries
@@ -17,6 +17,8 @@ class SavedSearchFilters(BaseModel):
 
 
 class SavedSearchCreate(BaseModel):
+    """Saved search create."""
+
     name: str
     searchTerm: str
     sortDirection: str
@@ -27,6 +29,8 @@ class SavedSearchCreate(BaseModel):
 
 
 class SavedSearchUpdate(BaseModel):
+    """Saved search update."""
+
     name: str
     searchTerm: str
     sortDirection: str

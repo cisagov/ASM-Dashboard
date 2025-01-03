@@ -1,17 +1,17 @@
+"""Search sync."""
 # Standard Python Libraries
 from itertools import islice
 import os
 
 # Third-Party Libraries
 from django.db.models import F, Q
-from django.forms.models import model_to_dict
 from django.utils.timezone import now
 from xfd_api.models import Domain
 
 from .es_client import ESClient
 
 # Constants
-DOMAIN_CHUNK_SIZE = int(os.getenv("DOMAIN_CHUNK_SIZE", 50))  # Adjust if needed
+DOMAIN_CHUNK_SIZE = int(os.getenv("DOMAIN_CHUNK_SIZE", "50"))  # Adjust if needed
 
 
 def chunked_queryset(queryset, chunk_size):

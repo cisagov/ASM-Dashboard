@@ -28,6 +28,8 @@ def chunk(iterable, size):
 
 
 class Scheduler:
+    """Scheduler."""
+
     def __init__(self):
         """Initialize."""
         self.ecs = ECSClient()

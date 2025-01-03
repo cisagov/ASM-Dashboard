@@ -5,7 +5,7 @@ from typing import Optional
 from uuid import UUID
 
 # Third-Party Libraries
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 
 class ApiKey(BaseModel):
@@ -26,6 +26,7 @@ class ApiKey(BaseModel):
 
     @classmethod
     def model_validate(cls, obj):
+        """Model validate."""
         # Ensure that we convert the UUIDs to strings when validating
         api_key_data = obj.__dict__.copy()
 
@@ -40,4 +41,6 @@ class ApiKey(BaseModel):
         return cls(**api_key_data)
 
     class Config:
+        """Config."""
+
         from_attributes = True

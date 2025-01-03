@@ -1,3 +1,4 @@
+"""Run bastion."""
 # Standard Python Libraries
 import os
 

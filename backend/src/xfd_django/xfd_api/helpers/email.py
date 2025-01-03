@@ -1,3 +1,4 @@
+"""Email methods."""
 # Standard Python Libraries
 import os
 

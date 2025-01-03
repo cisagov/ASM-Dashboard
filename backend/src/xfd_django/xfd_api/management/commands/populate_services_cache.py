@@ -1,88 +1,18 @@
-# Standard Python Libraries
-import json
-
+"""Populate command."""
 # Third-Party Libraries
 from django.core.management.base import BaseCommand
-import pika  # For RabbitMQ
-from xfd_api.tasks.scan_execution import (
-    handler as scan_execution,  # Import your handler
-)
+from xfd_api.tasks.elasticache_tasks import populate_services_cache
 
 
 class Command(BaseCommand):
-    help = "Run local scan execution and send messages to RabbitMQ"
+    """Command."""
 
-    def add_arguments(self, parser):
-        parser.add_argument(
-            "--scan-type", type=str, required=True, help="Type of scan to execute."
-        )
-        parser.add_argument(
-            "--desired-count", type=int, default=1, help="Number of scans to run."
-        )
-        parser.add_argument(
-            "--api-key-list", type=str, default="", help="Comma-separated API keys."
-        )
-        parser.add_argument(
-            "--org-list", type=str, nargs="+", help="List of organizations."
-        )
-        parser.add_argument("--queue", type=str, help="RabbitMQ queue name.")
+    help = (
+        "Populates the vulnerabilities stats cache in AWS Elasticache."
+        " i.e. python manage.py populate_ServicesStatscache"
+    )
 
     def handle(self, *args, **options):
-        scan_type = options["scan_type"]
-        desired_count = options["desired_count"]
-        api_key_list = options["api_key_list"]
-        org_list = options.get("org_list", [])
-        queue = options.get("queue", f"staging-{scan_type}-queue")
-
-        if not org_list:
-            self.stdout.write(self.style.ERROR("Organization list cannot be empty."))
-            return
-
-        # Send messages to RabbitMQ queue
-        for org in org_list:
-            message = {"scriptType": scan_type, "org": org}
-            self.send_message_to_queue(message, queue)
-
-        # Run the local scan execution
-        self.local_scan_execution(scan_type, desired_count, api_key_list)
-
-    @staticmethod
-    def send_message_to_queue(message, queue):
-        try:
-            connection = pika.BlockingConnection(
-                pika.ConnectionParameters(host="rabbitmq")
-            )
-            channel = connection.channel()
-
-            # Declare the queue
-            channel.queue_declare(queue=queue, durable=True)
-
-            # Send the message to the queue
-            channel.basic_publish(
-                exchange="",
-                routing_key=queue,
-                body=json.dumps(message),
-                properties=pika.BasicProperties(
-                    delivery_mode=2
-                ),  # Make message persistent
-            )
-
-            print("Message sent:", message)
-
-            # Close the connection
-            connection.close()
-        except Exception as e:
-            print(f"Error sending message to queue {queue}: {e}")
-
-    @staticmethod
-    def local_scan_execution(scan_type, desired_count, api_key_list=""):
-        """
-        Run the scan execution handler locally.
-        """
-        print("Starting local scan execution...")
-        payload = {
-            "scanType": scan_type,
-            "desiredCount": desired_count,
-            "apiKeyList": api_key_list,
-        }
-        scan_execution(payload, {}, lambda x, y: None)
+        """Handle call."""
+        result = populate_services_cache({}, {})
+        self.stdout.write(self.style.SUCCESS(result["message"]))

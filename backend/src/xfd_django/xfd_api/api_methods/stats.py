@@ -1,5 +1,5 @@
+"""Stats methods."""
 # Standard Python Libraries
-from collections import defaultdict
 import json
 
 # Third-Party Libraries

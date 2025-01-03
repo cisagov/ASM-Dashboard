@@ -3,17 +3,19 @@
 # Standard Python Libraries
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 # Third-Party Libraries
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from .api_key import ApiKey
 from .role import Role
 
 
 class UserType(Enum):
+    """User Type."""
+
     GLOBAL_ADMIN = "globalAdmin"
     GLOBAL_VIEW = "globalView"
     REGIONAL_ADMIN = "regionalAdmin"
@@ -69,6 +71,7 @@ class UserResponse(BaseModel):
 
     @classmethod
     def model_validate(cls, obj):
+        """Model validate."""
         # Convert fields before passing to Pydantic Schema
         user_dict = obj.__dict__.copy()
         user_dict["roles"] = [
@@ -88,6 +91,8 @@ class UserResponse(BaseModel):
         return data
 
     class Config:
+        """Config."""
+
         from_attributes = True
 
 

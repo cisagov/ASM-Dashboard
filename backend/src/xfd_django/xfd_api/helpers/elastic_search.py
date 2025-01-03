@@ -1,3 +1,4 @@
+"""Elastic search methods."""
 # Standard Python Libraries
 from typing import Any, Dict, List, Optional
 
@@ -42,7 +43,8 @@ def build_child_match(search_term: str) -> Dict[str, Any]:
 def get_term_filter_value(field, field_value):
     """
     Determines the appropriate term filter value based on the field and its value.
-    Handles specific cases for boolean values, 'organization.regionId', numeric values, and the 'name' field.
+    Handles specific cases for boolean values, 'organization.regionId', numeric values,
+    and the 'name' field.
     """
     if field_value in ["false", "true"]:
         return {field: field_value == "true"}
@@ -55,30 +57,30 @@ def get_term_filter_value(field, field_value):
     return {f"{field}.keyword": field_value}
 
 
-def get_term_filter(filter):
+def get_term_filter(term_filter):
     """
     Constructs the appropriate term filter based on the filter's field and type.
     Handles 'any' and 'all' filter types, and manages nested fields appropriately.
     """
-    field_path = filter["field"].split(".")
+    field_path = term_filter["field"].split(".")
     search_type = "term"
     search = {}
 
-    if filter["field"] in ["name", "ip"]:
+    if term_filter["field"] in ["name", "ip"]:
         search_type = "wildcard"
-    elif filter["field"] == "services.port":
+    elif term_filter["field"] == "services.port":
         search_type = "match"
-    elif filter["field"] == "organization.regionId":
+    elif term_filter["field"] == "organization.regionId":
         search_type = "terms"
 
-    if filter["type"] == "any":
-        if filter["field"] == "organization.regionId" and filter["values"]:
+    if term_filter["type"] == "any":
+        if term_filter["field"] == "organization.regionId" and term_filter["values"]:
             search = {
                 "bool": {
                     "should": [
                         {
                             search_type: get_term_filter_value(
-                                filter["field"], filter["values"]
+                                term_filter["field"], term_filter["values"]
                             )
                         }
                     ],
@@ -89,26 +91,30 @@ def get_term_filter(filter):
             search = {
                 "bool": {
                     "should": [
-                        {search_type: get_term_filter_value(filter["field"], value)}
-                        for value in filter["values"]
+                        {
+                            search_type: get_term_filter_value(
+                                term_filter["field"], value
+                            )
+                        }
+                        for value in term_filter["values"]
                     ],
                     "minimum_should_match": 1,
                 }
             }
-    elif filter["type"] == "all":
+    elif term_filter["type"] == "all":
         search = {
             "bool": {
                 "filter": [
-                    {search_type: get_term_filter_value(filter["field"], value)}
-                    for value in filter["values"]
+                    {search_type: get_term_filter_value(term_filter["field"], value)}
+                    for value in term_filter["values"]
                 ]
             }
         }
 
-    if len(field_path) > 1 and filter["field"] != "organization.regionId":
+    if len(field_path) > 1 and term_filter["field"] != "organization.regionId":
         return {"nested": {"path": field_path[0], "query": search}}
-    else:
-        return search
+
+    return search
 
 
 def build_request_filter(filters, force_return_no_results):
@@ -125,6 +131,7 @@ def build_request_filter(filters, force_return_no_results):
 
 def build_request(state, options: Dict[str, Any]) -> Dict[str, Any]:
     """Build request."""
+    print(options)
     current = state.current
     filters = state.filters or []
     results_per_page = state.resultsPerPage

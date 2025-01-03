@@ -17,6 +17,8 @@ def to_snake_case(input_str):
 
 
 class ECSClient:
+    """ECS Client."""
+
     def __init__(self, is_local=None):
         """Initialize."""
         # Determine if we're running locally or using ECS

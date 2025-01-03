@@ -1,11 +1,9 @@
+"""Filter helpers."""
 # Third-Party Libraries
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.query import Q, QuerySet
-from django.http import Http404
 from fastapi import HTTPException
 
-from ..models import Domain, Organization, Service, Vulnerability
-from ..schema_models.domain import DomainFilters
+from ..models import Vulnerability
 from ..schema_models.vulnerability import VulnerabilityFilters
 
 

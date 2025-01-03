@@ -1,6 +1,5 @@
 """
 Domain API.
-
 """
 
 # Standard Python Libraries
@@ -8,17 +7,15 @@ import csv
 import io
 
 # Third-Party Libraries
-from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
 from django.db.models import Prefetch, Q
-from django.http import Http404
 from fastapi import HTTPException
 
-from ..auth import get_org_memberships, get_user_organization_ids, is_global_view_admin
+from ..auth import get_org_memberships, is_global_view_admin
 from ..helpers.filter_helpers import apply_domain_filters, sort_direction
 from ..helpers.s3_client import S3Client
 from ..models import Domain, Service
-from ..schema_models.domain import DomainFilters, DomainSearch
+from ..schema_models.domain import DomainSearch
 
 
 def get_domain_by_id(domain_id: str):
@@ -131,11 +128,11 @@ def search_domains(domain_search: DomainSearch, current_user):
         if page_size == -1:
             result = list(domains)
             return result, len(result)
-        else:
-            page_size = page_size or 15  # default page size if none provided
-            paginator = Paginator(domains, page_size)
-            page_obj = paginator.get_page(domain_search.page)
-            return list(page_obj), paginator.count
+
+        page_size = page_size or 15  # default page size if none provided
+        paginator = Paginator(domains, page_size)
+        page_obj = paginator.get_page(domain_search.page)
+        return list(page_obj), paginator.count
 
     except Domain.DoesNotExist as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -156,7 +153,8 @@ def export_domains(domain_search: DomainSearch, current_user):
         if not domains:
             csv_content = "name,ip,id,ports,products,createdAt,updatedAt,organization\n"
         else:
-            # Process domains to flatten organization name, ports as string, products as unique string
+            # Process domains to flatten organization name,
+            # ports as string, products as unique string
             processed_domains = []
             for domain in domains:
                 organization_name = (

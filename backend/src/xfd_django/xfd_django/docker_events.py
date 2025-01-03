@@ -1,3 +1,4 @@
+"""Docker event listener."""
 # Standard Python Libraries
 import asyncio
 import json
@@ -8,7 +9,6 @@ from django.conf import settings
 if settings.IS_LOCAL:
     # Third-Party Libraries
     from docker import DockerClient
-    from docker.errors import DockerException
 
 # Import your updateScanTaskStatus handler
 # Third-Party Libraries
@@ -21,8 +21,12 @@ def listen_for_docker_events():
     Fargate EventBridge events for local development.
     """
     try:
-        client = DockerClient.from_env()
-        print("Listening for Docker events...")
+        if not settings.IS_LOCAL:
+            client = DockerClient.from_env()
+            print("Listening for Docker events...")
+        else:
+            print("No docker client")
+            return
 
         for event in client.events(decode=True):
             try:
@@ -72,5 +76,5 @@ def listen_for_docker_events():
             except Exception as e:
                 print(f"Error processing Docker event: {e}")
 
-    except DockerException as e:
+    except Exception as e:
         print(f"Error connecting to Docker: {e}")

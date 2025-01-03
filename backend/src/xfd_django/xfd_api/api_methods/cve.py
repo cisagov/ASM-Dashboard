@@ -1,6 +1,5 @@
 """
 Cve API.
-
 """
 
 # Third-Party Libraries

@@ -1,3 +1,4 @@
+"""Populate command."""
 # Third-Party Libraries
 from django.core.management.base import BaseCommand
 from xfd_api.tasks.syncdb_helpers import (
@@ -10,6 +11,8 @@ from xfd_api.tasks.syncdb_helpers import (
 
 
 class Command(BaseCommand):
+    """Syncdb command."""
+
     help = "Synchronizes and populates the database with optional sample data, and manages Elasticsearch indices."
 
     def add_arguments(self, parser):

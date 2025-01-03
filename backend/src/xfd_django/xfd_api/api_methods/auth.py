@@ -1,9 +1,7 @@
 """Auth API logic"""
-# Standard Python Libraries
-import json
 
 # Third-Party Libraries
-from fastapi import HTTPException, Security, status
+from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
 from xfd_api.auth import get_jwt_from_code, process_user
 
@@ -29,11 +27,10 @@ async def handle_okta_callback(request):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid authorization code or failed to retrieve tokens",
         )
-    access_token = jwt_data.get("access_token")
-    refresh_token = jwt_data.get("refresh_token")
+
     decoded_token = jwt_data.get("decoded_token")
 
-    resp = await process_user(decoded_token, access_token, refresh_token)
+    resp = await process_user(decoded_token)
     token = resp.get("token")
 
     # Create a JSONResponse object to return the response and set the cookie
@@ -50,6 +47,6 @@ async def handle_okta_callback(request):
         value=token,
         # httponly=True,  # This makes the cookie inaccessible to JavaScript
         # secure=True,    # Ensures the cookie is only sent over HTTPS
-        # samesite="Lax"  # Restricts when cookies are sent, adjust as necessary (e.g., "Strict" or "None")
+        # samesite="Lax"  # Restricts when cookies are sent
     )
     return response

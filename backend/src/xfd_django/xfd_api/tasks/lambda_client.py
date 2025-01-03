@@ -10,6 +10,8 @@ from .scheduler import handler as scheduler
 
 
 class LambdaClient:
+    """Lambda client."""
+
     def __init__(self):
         """Initialize."""
         # Determine if running locally or not

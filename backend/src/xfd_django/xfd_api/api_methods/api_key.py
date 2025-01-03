@@ -1,7 +1,7 @@
 """/api-keys API logic"""
 
 # Standard Python Libraries
-from datetime import datetime, timezone
+from datetime import datetime
 import hashlib
 import secrets
 import uuid
@@ -11,9 +11,15 @@ from fastapi import HTTPException, status
 from xfd_api.models import ApiKey
 from xfd_api.schema_models.api_key import ApiKey as ApiKeySchema
 
+from ..auth import is_global_view_admin
+
 
 def post(current_user):
     """POST API logic for creating a new API key."""
+    # Check if user is GlobalViewAdmin or has memberships
+    if not is_global_view_admin(current_user):
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
     # Generate a random 16-byte API key
     key = secrets.token_hex(16)
 
@@ -30,7 +36,7 @@ def post(current_user):
         updatedAt=datetime.utcnow(),
     )
 
-    # Convert the Django model instance to the Pydantic model, excluding fields like hashedKey and user
+    # Convert the Django model instance to Pydantic, excluding fields like hashedKey and user
     validated_data = ApiKeySchema.model_validate(api_key_instance).model_dump(
         exclude={"hashedKey", "user"}
     )
@@ -41,14 +47,18 @@ def post(current_user):
     return validated_data
 
 
-def delete(id, current_user):
+def delete(api_key_id, current_user):
     """DELETE API LOGIC"""
     try:
+        # Check if user is GlobalViewAdmin or has memberships
+        if not is_global_view_admin(current_user):
+            raise HTTPException(status_code=403, detail="Unauthorized")
+
         # Confirm id is a valid UUID
-        uuid.UUID(id)
+        uuid.UUID(api_key_id)
 
         # Delete by id
-        api_key = ApiKey.objects.get(id=id)
+        api_key = ApiKey.objects.get(id=api_key_id)
         api_key.delete()
 
         # Delete Response TODO: confirm output
@@ -67,6 +77,10 @@ def delete(id, current_user):
 def get_all(current_user):
     """GET All API LOGIC"""
     try:
+        # Check if user is GlobalViewAdmin or has memberships
+        if not is_global_view_admin(current_user):
+            raise HTTPException(status_code=403, detail="Unauthorized")
+
         # Get all ApiKey objects from the database
         api_keys = ApiKey.objects.all()
 
@@ -84,14 +98,18 @@ def get_all(current_user):
         raise HTTPException(status_code=500, detail=str(error))
 
 
-def get_by_id(id, current_user):
+def get_by_id(api_key_id, current_user):
     """GET API KEY by id"""
     try:
+        # Check if user is GlobalViewAdmin or has memberships
+        if not is_global_view_admin(current_user):
+            raise HTTPException(status_code=403, detail="Unauthorized")
+
         # Confirm id is a valid UUID
-        uuid.UUID(id)
+        uuid.UUID(api_key_id)
 
         # Find the ApiKey by its ID
-        api_key = ApiKey.objects.get(id=id)
+        api_key = ApiKey.objects.get(id=api_key_id)
 
         # Return validated output
         return ApiKeySchema.model_validate(obj=api_key).model_dump(

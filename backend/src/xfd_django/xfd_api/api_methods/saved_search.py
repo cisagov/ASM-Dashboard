@@ -13,6 +13,7 @@ from ..models import SavedSearch, User
 
 
 def validate_name(value: str):
+    """Validate name."""
     name = value.strip()
     if name == "":
         raise HTTPException(status_code=400, detail="Name cannot be empty")
@@ -24,6 +25,7 @@ def validate_name(value: str):
 
 
 def create_saved_search(request):
+    """Create saved search."""
     validate_name(request.get("name"))
     try:
         # Process filter values when selecting organizations
@@ -122,12 +124,13 @@ def list_saved_searches(user):
 
 
 def get_saved_search(saved_search_id, user):
+    """Get saved search."""
     if user.userType == "globalView":
         raise HTTPException(
             status_code=404, detail="Global View users cannot retrieve saved searches."
         )
     if not uuid.UUID(saved_search_id):
-        raise HTTPException({"error": "Invalid UUID"}, status=404)
+        raise HTTPException({"error": "Invalid UUID"})
 
     try:
         saved_search = SavedSearch.objects.get(id=saved_search_id)
@@ -158,6 +161,7 @@ def get_saved_search(saved_search_id, user):
 
 
 def update_saved_search(request, user):
+    """Update saved search."""
     if not uuid.UUID(request["saved_search_id"]):
         raise HTTPException(status_code=404, detail={"error": "Invalid UUID"})
     try:

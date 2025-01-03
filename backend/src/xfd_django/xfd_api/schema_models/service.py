@@ -6,7 +6,6 @@ from uuid import UUID
 
 # Third-Party Libraries
 from pydantic import BaseModel, Json
-from pydantic.types import UUID1
 
 
 class Service(BaseModel):
@@ -29,4 +28,6 @@ class Service(BaseModel):
     discoveredBy: Optional[Any]
 
     class Config:
+        """Config."""
+
         from_attributes = True

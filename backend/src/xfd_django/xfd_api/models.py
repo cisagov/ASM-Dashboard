@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import uuid
 
 # Third-Party Libraries
-from django.contrib.postgres.fields import ArrayField, JSONField
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
 
@@ -526,6 +526,8 @@ class TypeormMetadata(models.Model):
 
 
 class UserType(models.TextChoices):
+    """User type definition."""
+
     GLOBAL_ADMIN = "globalAdmin"
     GLOBAL_VIEW = "globalView"
     REGIONAL_ADMIN = "regionalAdmin"
@@ -592,6 +594,8 @@ class Vulnerability(models.Model):
     """The Vulnerability model."""
 
     class SeverityChoices(models.TextChoices):
+        """Severity choices."""
+
         NONE = "None"
         LOW = "Low"
         MEDIUM = "Medium"
@@ -599,10 +603,14 @@ class Vulnerability(models.Model):
         CRITICAL = "Critical"
 
     class StateChoices(models.TextChoices):
+        """State choices."""
+
         OPEN = "open"
         CLOSED = "closed"
 
     class SubstateChoices(models.TextChoices):
+        """Substate choices."""
+
         UNCONFIRMED = "unconfirmed"
         EXPLOITABLE = "exploitable"
         FALSE_POSITIVE = "false-positive"

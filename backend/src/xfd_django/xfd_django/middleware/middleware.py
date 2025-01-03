@@ -1,3 +1,4 @@
+"""Django middleware."""
 # Standard Python Libraries
 from datetime import datetime
 import json
@@ -6,15 +7,18 @@ import logging
 # Third-Party Libraries
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
+    """Logging middleware."""
+
     def __init__(self, app):
+        """Initialize logger."""
         super().__init__(app)
         self.logger = self._configure_logger()
 
     def _configure_logger(self):
+        """Configure logger."""
         logger = logging.getLogger("fastapi")
         logger.propagate = False  # Prevent duplicate logs
         if not logger.handlers:
@@ -25,6 +29,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         return logger
 
     async def dispatch(self, request: Request, call_next):
+        """Dispatch logger."""
         # Extract request details
         method = request.method
         protocol = request.url.scheme
@@ -58,9 +63,11 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             "userEmail": user_email,
         }
         self.logger.info(
-            f"INFO RequestId: {request_id} {datetime.utcnow().isoformat()}Z Request Info: {json.dumps(start_log)}"
+            "INFO RequestId: %s %sZ Request Info: %s",
+            request_id,
+            datetime.utcnow().isoformat(),
+            json.dumps(start_log),
         )
-
         # Process the request and capture the response
         start_time = datetime.utcnow()
         response = await call_next(request)
@@ -87,7 +94,10 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             ),  # Response time in ms
         }
         self.logger.info(
-            f"INFO RequestId: {request_id} {end_time.isoformat()}Z Request Info: {json.dumps(end_log)}"
+            "INFO RequestId: %s %sZ Request Info: %s",
+            request_id,
+            end_time.isoformat(),
+            json.dumps(end_log),
         )
 
         return response

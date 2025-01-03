@@ -150,6 +150,7 @@ def get_user_service_ids(current_user):
 
 
 async def get_user_organization_ids(user_id: str) -> List[str]:
+    """Get organization ids."""
     try:
         # Fetch organization IDs associated with the user
         organization_ids_qs = Role.objects.filter(user__id=user_id).values_list(
@@ -217,23 +218,26 @@ def hash_key(key: str) -> str:
 
 
 # TODO: Confirm still needed
-async def get_user_info_from_cognito(token):
-    """Get user info from cognito."""
-    jwks_url = f"https://cognito-idp.us-east-1.amazonaws.com/{os.getenv('REACT_APP_USER_POOL_ID')}/.well-known/jwks.json"
-    response = requests.get(jwks_url)
-    jwks = response.json()
-    unverified_header = jwt.get_unverified_header(token)
-    for key in jwks["keys"]:
-        if key["kid"] == unverified_header["kid"]:
-            rsa_key = {
-                "kty": key["kty"],
-                "kid": key["kid"],
-                "use": key["use"],
-                "n": key["n"],
-                "e": key["e"],
-            }
-    user_info = decode_jwt_token(token)
-    return user_info
+# async def get_user_info_from_cognito(token):
+#     """Get user info from cognito."""
+#     jwks_url = (
+#         f"https://cognito-idp.us-east-1.amazonaws.com/"
+#         f"{os.getenv('REACT_APP_USER_POOL_ID')}/.well-known/jwks.json"
+#     )
+#     response = requests.get(jwks_url)
+#     jwks = response.json()
+#     unverified_header = jwt.get_unverified_header(token)
+#     for key in jwks["keys"]:
+#         if key["kid"] == unverified_header["kid"]:
+#             rsa_key = {
+#                 "kty": key["kty"],
+#                 "kid": key["kid"],
+#                 "use": key["use"],
+#                 "n": key["n"],
+#                 "e": key["e"],
+#             }
+#     user_info = decode_jwt_token(token)
+#     return user_info
 
 
 async def get_token_from_header(request: Request) -> Optional[str]:
@@ -323,7 +327,7 @@ def get_current_active_user(
     return user
 
 
-async def process_user(decoded_token, access_token, refresh_token):
+async def process_user(decoded_token):
     """Process a user based on decoded token information."""
     user = User.objects.filter(email=decoded_token["email"]).first()
     if not user:
@@ -413,7 +417,6 @@ async def get_jwt_from_code(auth_code: str):
 
     except Exception as error:
         print(f"get_jwt_from_code post error: {error}")
-        pass
 
 
 def can_access_user(current_user, target_user_id) -> bool:

@@ -24,4 +24,6 @@ class Role(BaseModel):
     organizationId: Optional[Any]
 
     class Config:
+        """Config."""
+
         from_attributes = True

@@ -41,4 +41,6 @@ class Cve(BaseModel):
     references: Optional[str]
 
     class Config:
+        """Config."""
+
         from_attributes = True

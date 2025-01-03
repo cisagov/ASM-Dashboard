@@ -24,4 +24,6 @@ class Notification(BaseModel):
     message: Optional[str]
 
     class Config:
+        """Config."""
+
         from_attributes = True

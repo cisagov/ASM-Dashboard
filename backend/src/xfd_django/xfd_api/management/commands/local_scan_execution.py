@@ -1,3 +1,4 @@
+"""Scan execution."""
 # Standard Python Libraries
 import json
 
@@ -8,9 +9,12 @@ from xfd_api.tasks.scanExecution import handler as scan_execution
 
 
 class Command(BaseCommand):
+    """Command."""
+
     help = "Run local scan execution and send messages to RabbitMQ"
 
     def add_arguments(self, parser):
+        """Add arguments."""
         parser.add_argument(
             "--scan-type", type=str, required=True, help="Type of scan to execute."
         )
@@ -26,6 +30,7 @@ class Command(BaseCommand):
         parser.add_argument("--queue", type=str, help="RabbitMQ queue name.")
 
     def handle(self, *args, **options):
+        """Handle method."""
         scan_type = options["scan_type"]
         desired_count = options["desired_count"]
         api_key_list = options["api_key_list"]
@@ -46,6 +51,7 @@ class Command(BaseCommand):
 
     @staticmethod
     def send_message_to_queue(message, queue):
+        """Send message to queue."""
         try:
             connection = pika.BlockingConnection(
                 pika.ConnectionParameters(host="rabbitmq")

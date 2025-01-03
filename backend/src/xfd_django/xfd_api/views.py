@@ -1,6 +1,5 @@
 """This module defines the API endpoints for the FastAPI application."""
 # Standard Python Libraries
-import json
 import os
 from typing import List, Optional
 from uuid import UUID
@@ -63,7 +62,6 @@ from .schema_models import stat_schema
 from .schema_models.api_key import ApiKey as ApiKeySchema
 from .schema_models.cpe import Cpe as CpeSchema
 from .schema_models.cve import Cve as CveSchema
-from .schema_models.domain import Domain as DomainSchema
 from .schema_models.domain import DomainSearch, DomainSearchResponse, GetDomainResponse
 from .schema_models.notification import Notification as NotificationSchema
 from .schema_models.saved_search import (
@@ -80,7 +78,7 @@ from .schema_models.user import (
     UpdateUserV2,
 )
 from .schema_models.user import User as UserSchema
-from .schema_models.user import UserResponse, UserResponseV2, VersionModel
+from .schema_models.user import UserResponseV2, VersionModel
 from .schema_models.vulnerability import (
     VulnerabilitySearch,
     VulnerabilitySearchResponse,
@@ -177,10 +175,26 @@ async def create_api_key(current_user: User = Depends(get_current_active_user)):
 # DELETE
 @api_router.delete("/api-keys/{id}", tags=["API Keys"])
 async def delete_api_key(
-    id: str, current_user: User = Depends(get_current_active_user)
+    api_key_id: str, current_user: User = Depends(get_current_active_user)
 ):
     """Delete api key by id."""
-    return api_key_methods.delete(id, current_user)
+    return api_key_methods.delete(api_key_id, current_user)
+
+
+# GET ALL
+@api_router.get("/api-keys", response_model=List[ApiKeySchema], tags=["API Keys"])
+async def get_all_api_keys(current_user: User = Depends(get_current_active_user)):
+    """Get all api keys."""
+    return api_key_methods.get_all(current_user)
+
+
+# GET BY ID
+@api_router.get("/api-keys/{id}", response_model=ApiKeySchema, tags=["API Keys"])
+async def get_api_key(
+    api_key_id: str, current_user: User = Depends(get_current_active_user)
+):
+    """Get api key by id."""
+    return api_key_methods.get_by_id(api_key_id, current_user)
 
 
 # ========================================
@@ -283,6 +297,7 @@ async def call_get_cves_by_name(cve_name):
 async def call_search_domains(
     domain_search: DomainSearch, current_user: User = Depends(get_current_active_user)
 ):
+    """Call search domains."""
     domains, count = search_domains(domain_search, current_user)
     return DomainSearchResponse(result=domains, count=count)
 
@@ -295,6 +310,7 @@ async def call_search_domains(
 async def call_export_domains(
     domain_search: DomainSearch, current_user: User = Depends(get_current_active_user)
 ):
+    """Call export domains."""
     try:
         return export_domains(domain_search, current_user)
     except Exception as e:
@@ -332,10 +348,10 @@ async def create_notification(current_user: User = Depends(get_current_active_us
     "/notifications/{id}", response_model=NotificationSchema, tags=["Notifications"]
 )
 async def delete_notification(
-    id: str, current_user: User = Depends(get_current_active_user)
+    notification_id: str, current_user: User = Depends(get_current_active_user)
 ):
     """Delete notification by id."""
-    return notification_methods.delete(id, current_user)
+    return notification_methods.delete(notification_id, current_user)
 
 
 # GET ALL: Doesn't require authentication
@@ -352,26 +368,27 @@ async def get_all_notifications():
     "/notifications/{id}", response_model=NotificationSchema, tags=["Notifications"]
 )
 async def get_notification(
-    id: str, current_user: User = Depends(get_current_active_user)
+    notification_id: str, current_user: User = Depends(get_current_active_user)
 ):
     """Get notification by id."""
-    return notification_methods.get_by_id(id, current_user)
+    return notification_methods.get_by_id(notification_id, current_user)
 
 
 # UPDATE BY ID
 @api_router.put("/notifications/{id}", tags=["Notifications"])
 async def update_notification(
-    id: str, current_user: User = Depends(get_current_active_user)
+    notification_id: str, current_user: User = Depends(get_current_active_user)
 ):
     """Update notification key by id."""
-    return notification_methods.delete(id, current_user)
+    return notification_methods.delete(notification_id, current_user)
 
 
+# TODO: Adding placeholder until we determine if we still need this.
 # GET 508 Banner: Doesn't require authentication
-@api_router.get("/notifications/508-banner", tags=["Notifications"])
-async def get_508_banner():
-    """Get notification by id."""
-    return notification_methods.get_508_banner()
+# @api_router.get("/notifications/508-banner", tags=["Notifications"])
+# async def get_508_banner():
+#     """Get notification by id."""
+#     return notification_methods.get_508_banner()
 
 
 # ========================================
@@ -701,20 +718,6 @@ async def call_delete_saved_search(
     return delete_saved_search(saved_search_id, current_user)
 
 
-# GET ALL
-@api_router.get("/api-keys", response_model=List[ApiKeySchema], tags=["API Keys"])
-async def get_all_api_keys(current_user: User = Depends(get_current_active_user)):
-    """Get all api keys."""
-    return api_key_methods.get_all(current_user)
-
-
-# GET BY ID
-@api_router.get("/api-keys/{id}", response_model=ApiKeySchema, tags=["API Keys"])
-async def get_api_key(id: str, current_user: User = Depends(get_current_active_user)):
-    """Get api key by id."""
-    return api_key_methods.get_by_id(id, current_user)
-
-
 # ========================================
 #   Scan Endpoints
 # ========================================
@@ -886,6 +889,7 @@ async def search(
 async def export_endpoint(
     search_body: DomainSearchBody, current_user: User = Depends(get_current_active_user)
 ):
+    """Search export endpoint."""
     try:
         result = await search_export(search_body, current_user)
         return result
@@ -973,6 +977,7 @@ async def get_latest_vulnerabilities(
     current_user: User = Depends(get_current_active_user),
     redis_client: aioredis.Redis = Depends(get_redis_client),
 ):
+    """Get latest vulnerabilities."""
     return await stats_latest_vulns(filter_data, current_user, redis_client, request)
 
 
@@ -988,6 +993,7 @@ async def get_most_common_vulns(
     current_user: User = Depends(get_current_active_user),
     redis_client: aioredis.Redis = Depends(get_redis_client),
 ):
+    """Get most common vulns."""
     return await stats_most_common_vulns(
         filter_data, current_user, redis_client, request
     )
@@ -1065,6 +1071,7 @@ async def call_accept_terms(
 
 @api_router.get("/users/me", tags=["Users"])
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
+    """Get current user."""
     return get_me(current_user)
 
 

@@ -5,14 +5,13 @@ User API.
 # Standard Python Libraries
 from datetime import datetime
 import os
-from typing import List
 import uuid
 
 # Third-Party Libraries
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Prefetch
 from django.forms import model_to_dict
-from fastapi import HTTPException, Request
+from fastapi import HTTPException
 from fastapi.responses import JSONResponse
 
 from ..auth import (
@@ -31,7 +30,6 @@ from ..helpers.email import (
 from ..helpers.regionStateMap import REGION_STATE_MAP
 from ..models import Organization, Role, User
 from ..schema_models.user import NewUser as NewUserSchema
-from ..schema_models.user import UpdateUser as UpdateUserSchema
 from ..schema_models.user import User as UserSchema
 
 
@@ -104,11 +102,12 @@ def get_me(current_user):
         )
 
         return user_dict
+
     except User.DoesNotExist:
-        return JsonResponse({"error": "User not found"}, status=404)
+        raise HTTPException(status_code=404, detail="User not found")
 
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        raise HTTPException(status_code=500, detail="Unknown error")
 
 
 # POST: /users/me/acceptTerms
@@ -186,7 +185,7 @@ def get_users(current_user):
     """Retrieve a list of all users."""
     try:
         # Check if user is a regional admin or global admin
-        if not (is_global_view_admin(current_user)):
+        if not is_global_view_admin(current_user):
             raise HTTPException(status_code=401, detail="Unauthorized")
 
         users = User.objects.all().prefetch_related("roles__organization")
@@ -229,14 +228,7 @@ def get_users(current_user):
 
 # GET: /users/regionId/{regionId}
 def get_users_by_region_id(current_user, region_id):
-    """
-    List users with specific regionId.
-    Args:
-        request : The HTTP request containing the regionId.
-
-    Returns:
-        JSONResponse: The list of users with the specified regionId.
-    """
+    """List users with specific regionId."""
     try:
         if not is_regional_admin(current_user):
             raise HTTPException(status_code=401, detail="Unauthorized")
@@ -254,24 +246,16 @@ def get_users_by_region_id(current_user, region_id):
                 status_code=200,
                 content=[UserSchema.model_validate(user) for user in users],
             )
-        else:
-            raise HTTPException(
-                status_code=404, detail="No users found for the specified regionId"
-            )
+        raise HTTPException(
+            status_code=404, detail="No users found for the specified regionId"
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 # GET: /users/state/{state}
 async def get_users_by_state(state, current_user):
-    """
-    List users with specific state.
-    Args:
-        request : The HTTP request containing the state.
-
-    Returns:
-        JSONResponse: The list of users with the specified state.
-    """
+    """List users with specific state."""
     try:
         if not is_regional_admin(current_user):
             raise HTTPException(status_code=401, detail="Unauthorized")
@@ -289,10 +273,9 @@ async def get_users_by_state(state, current_user):
                 status_code=200,
                 content=[UserSchema.model_validate(user) for user in users],
             )
-        else:
-            raise HTTPException(
-                status_code=404, detail="No users found for the specified state"
-            )
+        raise HTTPException(
+            status_code=404, detail="No users found for the specified state"
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

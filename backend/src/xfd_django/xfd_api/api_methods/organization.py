@@ -7,7 +7,7 @@ import uuid
 
 # Third-Party Libraries
 from django.db.models import Q
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 
 from ..auth import (
     get_org_memberships,
@@ -692,11 +692,11 @@ def update_organization(organization_id: str, organization_data, current_user):
 
 
 # DELETE: /organizations/{organization_id}
-def delete_organization(id: str, current_user):
+def delete_organization(org_id: str, current_user):
     """Delete a particular organization."""
     try:
         # Validate the organization ID format (UUID)
-        if not is_valid_uuid(id):
+        if not is_valid_uuid(org_id):
             raise HTTPException(status_code=404, detail="Invalid organization ID.")
 
         # Check if the current user is a GlobalWriteAdmin
@@ -705,7 +705,7 @@ def delete_organization(id: str, current_user):
 
         # Fetch the organization by ID to ensure it exists
         try:
-            organization = Organization.objects.get(id=id)
+            organization = Organization.objects.get(id=org_id)
         except Organization.DoesNotExist:
             raise HTTPException(status_code=404, detail="Organization not found.")
 
@@ -715,7 +715,7 @@ def delete_organization(id: str, current_user):
         # Return success response
         return {
             "status": "success",
-            "message": f"Organization {id} has been deleted successfully.",
+            "message": f"Organization {org_id} has been deleted successfully.",
         }
 
     except HTTPException as http_exc:
@@ -1051,6 +1051,12 @@ def list_organizations_v2(state, regionId, current_user):
 def search_organizations_task(search_body, current_user: User):
     """Handles the logic for searching organizations in Elasticsearch."""
     try:
+        # Check if user is GlobalViewAdmin or has memberships
+        if not is_global_view_admin(current_user) and not get_org_memberships(
+            current_user
+        ):
+            return []
+
         # Initialize Elasticsearch client
         client = ESClient()
 

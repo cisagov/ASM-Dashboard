@@ -1,3 +1,4 @@
+"""Stats schema."""
 # Standard Python Libraries
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -8,30 +9,40 @@ from pydantic import BaseModel
 
 # Reusing the previously defined models
 class ServiceStat(BaseModel):
+    """Service stat."""
+
     id: str
     value: int
     label: str
 
 
 class PortStat(BaseModel):
+    """Port stat."""
+
     id: int
     value: int
     label: str
 
 
 class VulnerabilityStat(BaseModel):
+    """Vulnerability stat."""
+
     id: str
     value: int
     label: str
 
 
 class SeverityCountStat(BaseModel):
+    """Severity count stat."""
+
     id: str
     value: int
     label: str
 
 
 class Domain(BaseModel):
+    """Domain schema."""
+
     id: str
     createdAt: datetime
     updatedAt: datetime
@@ -54,6 +65,8 @@ class Domain(BaseModel):
 
 
 class LatestVulnerability(BaseModel):
+    """Latest vulnerability."""
+
     createdAt: datetime
     title: str
     description: Optional[str]
@@ -61,6 +74,8 @@ class LatestVulnerability(BaseModel):
 
 
 class MostCommonVulnerability(BaseModel):
+    """Most common vulnerability."""
+
     title: str
     description: str
     severity: Optional[str]
@@ -68,6 +83,8 @@ class MostCommonVulnerability(BaseModel):
 
 
 class ByOrgStat(BaseModel):
+    """By org stat."""
+
     id: str
     orgId: str
     value: int
@@ -76,6 +93,8 @@ class ByOrgStat(BaseModel):
 
 # Main StatsResponse model
 class StatsResponse(BaseModel):
+    """Stats response."""
+
     result: Dict[str, Any] = {
         "domains": {
             "services": List[ServiceStat],

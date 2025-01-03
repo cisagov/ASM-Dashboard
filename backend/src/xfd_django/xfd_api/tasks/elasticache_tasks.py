@@ -1,3 +1,4 @@
+"""Elasticache tasks."""
 # Standard Python Libraries
 import json
 import os
@@ -22,6 +23,7 @@ from xfd_api.models import Service, Vulnerability
 
 
 def populate_services_cache(event, context):
+    """Populate services cache."""
     return populate_stats_cache(
         model=Service,
         group_by_field="domain__organization_id",
@@ -36,6 +38,7 @@ def populate_services_cache(event, context):
 
 
 def populate_ports_cache(event, context):
+    """Populate ports cache."""
     return populate_stats_cache(
         model=Service,
         group_by_field="domain__organization_id",
@@ -50,6 +53,7 @@ def populate_ports_cache(event, context):
 
 
 def populate_num_vulns_cache(event, context):
+    """Populate num vulns cache."""
     return populate_stats_cache(
         model=Vulnerability,
         group_by_field="domain__organization_id",

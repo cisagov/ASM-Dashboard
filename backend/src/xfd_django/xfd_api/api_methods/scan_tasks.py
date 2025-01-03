@@ -2,7 +2,6 @@
 
 # Standard Python Libraries
 from datetime import datetime, timezone
-import json
 from typing import Optional
 
 # Third-Party Libraries
@@ -73,7 +72,7 @@ def list_scan_tasks(search_data: Optional[ScanTaskSearch], current_user):
             # Ensure scan is not None before accessing its properties
             if task.scan is None:
                 print(f"Warning: ScanTask {task.id} has no scan associated.")
-                scan_data = None  # or some default values, depending on how you want to handle this case
+                scan_data = None
             else:
                 scan_data = {
                     "id": str(task.scan.id),
@@ -103,6 +102,8 @@ def list_scan_tasks(search_data: Optional[ScanTaskSearch], current_user):
                         .replace("True", "true")
                         .replace("False", "false")
                         .replace("'", '"')
+                        if task.input is not None
+                        else "null"  # Default to "null" if task.input is None
                     ),
                     "output": task.output,
                     "requestedAt": task.requestedAt.isoformat()

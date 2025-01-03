@@ -1,14 +1,12 @@
+"""Stats helper methods."""
 # Standard Python Libraries
 import asyncio
 from collections import defaultdict
 import json
 
 # Third-Party Libraries
-import django
 from django.conf import settings
-from django.db.models import CharField, Count, Q
-from django.db.models.functions import Concat
-from fastapi import HTTPException
+from django.db.models import Count, Q
 import redis
 from xfd_api.models import Domain
 

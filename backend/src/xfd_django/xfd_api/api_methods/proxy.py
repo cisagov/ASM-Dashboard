@@ -1,20 +1,17 @@
 """API methods to support Proxy endpoints."""
 
 # Standard Python Libraries
-import os
-from typing import List, Optional
+from typing import Optional
 
 # Third-Party Libraries
-from django.shortcuts import render
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
-from fastapi.responses import RedirectResponse, Response
-from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
+from fastapi import Request
+from fastapi.responses import Response
 import httpx
-from pydantic import UUID4
 
 
 # Helper function to handle cookie manipulation
 def manipulate_cookie(request: Request, cookie_name: str):
+    """Manipulate cookie."""
     cookies = request.cookies.get(cookie_name)
     if cookies:
         return {cookie_name: cookies}

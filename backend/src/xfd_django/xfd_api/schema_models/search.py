@@ -1,6 +1,6 @@
+"""Search schemas."""
 # Standard Python Libraries
 from typing import Any, List, Optional
-from uuid import UUID
 
 # Third-Party Libraries
 from pydantic import BaseModel
@@ -8,13 +8,17 @@ from pydantic import BaseModel
 
 # Input request schema
 class Filter(BaseModel):
+    """Filter."""
+
     field: str
     values: List[str]
     type: str
 
 
-# TODO this is based on current payload Ajust as needed
+# TODO this is based on current payload just as needed
 class SearchRequest(BaseModel):
+    """Search request."""
+
     current: int
     filters: List[Filter]
     resultsPerPage: int
@@ -25,6 +29,8 @@ class SearchRequest(BaseModel):
 
 # Response schema (based on your example)
 class SearchResponse(BaseModel):
+    """Search response."""
+
     took: int
     timed_out: bool
     _shards: Any
