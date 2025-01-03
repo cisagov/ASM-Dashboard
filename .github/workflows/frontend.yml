@@ -8,6 +8,7 @@ on:
       - integration
     paths:
       - 'frontend/**'
+      - 'docs/**'
       - '.github/workflows/frontend.yml'
   pull_request:
     branches:
@@ -15,6 +16,7 @@ on:
       - integration
     paths:
       - 'frontend/**'
+      - 'docs/**'
       - '.github/workflows/frontend.yml'
 
 defaults:
@@ -78,16 +80,20 @@ jobs:
           restore-keys: ${{ runner.os }}-node-
       - name: Install dependencies
         run: npm ci
+      - name: Build Docs
+        run: |
+          cd ../docs
+          npm ci
+          npm run build
+          cp -R public ../frontend/docs-build
       - name: Build Staging
         run: cp stage.env .env && npm run build
-
       - name: Deploy Staging
         run: npx sls deploy --stage=staging
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           SLS_DEBUG: '*'
-
   deploy_integration:
     needs: [lint, test]
     runs-on: ubuntu-latest
@@ -107,10 +113,14 @@ jobs:
           restore-keys: ${{ runner.os }}-node-
       - name: Install dependencies
         run: npm ci
-
+      - name: Build Docs
+        run: |
+          cd ../docs
+          npm ci
+          npm run build
+          cp -R public ../frontend/docs-build
       - name: Build Integration
         run: cp integration.env .env && npm run build
-
       - name: Deploy Integration
         run: npx sls deploy --stage=integration
         env:
