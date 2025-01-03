@@ -7,9 +7,7 @@ from xfd_api.models import Cidr, Domain, Organization
 
 
 async def check_ip_in_cidr(ip: str, acronym: str) -> bool:
-    """
-    Checks if a given IP address is within the CIDRs associated with an organization.
-    """
+    """Check if a given IP address is within the CIDRs associated with an organization."""
     try:
         # Fetch the organization by acronym with related CIDRs
         organization = (
@@ -30,9 +28,7 @@ async def check_ip_in_cidr(ip: str, acronym: str) -> bool:
 
 
 async def check_org_is_fceb(acronym: str) -> bool:
-    """
-    Checks if the organization (or its parent organizations) belongs to the EXECUTIVE sector.
-    """
+    """Check if the organization (or its parent organizations) belongs to the EXECUTIVE sector."""
     try:
 
         def is_executive(organization: Organization) -> bool:
@@ -61,9 +57,7 @@ async def check_org_is_fceb(acronym: str) -> bool:
 
 
 async def handler(command_options):
-    """
-    Handles flagging floating IPs and updating domains for an organization.
-    """
+    """Handle flagging floating IPs and updating domains for an organization."""
     organization_id = command_options.get("organizationId")
     organization_name = command_options.get("organizationName")
 

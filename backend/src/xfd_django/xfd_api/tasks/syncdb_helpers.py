@@ -108,7 +108,6 @@ def create_sample_user(organization):
 
 def create_api_key_for_user(user):
     """Create a sample API key linked to a user."""
-
     # Generate a random 16-byte API key
     key = secrets.token_hex(16)
 
@@ -187,6 +186,7 @@ def create_sample_services_and_vulnerabilities(domain):
 def synchronize():
     """
     Synchronize the database schema with Django models.
+
     Handles creation, update, and removal of tables and fields dynamically,
     including Many-to-Many linking tables.
     """
@@ -211,6 +211,7 @@ def synchronize():
 def get_ordered_models(apps):
     """
     Get models in dependency order to ensure foreign key constraints are respected.
+
     Handles circular dependencies gracefully by breaking cycles.
     """
     # Standard Python Libraries
@@ -252,9 +253,7 @@ def get_ordered_models(apps):
 
 
 def process_model(schema_editor: BaseDatabaseSchemaEditor, cursor, model):
-    """
-    Process a single model: create or update its table.
-    """
+    """Process a single model: create or update its table."""
     table_name = model._meta.db_table
 
     # Check if the table exists
@@ -270,9 +269,7 @@ def process_model(schema_editor: BaseDatabaseSchemaEditor, cursor, model):
 
 
 def process_m2m_tables(schema_editor: BaseDatabaseSchemaEditor, cursor):
-    """
-    Handle creation of Many-to-Many linking tables.
-    """
+    """Handle creation of Many-to-Many linking tables."""
     for model in apps.get_models():
         for field in model._meta.local_many_to_many:
             m2m_table_name = field.m2m_db_table()
@@ -289,16 +286,15 @@ def process_m2m_tables(schema_editor: BaseDatabaseSchemaEditor, cursor):
 
 
 def update_table(schema_editor: BaseDatabaseSchemaEditor, model):
-    """
-    Update an existing table for the given model. Ensure columns match fields.
-    """
+    """Update an existing table for the given model. Ensure columns match fields."""
     table_name = model._meta.db_table
     db_fields = {field.column for field in model._meta.fields}
 
     with connection.cursor() as cursor:
         # Get existing columns
         cursor.execute(
-            f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table_name}';"
+            "SELECT column_name FROM information_schema.columns WHERE table_name = %s;",
+            [table_name],  # Pass the table name as a parameter
         )
         existing_columns = {row[0] for row in cursor.fetchall()}
 
@@ -324,9 +320,7 @@ def update_table(schema_editor: BaseDatabaseSchemaEditor, model):
 
 
 def cleanup_stale_tables(cursor):
-    """
-    Remove tables that no longer correspond to any Django model or Many-to-Many relationship.
-    """
+    """Remove tables that no longer correspond to any Django model or Many-to-Many relationship."""
     print("Checking for stale tables...")
     model_tables = {model._meta.db_table for model in apps.get_models()}
     m2m_tables = {
@@ -349,9 +343,7 @@ def cleanup_stale_tables(cursor):
 
 
 def drop_all_tables():
-    """
-    Drops all tables in the database. Used with `dangerouslyforce`.
-    """
+    """Drop all tables in the database. Used with `dangerouslyforce`."""
     with connection.cursor() as cursor:
         cursor.execute(
             """
@@ -372,7 +364,7 @@ def drop_all_tables():
 
 
 def chunked_iterable(iterable, size):
-    """Helper function to chunk an iterable."""
+    """Chunk an iterable."""
     iterator = iter(iterable)
     for first in iterator:
         yield list(islice([first] + list(iterator), size - 1))

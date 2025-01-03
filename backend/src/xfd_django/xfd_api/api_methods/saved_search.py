@@ -1,4 +1,4 @@
-"""Saved Search API"""
+"""Saved Search API."""
 
 
 # Standard Python Libraries

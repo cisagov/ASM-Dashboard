@@ -1,4 +1,4 @@
-"""Auth API logic"""
+"""Auth API logic."""
 
 # Third-Party Libraries
 from fastapi import HTTPException, status
@@ -7,7 +7,7 @@ from xfd_api.auth import get_jwt_from_code, process_user
 
 
 async def handle_okta_callback(request):
-    """POST API LOGIC"""
+    """POST API LOGIC."""
     print(f"Request from /auth/okta-callback: {str(request)}")
     body = await request.json()
     print(f"Request json from callback: {str(request)}")

@@ -1,4 +1,4 @@
-""""VulnSync scan."""
+"""VulnSync scan."""
 # Standard Python Libraries
 import os
 import time
@@ -16,9 +16,7 @@ django.setup()
 
 
 def handler(event, context):
-    """
-    Lambda handler for retrieving and saving vulnerabilities and services from PE.
-    """
+    """Retrieve and save vulnerabilities and services from PE."""
     try:
         main()
         return {
@@ -30,9 +28,7 @@ def handler(event, context):
 
 
 def main():
-    """
-    Main logic for fetching and saving PE vulnerabilities and services.
-    """
+    """Fetch and save PE vulnerabilities and services."""
     print("Scanning PE database for vulnerabilities & services for all organizations.")
 
     # Retrieve all organizations
@@ -70,9 +66,7 @@ def main():
 
 
 def fetch_pe_vuln_task(org_acronym):
-    """
-    Fetch PE vulnerability task data.
-    """
+    """Fetch PE vulnerability task data."""
     print(f"Fetching PE vulnerability task for organization: {org_acronym}")
     headers = {
         "Authorization": os.getenv("CF_API_KEY"),
@@ -86,6 +80,7 @@ def fetch_pe_vuln_task(org_acronym):
             "https://api.staging-cd.crossfeed.cyber.dhs.gov/pe/apiv1/crossfeed_vulns",
             headers=headers,
             json=data,
+            timeout=20,  # Timeout in seconds
         )
         response.raise_for_status()
         return response.json()
@@ -95,9 +90,7 @@ def fetch_pe_vuln_task(org_acronym):
 
 
 def fetch_pe_vuln_data(scan_name, task_id):
-    """
-    Fetch PE vulnerability data for a task.
-    """
+    """Fetch PE vulnerability data for a task."""
     url = f"https://api.staging-cd.crossfeed.cyber.dhs.gov/pe/apiv1/crossfeed_vulns/task/?task_id={task_id}&scan_name={scan_name}"
     headers = {
         "Authorization": os.getenv("CF_API_KEY"),
@@ -106,7 +99,7 @@ def fetch_pe_vuln_data(scan_name, task_id):
     }
 
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=20)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -115,9 +108,7 @@ def fetch_pe_vuln_data(scan_name, task_id):
 
 
 def process_vulnerability(vuln, org):
-    """
-    Process and save a single vulnerability along with associated domains and services.
-    """
+    """Process and save a single vulnerability along with associated domains and services."""
     try:
         domain = save_domain(vuln, org)
         service = save_service(vuln, domain)
@@ -127,9 +118,7 @@ def process_vulnerability(vuln, org):
 
 
 def save_domain(vuln, org):
-    """
-    Save domain associated with a vulnerability.
-    """
+    """Save domain associated with a vulnerability."""
     try:
         service_asset_type = vuln.get("service_asset_type")
         service_asset = vuln.get("service_asset")
@@ -141,6 +130,7 @@ def save_domain(vuln, org):
             try:
                 service_domain = dns.resolver.resolve(service_ip, "PTR")[0].to_text()
             except Exception as e:
+                print(e)
                 service_domain = service_ip
                 ip_only = True
         else:
@@ -148,6 +138,7 @@ def save_domain(vuln, org):
             try:
                 service_ip = dns.resolver.resolve(service_domain, "A")[0].to_text()
             except Exception as e:
+                print(e)
                 service_ip = None
 
         domain, _ = Domain.objects.update_or_create(
@@ -169,9 +160,7 @@ def save_domain(vuln, org):
 
 
 def save_service(vuln, domain):
-    """
-    Save service associated with a vulnerability.
-    """
+    """Save service associated with a vulnerability."""
     try:
         if vuln.get("port") is None:
             return None
@@ -199,9 +188,7 @@ def save_service(vuln, domain):
 
 
 def save_vulnerability(vuln, domain, service):
-    """
-    Save vulnerability to the database.
-    """
+    """Save vulnerability to the database."""
     try:
         Vulnerability.objects.update_or_create(
             domain=domain,

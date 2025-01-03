@@ -8,7 +8,8 @@ from ..models import Organization, Scan
 
 def get_scan_organizations(scan: Scan) -> List[Organization]:
     """
-    Returns the organizations that a scan should be run on.
+    Return the organizations that a scan should be run on.
+
     A scan should be run on an organization if the scan is
     enabled for that organization or for one of its tags.
     """

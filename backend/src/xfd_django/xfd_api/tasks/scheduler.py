@@ -269,7 +269,7 @@ class Scheduler:
 
 
 def handler(event, context):
-    """Handler for manually invoking the scheduler to run scans."""
+    """Handle manually invoking the scheduler to run scans."""
     print("Running scheduler...")
 
     scan_ids = event.get("scanIds", [])

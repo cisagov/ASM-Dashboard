@@ -1,3 +1,4 @@
+"""Test user."""
 # Standard Python Libraries
 from datetime import datetime
 import secrets
@@ -7,7 +8,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 import pytest
 from xfd_api.auth import create_jwt_token
-from xfd_api.models import Organization, Role, Scan, ScanTask, User, UserType
+from xfd_api.models import Organization, Role, User, UserType
 from xfd_django.asgi import app
 
 client = TestClient(app)
@@ -450,7 +451,7 @@ def test_invite_existing_user_by_same_org_admin_should_update_user_org_role():
 @pytest.mark.django_db(transaction=True)
 def test_invite_existing_user_by_global_admin_should_update_user_type():
     """Invite existing user by global admin that updates user type should work."""
-    admin_user = User.objects.create(
+    User.objects.create(
         firstName="first",
         lastName="last",
         email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
@@ -492,13 +493,13 @@ def test_invite_existing_user_by_global_admin_should_update_user_type():
 @pytest.mark.django_db(transaction=True)
 def test_invite_existing_user_by_global_view_should_not_work():
     """Invite existing user by global view should not work."""
-    admin_user = User.objects.create(
+    User.objects.create(
         firstName="first",
         lastName="last",
         email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
     )
     email = f"{secrets.token_hex(4)}@crossfeed.cisa.gov"
-    user = User.objects.create(firstName="first", lastName="last", email=email)
+    User.objects.create(firstName="first", lastName="last", email=email)
 
     user2 = User.objects.create(
         firstName="first",

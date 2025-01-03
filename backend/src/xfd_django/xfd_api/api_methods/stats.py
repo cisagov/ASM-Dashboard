@@ -252,9 +252,7 @@ async def stats_latest_vulns(
     max_results=50,
     filtered_org_ids=None,
 ):
-    """
-    Retrieve the latest vulnerabilities from Elasticache filtered by user.
-    """
+    """Retrieve the latest vulnerabilities from Elasticache filtered by user."""
     try:
         if not filtered_org_ids:
             filtered_org_ids = get_stats_org_ids(current_user, filter_data)
@@ -312,9 +310,7 @@ async def stats_most_common_vulns(
     max_results=10,
     filtered_org_ids=None,
 ):
-    """
-    Retrieve the most common vulnerabilities from Elasticache filtered by user.
-    """
+    """Retrieve the most common vulnerabilities from Elasticache filtered by user."""
     try:
         if not filtered_org_ids:
             filtered_org_ids = get_stats_org_ids(current_user, filter_data)
@@ -363,9 +359,7 @@ async def stats_most_common_vulns(
 async def get_by_org_stats(
     filter_data, current_user, redis_client, filtered_org_ids=None
 ):
-    """
-    Fetch the count of open vulnerabilities grouped by organization from Redis.
-    """
+    """Fetch the count of open vulnerabilities grouped by organization from Redis."""
     try:
         if not filtered_org_ids:
             filtered_org_ids = get_stats_org_ids(current_user, filter_data)

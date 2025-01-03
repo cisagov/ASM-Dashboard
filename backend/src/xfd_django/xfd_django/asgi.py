@@ -71,9 +71,7 @@ CSP_POLICY = {
 
 
 def set_security_headers(response: Response):
-    """
-    Apply security headers to the HTTP response.
-    """
+    """Apply security headers to the HTTP response."""
     # Set Content Security Policy
     csp_value = "; ".join(
         [
@@ -93,7 +91,7 @@ def set_security_headers(response: Response):
 
 
 def get_application() -> FastAPI:
-    """get_application function."""
+    """Get application."""
     # Import views after Django setup
     # Third-Party Libraries
     from xfd_api.views import api_router  # pylint: disable=C0415
@@ -149,18 +147,14 @@ def get_application() -> FastAPI:
 
 
 def run_docker_events_listener():
-    """
-    Run the Docker events listener for local development in a separate thread.
-    """
+    """Run the Docker events listener for local development in a separate thread."""
     thread = threading.Thread(target=listen_for_docker_events, daemon=True)
     thread.start()
     print("Docker events listener started in a separate thread.")
 
 
 async def run_scheduler():
-    """
-    Run the scheduler in local development.
-    """
+    """Run the scheduler in local development."""
     try:
         print("Starting local scheduler...")
         while True:

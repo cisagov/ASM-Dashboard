@@ -32,8 +32,8 @@ api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False)
 
 
 def user_to_dict(user):
-    """Takes a user model object from django and
-    sanitizes fields for output.
+    """
+    Take a user model object from django and sanitize fields for output.
 
     Args:
         user (django model): Django User model object
@@ -79,7 +79,6 @@ def decode_jwt_token(token):
     Returns:
         User: The user object decoded from the token, or None if invalid or expired.
     """
-
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithm=JWT_ALGORITHM)
         user = User.objects.get(id=payload["id"])
@@ -89,7 +88,7 @@ def decode_jwt_token(token):
 
 
 def get_org_memberships(current_user) -> list[str]:
-    """Returns the organization IDs that a user is a member of."""
+    """Return the organization IDs that a user is a member of."""
     # Check if the user has a 'roles' attribute and it's not None
 
     roles = Role.objects.filter(user=current_user)
@@ -97,9 +96,7 @@ def get_org_memberships(current_user) -> list[str]:
 
 
 async def get_user_domains(user_id: str) -> List[str]:
-    """
-    Retrieves a list of domain names associated with the user's organizations.
-    """
+    """Retrieve a list of domain names associated with the user's organizations."""
     try:
         # Check if the user exists
         user_exists = await sync_to_async(User.objects.filter(id=user_id).exists)()
@@ -123,15 +120,13 @@ async def get_user_domains(user_id: str) -> List[str]:
 
         return domain_list
     except Exception as e:
+        print(e)
         # Optionally, handle exceptions or return an empty list
         return []
 
 
 def get_user_service_ids(current_user):
-    """
-    Retrieves service IDs associated with the organizations the user belongs to.
-    """
-
+    """Retrieve service IDs associated with the organizations the user belongs to."""
     # Get organization IDs the user is a member of
     organization_ids = Role.objects.filter(user=current_user).values_list(
         "organization", flat=True
@@ -163,9 +158,7 @@ async def get_user_organization_ids(user_id: str) -> List[str]:
 
 
 def get_user_ports(user_id):
-    """
-    Retrieves port numbers associated with the organizations the user belongs to.
-    """
+    """Retrieve port numbers associated with the organizations the user belongs to."""
     # Get organization IDs the user is a member of
     organization_ids = Role.objects.filter(user=user_id).values_list(
         "organization", flat=True
@@ -187,7 +180,7 @@ def get_user_ports(user_id):
 
 
 def get_tag_organization_ids(current_user, tag_id: Optional[str] = None) -> list[str]:
-    """Returns the organizations belonging to a tag, if the user can access the tag."""
+    """Return the organizations belonging to a tag, if the user can access the tag."""
     # Check if the user is a global view admin
     if not is_global_view_admin(current_user):
         return []
@@ -208,12 +201,11 @@ def get_tag_organization_ids(current_user, tag_id: Optional[str] = None) -> list
 
 def hash_key(key: str) -> str:
     """
-    Helper to hash API key.
+    Hash API key.
 
     Returns:
         str: hashed API key value
     """
-
     return hashlib.sha256(key.encode()).hexdigest()
 
 
@@ -398,6 +390,7 @@ async def get_jwt_from_code(auth_code: str):
             headers=headers,
             data=urlencode(authorize_token_body),
             proxies=proxies,
+            timeout=20,  # Timeout in seconds
         )
         token_response = response.json()
         # Convert the id_token to bytes
@@ -421,7 +414,6 @@ async def get_jwt_from_code(auth_code: str):
 
 def can_access_user(current_user, target_user_id) -> bool:
     """Check if current user is allowed to modify.the target user."""
-
     if not target_user_id:
         return False
 
@@ -494,7 +486,7 @@ def get_organization_region(organization_id: str) -> str:
 
 
 def get_tag_organizations(current_user, tag_id) -> list[str]:
-    """Returns the organizations belonging to a tag, if the user can access the tag."""
+    """Return the organizations belonging to a tag, if the user can access the tag."""
     # Check if the user is a global view admin
     if not is_global_view_admin(current_user):
         return []
@@ -514,8 +506,7 @@ def get_tag_organizations(current_user, tag_id) -> list[str]:
 
 
 def matches_user_region(current_user, user_region_id: str) -> bool:
-    """Checks if the current user's region matches the user's region being modified."""
-
+    """Check if the current user's region matches the user's region being modified."""
     # Check if the current user is a global admin (can match any region)
     if is_global_write_admin(current_user):
         return True
@@ -529,8 +520,7 @@ def matches_user_region(current_user, user_region_id: str) -> bool:
 
 
 def get_stats_org_ids(current_user, filters):
-    """Get organization ids that a user has access to for the stats. Includes filter."""
-
+    """Get organization ids that a user has access to for the stats."""
     # Extract filters from the Pydantic model
     regions_filter = filters.filters.regions if filters and filters.filters else []
     organizations_filter = (

@@ -1,10 +1,8 @@
+"""Test auth API."""
 # Standard Python Libraries
-from datetime import datetime
 
 # Third-Party Libraries
 from fastapi.testclient import TestClient
-import pytest
-from xfd_api.models import User
 from xfd_django.asgi import app
 
 client = TestClient(app)

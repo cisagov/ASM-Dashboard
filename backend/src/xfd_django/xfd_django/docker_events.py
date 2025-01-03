@@ -16,10 +16,7 @@ from xfd_api.tasks.updateScanTaskStatus import handler as update_scan_task_statu
 
 
 def listen_for_docker_events():
-    """
-    Listens for Docker events and converts start/stop events to simulated
-    Fargate EventBridge events for local development.
-    """
+    """Listen for Docker events."""
     try:
         if not settings.IS_LOCAL:
             client = DockerClient.from_env()

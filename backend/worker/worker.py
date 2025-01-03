@@ -1,3 +1,4 @@
+"""Worker controller."""
 # Standard Python Libraries
 import importlib
 import json
@@ -16,8 +17,7 @@ django.setup()
 
 
 async def main():
-    """Main worker logic to route tasks based on command options."""
-
+    """Route tasks based on command options."""
     # Parse command options from the environment
     command_options = json.loads(os.getenv("CROSSFEED_COMMAND_OPTIONS", "{}"))
     print("Command options:", command_options)

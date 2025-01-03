@@ -1,4 +1,4 @@
-"""/api-keys API logic"""
+"""/api-keys API logic."""
 
 # Standard Python Libraries
 from datetime import datetime
@@ -48,7 +48,7 @@ def post(current_user):
 
 
 def delete(api_key_id, current_user):
-    """DELETE API LOGIC"""
+    """DELETE API LOGIC."""
     try:
         # Check if user is GlobalViewAdmin or has memberships
         if not is_global_view_admin(current_user):
@@ -75,7 +75,7 @@ def delete(api_key_id, current_user):
 
 
 def get_all(current_user):
-    """GET All API LOGIC"""
+    """GET All API LOGIC."""
     try:
         # Check if user is GlobalViewAdmin or has memberships
         if not is_global_view_admin(current_user):
@@ -99,7 +99,7 @@ def get_all(current_user):
 
 
 def get_by_id(api_key_id, current_user):
-    """GET API KEY by id"""
+    """GET API KEY by id."""
     try:
         # Check if user is GlobalViewAdmin or has memberships
         if not is_global_view_admin(current_user):

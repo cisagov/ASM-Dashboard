@@ -12,7 +12,7 @@ from ..schema_models.scan import SCAN_SCHEMA
 
 
 def to_snake_case(input_str):
-    """Converts a string to snake_case."""
+    """Convert a string to snake_case."""
     return input_str.replace(" ", "-")
 
 
@@ -35,7 +35,7 @@ class ECSClient:
         self.cloudwatch_logs = boto3.client("logs") if not self.is_local else None
 
     def run_command(self, command_options):
-        """Launches an ECS task or Docker container with the given command options."""
+        """Launch an ECS task or Docker container with the given command options."""
         scan_id = command_options["scanId"]
         scan_name = command_options["scanName"]
         num_chunks = command_options.get("numChunks")
@@ -155,7 +155,7 @@ class ECSClient:
         return response
 
     def get_logs(self, fargate_task_arn):
-        """Gets logs for a specific Fargate or Docker task."""
+        """Get logs for a specific Fargate or Docker task."""
         if self.is_local:
             # Retrieve logs from the local Docker container
             log_stream = self.docker.containers.get(fargate_task_arn).logs(
@@ -186,7 +186,7 @@ class ECSClient:
             return formatted_logs
 
     def get_num_tasks(self):
-        """Retrieves the number of running tasks associated with the Fargate worker."""
+        """Retrieve the number of running tasks associated with the Fargate worker."""
         if self.is_local:
             containers = self.docker.containers.list(
                 filters={"ancestor": "crossfeed-worker"}

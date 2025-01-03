@@ -42,7 +42,8 @@ def build_child_match(search_term: str) -> Dict[str, Any]:
 
 def get_term_filter_value(field, field_value):
     """
-    Determines the appropriate term filter value based on the field and its value.
+    Determine the appropriate term filter value based on the field and its value.
+
     Handles specific cases for boolean values, 'organization.regionId', numeric values,
     and the 'name' field.
     """
@@ -59,7 +60,8 @@ def get_term_filter_value(field, field_value):
 
 def get_term_filter(term_filter):
     """
-    Constructs the appropriate term filter based on the filter's field and type.
+    Construct the appropriate term filter based on the filter's field and type.
+
     Handles 'any' and 'all' filter types, and manages nested fields appropriately.
     """
     field_path = term_filter["field"].split(".")
@@ -119,7 +121,8 @@ def get_term_filter(term_filter):
 
 def build_request_filter(filters, force_return_no_results):
     """
-    Builds the request filter for Elasticsearch queries.
+    Build the request filter for Elasticsearch queries.
+
     If force_return_no_results is True, returns a filter that matches no results.
     Otherwise, processes each filter using get_term_filter.
     """

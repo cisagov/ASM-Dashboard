@@ -13,7 +13,8 @@ from .s3_client import S3Client
 
 def _setup_proxy():
     """
-    If LZ_PROXY_URL is set in the environment, configure the HTTPS/HTTP proxy.
+    Set in the environment, configure the HTTPS/HTTP proxy.
+
     This ensures that outbound connections go through the specified proxy.
     """
     proxy_url = os.getenv("LZ_PROXY_URL")
@@ -28,7 +29,6 @@ def _setup_proxy():
 
 def send_invite_email(email, organization=None):
     """Send an invitation email to the specified address."""
-
     _setup_proxy()  # Setup proxy if LZ_PROXY_URL is defined
 
     frontend_domain = settings.FRONTEND_DOMAIN
@@ -58,7 +58,6 @@ def send_invite_email(email, organization=None):
 
 def send_email(recipient, subject, body):
     """Send an email using AWS SES."""
-
     _setup_proxy()  # Setup proxy if LZ_PROXY_URL is defined
 
     ses_client = boto3.client("ses", region_name=os.getenv("EMAIL_REGION"))

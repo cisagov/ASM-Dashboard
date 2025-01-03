@@ -17,9 +17,7 @@ from xfd_api.models import ScanTask
 
 
 def handler(event, context):
-    """
-    Lambda handler for updating the status of a ScanTask based on EventBridge event data.
-    """
+    """Update the status of a ScanTask based on EventBridge event data."""
     detail = event.get("detail")
     if not detail:
         return {"statusCode": 400, "body": "Event detail is required."}
@@ -70,9 +68,7 @@ def handler(event, context):
 
 
 def retry_find_scan_task(task_arn, retries=3):
-    """
-    Retry logic to find a ScanTask by its Fargate Task ARN.
-    """
+    """Retry logic to find a ScanTask by its Fargate Task ARN."""
     for attempt in range(retries):
         try:
             scan_task = ScanTask.objects.filter(fargateTaskArn=task_arn).first()

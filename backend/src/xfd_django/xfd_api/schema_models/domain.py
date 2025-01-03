@@ -77,7 +77,7 @@ class DomainSearch(BaseModel):
 
 
 class DomainSearchResponse(BaseModel):
-    """List of Domain objects"""
+    """List of Domain objects."""
 
     result: List["GetDomainResponse"]
     count: int

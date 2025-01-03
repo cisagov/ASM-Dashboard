@@ -1,6 +1,4 @@
-"""
-Cve API.
-"""
+"""Cve API."""
 
 # Third-Party Libraries
 from fastapi import HTTPException
@@ -11,6 +9,7 @@ from ..models import Cve
 def get_cves_by_id(cve_id):
     """
     Get Cve by id.
+
     Returns:
         object: a single Cve object.
     """
@@ -24,6 +23,7 @@ def get_cves_by_id(cve_id):
 def get_cves_by_name(cve_name):
     """
     Get Cve by name.
+
     Returns:
         object: a single Cpe object.
     """

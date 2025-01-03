@@ -1,3 +1,4 @@
+"""Test proxy."""
 # Standard Python Libraries
 from datetime import datetime
 import secrets

@@ -235,16 +235,12 @@ async def callback_route(request: Request):
 
 @api_router.get(
     "/cpes/{cpe_id}",
-    # dependencies=[Depends(get_current_active_user)],
+    dependencies=[Depends(get_current_active_user)],
     response_model=CpeSchema,
     tags=["CPEs"],
 )
 async def call_get_cpes_by_id(cpe_id):
-    """
-    Get Cpe by id.
-    Returns:
-        object: a single Cpe object.
-    """
+    """Get Cpe by id."""
     return get_cpes_by_id(cpe_id)
 
 
@@ -255,31 +251,23 @@ async def call_get_cpes_by_id(cpe_id):
 
 @api_router.get(
     "/cves/{cve_id}",
-    # dependencies=[Depends(get_current_active_user)],
+    dependencies=[Depends(get_current_active_user)],
     response_model=CveSchema,
     tags=["CVEs"],
 )
 async def call_get_cves_by_id(cve_id):
-    """
-    Get Cve by id.
-    Returns:
-        object: a single Cve object.
-    """
+    """Get Cve by id."""
     return get_cves_by_id(cve_id)
 
 
 @api_router.get(
     "/cves/name/{cve_name}",
-    # dependencies=[Depends(get_current_active_user)],
+    dependencies=[Depends(get_current_active_user)],
     response_model=CveSchema,
     tags=["CVEs"],
 )
 async def call_get_cves_by_name(cve_name):
-    """
-    Get Cve by name.
-    Returns:
-        object: a single Cpe object.
-    """
+    """Get Cve by name."""
     return get_cves_by_name(cve_name)
 
 
@@ -636,7 +624,6 @@ async def call_create_saved_search(
     current_user: User = Depends(get_current_active_user),
 ):
     """Create a new saved search."""
-
     request = {
         "name": saved_search.name,
         "count": saved_search.count,
@@ -690,7 +677,6 @@ async def call_update_saved_search(
     current_user: User = Depends(get_current_active_user),
 ):
     """Update a saved search by its ID."""
-
     request = {
         "saved_search_id": saved_search_id,
         "name": saved_search.name,
@@ -804,7 +790,7 @@ async def delete_scan(
     tags=["Scans"],
 )
 async def run_scan(scan_id: str, current_user: User = Depends(get_current_active_user)):
-    """Manually run a scan by its ID"""
+    """Manually run a scan by its ID."""
     return scan.run_scan(scan_id, current_user)
 
 
@@ -874,7 +860,7 @@ async def get_scan_task_logs(
 async def search(
     search_body: DomainSearchBody, current_user: User = Depends(get_current_active_user)
 ):
-    """ElasticSearch get domains index."""
+    """Get domains index from elastic search."""
     try:
         return await search_post(search_body, current_user)
     except Exception as e:
@@ -959,9 +945,7 @@ async def get_num_vulns_stats(
     current_user: User = Depends(get_current_active_user),
     redis_client: aioredis.Redis = Depends(get_redis_client),
 ):
-    """
-    Retrieve number of vulnerabilities stats from ElastiCache (Redis) filtered by user.
-    """
+    """Retrieve number of vulnerabilities stats from ElastiCache (Redis) filtered by user."""
     return await get_num_vulns(filter_data, current_user, redis_client)
 
 
@@ -1010,9 +994,7 @@ async def get_severity_counts(
     current_user: User = Depends(get_current_active_user),
     redis_client: aioredis.Redis = Depends(get_redis_client),
 ):
-    """
-    Retrieves the count of open vulnerabilities grouped by severity from Redis.
-    """
+    """Retrieve the count of open vulnerabilities grouped by severity from Redis."""
     return await get_severity_stats(filter_data, current_user, redis_client)
 
 
@@ -1027,9 +1009,7 @@ async def get_by_org(
     current_user: User = Depends(get_current_active_user),
     redis_client: aioredis.Redis = Depends(get_redis_client),
 ):
-    """
-    Retrieves the count of open vulnerabilities grouped by severity from Redis.
-    """
+    """Retrieve the count of open vulnerabilities grouped by severity from Redis."""
     return await get_by_org_stats(filter_data, current_user, redis_client)
 
 
@@ -1065,7 +1045,6 @@ async def call_accept_terms(
     version_data: VersionModel, current_user: User = Depends(get_current_active_user)
 ):
     """Accept the latest terms of service."""
-
     return accept_terms(version_data, current_user)
 
 
@@ -1108,17 +1087,7 @@ async def call_get_users(current_user: User = Depends(get_current_active_user)):
 async def call_get_users_by_region_id(
     regionId, current_user: User = Depends(get_current_active_user)
 ):
-    """
-    Call get_users_by_region_id()
-    Args:
-        request : The HTTP request containing query parameters.
-
-    Raises:
-        HTTPException: If the user is not authorized or no users are found.
-
-    Returns:
-        List[User]: A list of users matching the filter criteria.
-    """
+    """Call get_users_by_region_id()."""
     return get_users_by_region_id(regionId, current_user)
 
 
@@ -1131,17 +1100,7 @@ async def call_get_users_by_region_id(
 async def call_get_users_by_state(
     state, current_user: User = Depends(get_current_active_user)
 ):
-    """
-    Call get_users_by_state()
-    Args:
-        request : The HTTP request containing query parameters.
-
-    Raises:
-        HTTPException: If the user is not authorized or no users are found.
-
-    Returns:
-        List[User]: A list of users matching the filter criteria.
-    """
+    """Call get_users_by_state()."""
     return get_users_by_state(state, current_user)
 
 
@@ -1180,18 +1139,7 @@ async def update_user_v2_view(
 async def call_update_user(
     userId, body, current_user: User = Depends(get_current_active_user)
 ):
-    """
-    Update a user by ID.
-    Args:
-        userId : The ID of the user to update.
-        request : The HTTP request containing authorization and target for update.
-
-    Raises:
-        HTTPException: If the user is not authorized or the user is not found.
-
-    Returns:
-        JSONResponse: The result of the update.
-    """
+    """Update a user by ID."""
     return update_user(userId, body, current_user)
 
 

@@ -102,7 +102,7 @@ def list_organizations(current_user):
 
 # GET: /organizations/tags
 def get_tags(current_user):
-    """Fetches all possible organization tags."""
+    """Fetch all possible organization tags."""
     try:
         # Check if user is a global admin
         if not is_global_view_admin(current_user):
@@ -809,7 +809,6 @@ def add_user_to_org_v2(organization_id: str, user_data, current_user):
 # POST: /organizations/{organization_id}/roles/{role_id}/approve
 def approve_role(organization_id: str, role_id, current_user):
     """Approve a role within an organization."""
-
     # Check if the current user is an org admin for the organization
     if not is_org_admin(current_user, organization_id):
         raise HTTPException(status_code=403, detail="Unauthorized access.")
@@ -845,7 +844,6 @@ def approve_role(organization_id: str, role_id, current_user):
 # POST: /organizations/{organization_id}/roles/{role_id}/remove
 def remove_role(organization_id: str, role_id, current_user):
     """Remove a role within an organization."""
-
     # Check if the current user is an org admin for the organization
     if not is_org_admin(current_user, organization_id):
         raise HTTPException(status_code=403, detail="Unauthorized access.")
@@ -880,7 +878,6 @@ def remove_role(organization_id: str, role_id, current_user):
 # POST: /organizations/{organization_id}/granularScans/{scan_id}/update
 def update_org_scan(organization_id: str, scan_id, scan_data, current_user):
     """Enable or disable a scan for a particular organization."""
-
     # Validate organization_id is a valid UUID
     if not is_valid_uuid(organization_id):
         raise HTTPException(status_code=404, detail="Organization not found")
@@ -1049,7 +1046,7 @@ def list_organizations_v2(state, regionId, current_user):
 
 # POST: /search/organizations
 def search_organizations_task(search_body, current_user: User):
-    """Handles the logic for searching organizations in Elasticsearch."""
+    """Handle the logic for searching organizations in Elasticsearch."""
     try:
         # Check if user is GlobalViewAdmin or has memberships
         if not is_global_view_admin(current_user) and not get_org_memberships(

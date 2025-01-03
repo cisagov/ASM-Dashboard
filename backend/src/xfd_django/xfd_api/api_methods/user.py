@@ -1,7 +1,4 @@
-"""
-User API.
-
-"""
+"""User API."""
 # Standard Python Libraries
 from datetime import datetime
 import os
@@ -107,6 +104,7 @@ def get_me(current_user):
         raise HTTPException(status_code=404, detail="User not found")
 
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=500, detail="Unknown error")
 
 
@@ -339,6 +337,7 @@ def get_users_v2(state, regionId, invitePending, current_user):
 async def update_user(target_user_id, body, current_user):
     """
     Update a particular user.
+
     Args:
         request: The HTTP request containing the update data.
 
@@ -499,7 +498,6 @@ def approve_user_registration(user_id, current_user):
 # PUT: /users/{user_id}/register/deny
 def deny_user_registration(user_id: str, current_user: User):
     """Deny a user's registration by user ID."""
-
     # Validate UUID format for the user_id
     if not is_valid_uuid(user_id):
         raise HTTPException(status_code=404, detail="User not found.")
@@ -539,7 +537,6 @@ def deny_user_registration(user_id: str, current_user: User):
 # POST: /users
 def invite(new_user_data, current_user):
     """Invite a user."""
-
     try:
         # Validate permissions
         if new_user_data.organization:

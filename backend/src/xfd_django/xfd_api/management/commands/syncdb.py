@@ -16,6 +16,7 @@ class Command(BaseCommand):
     help = "Synchronizes and populates the database with optional sample data, and manages Elasticsearch indices."
 
     def add_arguments(self, parser):
+        """Add arguments."""
         parser.add_argument(
             "-d",
             "--dangerouslyforce",
@@ -30,6 +31,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        """Handle method."""
         dangerouslyforce = options["dangerouslyforce"]
         populate = options["populate"]
 

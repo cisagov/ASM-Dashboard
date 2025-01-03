@@ -39,7 +39,7 @@ def random_string(length):
 def login():
     """Equivalent function to initiate OpenID Connect login."""
     # Fetch OpenID Connect configuration
-    config_response = requests.get(discovery_url)
+    config_response = requests.get(discovery_url, timeout=20)
     config = config_response.json()
 
     nonce = random_string(32)
@@ -60,7 +60,7 @@ def login():
 # Callback function to exchange authorization code for tokens and user info
 def callback(body):
     """Equivalent function to handle OpenID Connect callback."""
-    config_response = requests.get(discovery_url)
+    config_response = requests.get(discovery_url, timeout=20)
     config = config_response.json()
 
     # Exchange the authorization code for tokens
@@ -77,6 +77,7 @@ def callback(body):
                 {"alg": "RS256"}, jwk_set["keys"][0], algorithm="RS256"
             ),
         },
+        timeout=20,  # Timeout in seconds
     )
 
     token_response_data = token_response.json()

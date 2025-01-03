@@ -16,9 +16,7 @@ django.setup()
 
 
 def handler(event, context):
-    """
-    Lambda handler for syncing CVE data.
-    """
+    """Lambda handler for syncing CVE data."""
     try:
         main()
         return {"statusCode": 200, "body": "CVE sync completed successfully."}
@@ -27,9 +25,7 @@ def handler(event, context):
 
 
 def main():
-    """
-    Main logic for CVE data sync.
-    """
+    """Sync CVE data."""
     done = False
     page = 1
     total_pages = 2
@@ -62,9 +58,7 @@ def main():
 
 
 def fetch_cve_data(page):
-    """
-    Fetch CVE data for a specific page.
-    """
+    """Fetch CVE data for a specific page."""
     print(f"Fetching CVE data for page {page}")
     headers = {
         "Authorization": os.getenv("CF_API_KEY"),
@@ -78,6 +72,7 @@ def fetch_cve_data(page):
             "https://api.staging-cd.crossfeed.cyber.dhs.gov/pe/apiv1/cves_by_modified_date",
             headers=headers,
             json=data,
+            timeout=20,  # Timeout in seconds
         )
         response.raise_for_status()
         return response.json()
@@ -87,9 +82,7 @@ def fetch_cve_data(page):
 
 
 def fetch_cve_data_task(task_id):
-    """
-    Fetch task result for CVE data.
-    """
+    """Fetch task result for CVE data."""
     url = f"https://api.staging-cd.crossfeed.cyber.dhs.gov/pe/apiv1/cves_by_modified_date/task/{task_id}"
     headers = {
         "Authorization": os.getenv("CF_API_KEY"),
@@ -98,7 +91,7 @@ def fetch_cve_data_task(task_id):
     }
 
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=20)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -107,9 +100,7 @@ def fetch_cve_data_task(task_id):
 
 
 def save_to_db(cve_array):
-    """
-    Save CVE and associated CPE data to the database using Django ORM.
-    """
+    """Save CVE and associated CPE data to the database using Django ORM."""
     for cve in cve_array:
         cpe_objects = []
         for vendor, products in cve.get("vender_product", {}).items():
@@ -131,9 +122,7 @@ def save_to_db(cve_array):
 
 
 def save_cpes_to_db(cpes):
-    """
-    Save CPE entries to the database using Django ORM.
-    """
+    """Save CPE entries to the database using Django ORM."""
     cpe_ids = []
     for cpe in cpes:
         try:
@@ -150,9 +139,7 @@ def save_cpes_to_db(cpes):
 
 
 def save_cve_to_db(cve, cpe_ids):
-    """
-    Save CVE entry to the database and associate with CPEs using Django ORM.
-    """
+    """Save CVE entry to the database and associate with CPEs using Django ORM."""
     try:
         cve_obj, created = Cve.objects.update_or_create(
             name=cve["cve_name"],

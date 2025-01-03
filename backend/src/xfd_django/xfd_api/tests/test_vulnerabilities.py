@@ -1,5 +1,6 @@
+"""Test vulnerability."""
 # Standard Python Libraries
-from datetime import datetime, timedelta
+from datetime import datetime
 import logging
 import secrets
 
@@ -30,6 +31,7 @@ search_fields = {
 
 @pytest.fixture
 def user():
+    """Create user fixture."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -44,6 +46,7 @@ def user():
 
 @pytest.fixture
 def organization():
+    """Create org fixture."""
     organization = Organization.objects.create(
         name="Test Organization",
         rootDomains=["crossfeed.local"],
@@ -56,6 +59,7 @@ def organization():
 
 @pytest.fixture
 def domain(organization):
+    """Create domain fixture."""
     domain = Domain.objects.create(
         reverseName="local.crossfeed.example",
         ip="127.116.195.151",  # Ensure this IP is the one you expect
@@ -70,6 +74,7 @@ def domain(organization):
 
 @pytest.fixture
 def service(domain):
+    """Create service fixture."""
     service = Service.objects.create(
         serviceSource="shodan",
         port="80",
@@ -88,6 +93,7 @@ def service(domain):
 
 @pytest.fixture
 def vulnerability(domain, service):
+    """Create user fixture."""
     vulnerability = Vulnerability.objects.create(
         title=search_fields["title"],
         cpe=search_fields["cpe"],
@@ -119,6 +125,7 @@ def vulnerability(domain, service):
 
 @pytest.fixture
 def old_vulnerability():
+    """Create vuln fixture."""
     vulnerability = Vulnerability.objects.create(
         title="Old Vulnerability",
         description="Old description.",
@@ -142,6 +149,7 @@ def old_vulnerability():
 
 @pytest.mark.django_db(transaction=True)
 def test_get_vulnerability_by_id(user, vulnerability):
+    """Test vulnerability."""
     # Get vulnerability by Id.
     response = client.get(
         f"/vulnerabilities/{str(vulnerability.id)}",
@@ -157,6 +165,7 @@ def test_get_vulnerability_by_id(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_get_vulnerability_by_id_fails_404(user, vulnerability):
+    """Test vulnerability."""
     # Get error 404 if vulnerability does not exist
     response = client.get(
         f"/vulnerabilities/{bad_id}",
@@ -168,8 +177,8 @@ def test_get_vulnerability_by_id_fails_404(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_update_vulnerability(user, vulnerability):
+    """Test vulnerability."""
     original_vuln_id = str(vulnerability.id)
-    now = datetime.now()
     new_data = {
         "id": str(vulnerability.id),
         "createdAt": str(vulnerability.createdAt),
@@ -219,7 +228,7 @@ def test_update_vulnerability(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_update_vulnerability_fails_404(user, vulnerability):
-    vulnerability = vulnerability
+    """Test vulnerability."""
     new_data = {
         "id": str(vulnerability.id),
         "createdAt": str(vulnerability.createdAt),
@@ -255,8 +264,7 @@ def test_update_vulnerability_fails_404(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_update_vulnerability_fails_422(user, vulnerability):
-    vulnerability = vulnerability
-
+    """Test vulnerability."""
     new_data = {
         "title": "Updated Vulnerability",
         "cve": vulnerability.cve,
@@ -288,6 +296,7 @@ def test_update_vulnerability_fails_422(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_vulnerabilities_id(user, vulnerability):
+    """Test vulnerability."""
     # Search vulnerabilities by ip.
     response = client.post(
         "/vulnerabilities/search",
@@ -308,6 +317,7 @@ def test_search_vulnerabilities_id(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_vulnerabilities_by_title(user, vulnerability):
+    """Test vulnerability."""
     # Test search vulnerabilities by title
 
     response = client.post(
@@ -329,6 +339,7 @@ def test_search_vulnerabilities_by_title(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_vulnerabilities_by_cpe(user, vulnerability):
+    """Test vulnerability."""
     # Test search vulnerabilities by cpe
     response = client.post(
         "/vulnerabilities/search",
@@ -351,6 +362,7 @@ def test_search_vulnerabilities_by_cpe(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_vulnerabilities_by_severity(user, vulnerability):
+    """Test vulnerability."""
     # Test search vulnerabilities by severity
     response = client.post(
         "/vulnerabilities/search",
@@ -378,6 +390,7 @@ def test_search_vulnerabilities_by_severity(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_vulnerabilities_by_domain_id(user, vulnerability):
+    """Test vulnerability."""
     # Test search vulnerabilities by domain id
     domain_name = str(vulnerability.domain.name)
     response = client.post(
@@ -402,6 +415,7 @@ def test_search_vulnerabilities_by_domain_id(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_vulnerabilities_by_state(user, vulnerability):
+    """Test vulnerability."""
     state_to_search = search_fields["state"]
 
     response = client.post(
@@ -426,6 +440,7 @@ def test_search_vulnerabilities_by_state(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_vulnerabilities_by_substate(user, vulnerability):
+    """Test vulnerability."""
     substate_to_search = search_fields["substate"]
 
     response = client.post(
@@ -450,6 +465,7 @@ def test_search_vulnerabilities_by_substate(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_vulnerabilities_by_organization_id(user, vulnerability):
+    """Test vulnerability."""
     organization_id = str(vulnerability.domain.organization.id)
 
     response = client.post(
@@ -484,6 +500,7 @@ def test_search_vulnerabilities_by_organization_id(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_vulnerabilities_by_is_kev(user, vulnerability):
+    """Test vulnerability."""
     is_kev_to_search = search_fields["isKev"]
 
     response = client.post(
@@ -510,6 +527,7 @@ def test_search_vulnerabilities_by_is_kev(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_vulnerabilities_by_multiple_criteria(user, vulnerability):
+    """Test vulnerability."""
     state_to_search = search_fields["state"]
     substate_to_search = search_fields["substate"]
 
@@ -547,6 +565,7 @@ def test_search_vulnerabilities_by_multiple_criteria(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_vulnerabilities_does_not_exist(user, vulnerability):
+    """Test vulnerability."""
     # Test search vulnerabilities by state
     response = client.post(
         "/vulnerabilities/search",

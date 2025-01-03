@@ -9,7 +9,8 @@ from ..schema_models.vulnerability import VulnerabilityFilters
 
 def sort_direction(sort, order):
     """
-    Adds the sort direction modifier.
+    Add the sort direction modifier.
+
     If sort =
         ASC - return order field unmodified to sort in ascending order.
         DSC - returns & prepend '-' to the order field to sort in descending order.
@@ -23,12 +24,14 @@ def sort_direction(sort, order):
         else:
             raise ValueError
     except ValueError as e:
+        print(e)
         raise HTTPException(status_code=500, detail="Invalid sort direction supplied")
 
 
 def apply_domain_filters(domains, filters):
     """
     Apply filters to domains QuerySet directly.
+
     For partial matches (like ILIKE), we use __icontains.
     """
     q = Q()
@@ -80,10 +83,7 @@ def apply_domain_filters(domains, filters):
 def apply_vuln_filters(
     vulnerabilities: QuerySet, vulnerability_filters: VulnerabilityFilters
 ) -> QuerySet:
-    """
-    Filter vulnerabilities using Q objects for partial matches and exact matches.
-    """
-
+    """Filter vulnerabilities using Q objects for partial matches and exact matches."""
     q = Q()
 
     # Exact match on id

@@ -1,13 +1,6 @@
+"""Test notifications."""
 # Third-Party Libraries
 from fastapi.testclient import TestClient
-import pytest
-from xfd_api.auth import (  # Adjust import based on your auth implementation
-    create_jwt_token,
-)
-from xfd_api.models import (  # Adjust import based on your project structure
-    Notification,
-    User,
-)
 from xfd_django.asgi import app  # Import your FastAPI app
 
 client = TestClient(app)

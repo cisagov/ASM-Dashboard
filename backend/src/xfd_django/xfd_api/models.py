@@ -1,4 +1,4 @@
-""" Django ORM models."""
+"""Django ORM models."""
 
 
 # Standard Python Libraries
@@ -183,6 +183,7 @@ class Domain(models.Model):
         unique_together = (("name", "organization"),)  # Unique constraint
 
     def save(self, *args, **kwargs):
+        """Save domain ith reverseName."""
         self.name = self.name.lower()
         self.reverseName = ".".join(reversed(self.name.split(".")))
         super().save(*args, **kwargs)
@@ -580,6 +581,7 @@ class User(models.Model):
     state = models.CharField(blank=True, null=True, max_length=255)
 
     def save(self, *args, **kwargs):
+        """Save user with fullName."""
         self.fullName = f"{self.firstName} {self.lastName}"
         super().save(*args, **kwargs)
 

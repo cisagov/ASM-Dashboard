@@ -1,3 +1,4 @@
+"""Test domain API."""
 # Standard Python Libraries
 from datetime import datetime
 import secrets
@@ -25,6 +26,7 @@ search_fields = {
 
 @pytest.fixture
 def user():
+    """Create user fixture."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -39,6 +41,7 @@ def user():
 
 @pytest.fixture
 def organization():
+    """Create org fixture."""
     organization = Organization.objects.create(
         name=search_fields["organizationName"],
         rootDomains=["crossfeed.local"],
@@ -52,6 +55,7 @@ def organization():
 
 @pytest.fixture
 def domain(organization):
+    """Create domain fixture."""
     domain = Domain.objects.create(
         reverseName="local.crossfeed.example",
         ip=search_fields["ip"],  # Ensure this IP is the one you expect
@@ -67,6 +71,7 @@ def domain(organization):
 
 @pytest.fixture
 def service(domain):
+    """Create service fixture."""
     service = Service.objects.create(
         serviceSource="shodan",
         port=search_fields["port"],
@@ -86,6 +91,7 @@ def service(domain):
 
 @pytest.fixture
 def vulnerability(domain, service):
+    """Create vuln fixture."""
     vulnerability = Vulnerability.objects.create(
         title="Vulnerability title",
         description="Test description",
@@ -109,6 +115,7 @@ def vulnerability(domain, service):
 
 @pytest.mark.django_db(transaction=True)
 def test_get_domain_by_id(user, domain):
+    """Test domain by id."""
     # Get domain by Id.
     response = client.get(
         f"/domain/{domain.id}",
@@ -124,6 +131,7 @@ def test_get_domain_by_id(user, domain):
 
 @pytest.mark.django_db(transaction=True)
 def test_get_domain_by_id_fails_404(user, domain):
+    """Test domain by id to fail."""
     # Get domain by Id.
     response = client.get(
         f"/domain/{bad_id}",
@@ -135,6 +143,7 @@ def test_get_domain_by_id_fails_404(user, domain):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_domain_by_ip(user, vulnerability):
+    """Test domain by ip."""
     # Search for the domain by IP
     response = client.post(
         "/domain/search",
@@ -157,6 +166,7 @@ def test_search_domain_by_ip(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_domain_by_port(user, vulnerability):
+    """Test domain by port."""
     response = client.post(
         "/domain/search",
         json={"page": 1, "filters": {"port": search_fields["port"]}, "pageSize": 25},
@@ -181,6 +191,7 @@ def test_search_domain_by_port(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_domain_by_service(user, vulnerability):
+    """Test domain by service."""
     response = client.post(
         "/domain/search",
         json={
@@ -210,6 +221,7 @@ def test_search_domain_by_service(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_domain_by_organization(user, vulnerability):
+    """Test domain by org."""
     # Test search domains by organization
     response = client.post(
         "/domain/search",
@@ -233,6 +245,7 @@ def test_search_domain_by_organization(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_domain_by_organization_name(user, vulnerability):
+    """Test domain by org name."""
     # Test search domains by organization
     response = client.post(
         "/domain/search",
@@ -260,6 +273,7 @@ def test_search_domain_by_organization_name(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_domain_by_vulnerabilities(user, vulnerability):
+    """Test domain by vuln."""
     # Test search domains by vulnerabilities
     response = client.post(
         "/domain/search",
@@ -283,6 +297,7 @@ def test_search_domain_by_vulnerabilities(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_domains_multiple_criteria(user, vulnerability):
+    """Test domain by multi-criteria."""
     # Test search domains by multiple criteria
     response = client.post(
         "/domain/search",
@@ -314,6 +329,7 @@ def test_search_domains_multiple_criteria(user, vulnerability):
 
 @pytest.mark.django_db(transaction=True)
 def test_search_domains_does_not_exist(user, vulnerability):
+    """Test domain by domain not existing."""
     # Test search domains if record does not exist
     response = client.post(
         "/domain/search",

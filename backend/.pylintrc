@@ -1,6 +1,3 @@
-[MASTER]
-ignore=tests
-
 [CLASSES]
 min-public-methods=1
 
@@ -46,4 +43,3 @@ disable=C0103,  # Conforms to snake_case
         W0719,  # Too broad exception
         W1203,  # Use lazy % formatting in logging functions
         W1514,  # Unspecified encoding
-        W3101,  # Missing timeout argument

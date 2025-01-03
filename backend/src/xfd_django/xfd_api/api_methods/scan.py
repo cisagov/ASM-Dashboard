@@ -151,7 +151,6 @@ def create_scan(scan_data: NewScan, current_user):
 # GET: /scans/{scan_id}
 def get_scan(scan_id: str, current_user):
     """Get a scan by its ID."""
-
     # Check if the user is a GlobalViewAdmin
     if not is_global_view_admin(current_user):
         raise HTTPException(status_code=403, detail="Unauthorized access.")

@@ -1,17 +1,8 @@
+"""Test api key."""
 # Standard Python Libraries
-from datetime import datetime
-import secrets
 
 # Third-Party Libraries
 from fastapi.testclient import TestClient
-import pytest
-from xfd_api.auth import (  # Assuming this function generates a user token
-    create_jwt_token,
-)
-from xfd_api.models import (  # Adjust the import based on your project structure
-    ApiKey,
-    User,
-)
 from xfd_django.asgi import app  # Import the FastAPI app
 
 client = TestClient(app)

@@ -118,8 +118,7 @@ def generate_csv(results: List[Dict[str, Any]], fields: List[str]) -> str:
 
 # POST: /search
 async def search_post(search_body: DomainSearchBody, current_user):
-    """Handle Elastic Search request"""
-
+    """Handle Elastic Search request."""
     options = await get_options(search_body, current_user)
     es_query = build_request(search_body, options)
 

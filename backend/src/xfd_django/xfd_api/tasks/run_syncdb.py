@@ -23,9 +23,7 @@ from xfd_api.tasks.syncdb_helpers import (
 
 
 def handler(event, context):
-    """
-    Lambda handler to trigger syncdb.
-    """
+    """Trigger syncdb."""
     dangerouslyforce = event.get("dangerouslyforce", False)
     populate = event.get("populate", False)
 

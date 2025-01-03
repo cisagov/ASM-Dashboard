@@ -18,9 +18,7 @@ async def safe_redis_mget(redis_client, redis_keys, redis_semaphore):
 
 
 async def get_stats_count_from_cache(redis_client, redis_key_prefix, filtered_org_ids):
-    """
-    Generic function to fetch and aggregate stats from Redis.
-    """
+    """Fetch and aggregate stats from Redis."""
     aggregated_stats = defaultdict(int)
 
     # Fetch data from Redis by organization ID
@@ -52,9 +50,7 @@ def populate_stats_cache(
     custom_id=None,
     filters=None,
 ):
-    """
-    Generic function to populate Redis stats with custom ID fields.
-    """
+    """Populate Redis stats with custom ID fields."""
     try:
         # Connect to Redis
         redis_client = redis.StrictRedis(
@@ -112,9 +108,7 @@ def populate_stats_cache(
 
 
 async def get_total_count(filtered_org_ids):
-    """
-    Retrieve the total count of domains associated with the filtered organizations.
-    """
+    """Retrieve the total count of domains associated with the filtered organizations."""
     try:
         # Query the database for the total count of domains in the filtered organizations
         total_count = (

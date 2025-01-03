@@ -74,9 +74,7 @@ def populate_num_vulns_cache(event, context):
 
 
 def populate_latest_vulns_cache(event, context):
-    """
-    Populate Redis with the latest vulnerabilities for each organization.
-    """
+    """Populate Redis with the latest vulnerabilities for each organization."""
     try:
         # Connect to Redis
         redis_client = redis.StrictRedis(
@@ -132,9 +130,7 @@ def populate_latest_vulns_cache(event, context):
 
 
 def populate_most_common_vulns_cache(event, context):
-    """
-    Populate Redis with the most common vulnerabilities grouped by title, description, and severity.
-    """
+    """Populate Redis with the most common vulnerabilities grouped by title, description, and severity."""
     try:
         # Connect to Redis
         redis_client = redis.StrictRedis(
@@ -191,9 +187,7 @@ def populate_most_common_vulns_cache(event, context):
 
 
 def populate_severity_cache(event, context):
-    """
-    Populate Redis with severity statistics for vulnerabilities.
-    """
+    """Populate Redis with severity statistics for vulnerabilities."""
     return populate_stats_cache(
         model=Vulnerability,
         group_by_field="domain__organization_id",  # Group by severity
@@ -210,6 +204,7 @@ def populate_severity_cache(event, context):
 def populate_by_org_cache(event, context):
     """
     Populate Redis with the count of open vulnerabilities grouped by organization.
+
     Each organization's data is stored under its own Redis key.
     """
     try:

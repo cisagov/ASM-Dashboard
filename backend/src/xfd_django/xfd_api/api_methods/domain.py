@@ -1,6 +1,4 @@
-"""
-Domain API.
-"""
+"""Domain API."""
 
 # Standard Python Libraries
 import csv
@@ -21,6 +19,7 @@ from ..schema_models.domain import DomainSearch
 def get_domain_by_id(domain_id: str):
     """
     Get domain by id.
+
     Returns:
         object: a single Domain object.
     """
@@ -97,9 +96,7 @@ def get_domain_by_id(domain_id: str):
 
 
 def search_domains(domain_search: DomainSearch, current_user):
-    """
-    List domains by search filter.
-    """
+    """List domains by search filter."""
     try:
         domains = (
             Domain.objects.select_related("organization")

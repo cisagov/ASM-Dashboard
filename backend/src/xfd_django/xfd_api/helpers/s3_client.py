@@ -37,7 +37,7 @@ class S3Client:
             )
 
     def save_csv(self, body, name=""):
-        """Saves a CSV file in S3 and returns a temporary URL for access"""
+        """Save a CSV file in S3 and returns a temporary URL for access."""
         try:
             key = f"{random.random()}/{name}-{datetime.utcnow().isoformat()}.csv"
             bucket = os.getenv("EXPORT_BUCKET_NAME")
@@ -59,7 +59,7 @@ class S3Client:
             raise
 
     def export_report(self, report_name, org_id):
-        """Generates a presigned URL for a report"""
+        """Generate a presigned URL for a report."""
         try:
             key = f"{org_id}/{report_name}"
             bucket = os.getenv("REPORTS_BUCKET_NAME")
@@ -75,7 +75,7 @@ class S3Client:
             raise
 
     def list_reports(self, org_id):
-        """Lists all reports in a specified organization's folder"""
+        """List all reports in a specified organization's folder."""
         try:
             bucket = os.getenv("REPORTS_BUCKET_NAME")
             prefix = f"{org_id}/"
@@ -89,7 +89,7 @@ class S3Client:
             raise
 
     def pull_daily_vs(self, filename):
-        """Retrieves a specified daily VS file from S3"""
+        """Retrieve a specified daily VS file from S3."""
         bucket = os.getenv("VS_BUCKET_NAME", "vs-extracts")
 
         try:
@@ -111,7 +111,7 @@ class S3Client:
             raise
 
     def get_email_asset(self, file_name):
-        """Retrieves an email template asset from S3"""
+        """Retrieve an email template asset from S3."""
         bucket = os.getenv("EMAIL_BUCKET_NAME")
 
         try:

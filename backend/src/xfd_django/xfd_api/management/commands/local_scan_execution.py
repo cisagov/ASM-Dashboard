@@ -80,9 +80,7 @@ class Command(BaseCommand):
 
     @staticmethod
     def local_scan_execution(scan_type, desired_count, api_key_list=""):
-        """
-        Run the scan execution handler locally.
-        """
+        """Run the scan execution handler locally."""
         print("Starting local scan execution...")
         payload = {
             "scanType": scan_type,

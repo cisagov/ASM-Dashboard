@@ -1,4 +1,4 @@
-# test_search.py
+"""Test search."""
 # Third-Party Libraries
 from fastapi.testclient import TestClient
 

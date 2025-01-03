@@ -92,8 +92,11 @@ This quickstart describes the initial setup required to run an instance of Cross
 To run tests, first make sure you have already started Crossfeed with `npm start` (or, at bare minimum, that the database container is running). Then run:
 
 ```bash
+pre-commit run --all-files
+
 cd backend
-npm test
+make pytest
+make pylint
 ```
 
 If snapshot tests fail, update snapshots by running `npm test -- -u`.

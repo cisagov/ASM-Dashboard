@@ -47,9 +47,7 @@ def to_snake_case(input_string):
 
 
 def start_desired_tasks(scan_type, desired_count, shodan_api_keys=None):
-    """
-    Starts the desired number of tasks on AWS ECS or local Docker based on configuration.
-    """
+    """Start the desired number of tasks on AWS ECS or local Docker based on configuration."""
     shodan_api_keys = shodan_api_keys or []
     queue_url = f"{QUEUE_URL}{scan_type}-queue"
 
@@ -69,7 +67,7 @@ def start_desired_tasks(scan_type, desired_count, shodan_api_keys=None):
         else:
             # Use AWS ECS
             try:
-                response = ecs_client.run_task(
+                ecs_client.run_task(
                     cluster=os.getenv("PE_FARGATE_CLUSTER_NAME"),
                     taskDefinition=os.getenv("PE_FARGATE_TASK_DEFINITION_NAME"),
                     networkConfiguration={
@@ -107,9 +105,7 @@ def start_desired_tasks(scan_type, desired_count, shodan_api_keys=None):
 
 
 def start_local_containers(count, scan_type, queue_url, shodan_api_key=""):
-    """
-    Starts the desired number of local Docker containers.
-    """
+    """Start the desired number of local Docker containers."""
     for i in range(count):
         try:
             container_name = to_snake_case(
@@ -144,9 +140,7 @@ def start_local_containers(count, scan_type, queue_url, shodan_api_key=""):
 
 
 def handler(event, context):
-    """
-    Handles the AWS Lambda event to start tasks on ECS or Docker.
-    """
+    """Handle the AWS Lambda event to start tasks on ECS or Docker."""
     try:
         desired_count = event.get("desiredCount", 1)
         scan_type = event.get("scanType")

@@ -14,9 +14,7 @@ django.setup()
 
 
 def handler(event, context):
-    """
-    Lambda handler for executing database queries or managing Elasticsearch indices.
-    """
+    """Execute database queries or managing Elasticsearch indices."""
     mode = event.get("mode")
     query = event.get("query")
 
@@ -35,10 +33,7 @@ def handler(event, context):
 
 
 def handle_db_query(query):
-    """
-    Handles the 'db' mode: executes a raw SQL query on the database.
-    """
-
+    """Handle the 'db' mode: executes a raw SQL query on the database."""
     with connection.cursor() as cursor:
         cursor.execute(query)
         result = cursor.fetchall()
@@ -48,10 +43,7 @@ def handle_db_query(query):
 
 
 def handle_es_query(query):
-    """
-    Handles the 'es' mode: interacts with Elasticsearch.
-    """
-
+    """Handle the 'es' mode: interacts with Elasticsearch."""
     client = ESClient()
 
     if query == "delete":

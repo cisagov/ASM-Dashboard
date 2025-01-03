@@ -15,14 +15,14 @@ DOMAIN_CHUNK_SIZE = int(os.getenv("DOMAIN_CHUNK_SIZE", "50"))  # Adjust if neede
 
 
 def chunked_queryset(queryset, chunk_size):
-    """Helper function to chunk a queryset into smaller pieces."""
+    """Chunk a queryset into smaller pieces."""
     it = iter(queryset.values_list("id", flat=True))  # Extract only IDs
     for first in it:
         yield [first] + list(islice(it, chunk_size - 1))
 
 
 async def handler(command_options):
-    """Handles the synchronization of domains with Elasticsearch."""
+    """Handle the synchronization of domains with Elasticsearch."""
     organization_id = command_options.get("organizationId")
     domain_id = command_options.get("domainId")
 
@@ -46,7 +46,6 @@ async def handler(command_options):
     if domain_id:
         domain_queryset = domain_queryset.filter(id=domain_id)
 
-    domain_ids = domain_queryset.values_list("id", flat=True).distinct()
     print(f"Found {domain_queryset.count()} domains to sync.")
 
     # Chunk domains for processing

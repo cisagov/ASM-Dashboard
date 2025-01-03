@@ -1,3 +1,4 @@
+"""Test organizations."""
 # Standard Python Libraries
 from datetime import datetime
 import secrets
@@ -23,6 +24,7 @@ client = TestClient(app)
 # Test: Creating an organization by global admin should succeed
 @pytest.mark.django_db(transaction=True)
 def test_create_org_by_global_admin():
+    """Test organization by global admin should succeed."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -58,6 +60,7 @@ def test_create_org_by_global_admin():
 # Test: Cannot add organization with the same acronym
 @pytest.mark.django_db(transaction=True)
 def test_create_duplicate_org_fails():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -103,6 +106,7 @@ def test_create_duplicate_org_fails():
 # Test: Creating an organization by global view user should fail
 @pytest.mark.django_db(transaction=True)
 def test_create_org_by_global_view_fails():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -135,6 +139,7 @@ def test_create_org_by_global_view_fails():
 # Test: Update organization by global admin
 @pytest.mark.django_db(transaction=True)
 def test_update_org_by_global_admin():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -186,6 +191,7 @@ def test_update_org_by_global_admin():
 # Test: Update organization by global view should fail
 @pytest.mark.django_db(transaction=True)
 def test_update_org_by_global_view_fails():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -232,6 +238,7 @@ def test_update_org_by_global_view_fails():
 # Test: Deleting an organization by global admin should succeed
 @pytest.mark.django_db(transaction=True)
 def test_delete_org_by_global_admin():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -261,6 +268,7 @@ def test_delete_org_by_global_admin():
 # Test: Deleting an organization by org admin should fail
 @pytest.mark.django_db(transaction=True)
 def test_delete_org_by_org_admin_fails():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -298,6 +306,7 @@ def test_delete_org_by_org_admin_fails():
 # Test: Deleting an organization by global view should fail
 @pytest.mark.django_db(transaction=True)
 def test_delete_org_by_global_view_fails():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -329,6 +338,7 @@ def test_delete_org_by_global_view_fails():
 # Test: List organizations by global view should succeed
 @pytest.mark.django_db(transaction=True)
 def test_list_orgs_by_global_view_succeeds():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -339,7 +349,7 @@ def test_list_orgs_by_global_view_succeeds():
     )
 
     # Create an organization
-    organization = Organization.objects.create(
+    Organization.objects.create(
         name=f"test-{secrets.token_hex(4)}",
         rootDomains=["test-" + secrets.token_hex(4)],
         ipBlocks=[],
@@ -361,6 +371,7 @@ def test_list_orgs_by_global_view_succeeds():
 # Test: List organizations by org member should only return their org
 @pytest.mark.django_db(transaction=True)
 def test_list_orgs_by_org_member_only_gets_their_org():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -380,7 +391,7 @@ def test_list_orgs_by_org_member_only_gets_their_org():
         updatedAt=datetime.now(),
     )
 
-    organization2 = Organization.objects.create(
+    Organization.objects.create(
         name=f"test-{secrets.token_hex(4)}",
         rootDomains=["test-" + secrets.token_hex(4)],
         ipBlocks=[],
@@ -411,6 +422,7 @@ def test_list_orgs_by_org_member_only_gets_their_org():
 # Test: Get organization by global view should fail
 @pytest.mark.django_db(transaction=True)
 def test_get_org_by_global_view_fails():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -441,6 +453,7 @@ def test_get_org_by_global_view_fails():
 # Test: Get organization by org admin user should pass
 @pytest.mark.django_db(transaction=True)
 def test_get_org_by_org_admin_succeeds():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -479,6 +492,7 @@ def test_get_org_by_org_admin_succeeds():
 # Test: Get organization by org admin of different org should fail
 @pytest.mark.django_db(transaction=True)
 def test_get_org_by_org_admin_of_different_org_fails():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -525,6 +539,7 @@ def test_get_org_by_org_admin_of_different_org_fails():
 # Test: Get organization by org regular user should fail
 @pytest.mark.django_db(transaction=True)
 def test_get_org_by_org_regular_user_fails():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -562,6 +577,7 @@ def test_get_org_by_org_regular_user_fails():
 # Test: Get organization by org admin should return associated scantasks
 @pytest.mark.django_db(transaction=True)
 def test_get_org_with_scan_tasks_by_org_admin_succeeds():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -614,6 +630,7 @@ def test_get_org_with_scan_tasks_by_org_admin_succeeds():
 # Test: Enabling a user-modifiable scan by org admin should succeed
 @pytest.mark.django_db(transaction=True)
 def test_enable_user_modifiable_scan_by_org_admin_succeeds():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -661,6 +678,7 @@ def test_enable_user_modifiable_scan_by_org_admin_succeeds():
 # Test: Disabling a user-modifiable scan by org admin should succeed
 @pytest.mark.django_db(transaction=True)
 def test_disable_user_modifiable_scan_by_org_admin_succeeds():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -714,6 +732,7 @@ def test_disable_user_modifiable_scan_by_org_admin_succeeds():
 # Test: Enabling a user-modifiable scan by org user should fail
 @pytest.mark.django_db(transaction=True)
 def test_enable_user_modifiable_scan_by_org_user_fails():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -758,6 +777,7 @@ def test_enable_user_modifiable_scan_by_org_user_fails():
 # Test: Enabling a user-modifiable scan by global admin should succeed
 @pytest.mark.django_db(transaction=True)
 def test_enable_user_modifiable_scan_by_global_admin_succeeds():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -799,6 +819,7 @@ def test_enable_user_modifiable_scan_by_global_admin_succeeds():
 # Test: Enabling a non-user-modifiable scan by org admin should fail
 @pytest.mark.django_db(transaction=True)
 def test_enable_non_user_modifiable_scan_by_org_admin_fails():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -843,6 +864,7 @@ def test_enable_non_user_modifiable_scan_by_org_admin_fails():
 # Test: Approving a role by global admin should succeed
 @pytest.mark.django_db(transaction=True)
 def test_approve_role_by_global_admin_succeeds():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -887,6 +909,7 @@ def test_approve_role_by_global_admin_succeeds():
 # Test: Approving a role by global view should fail
 @pytest.mark.django_db(transaction=True)
 def test_approve_role_by_global_view_fails():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -931,6 +954,7 @@ def test_approve_role_by_global_view_fails():
 # Test: Approving a role by org admin should succeed
 @pytest.mark.django_db(transaction=True)
 def test_approve_role_by_org_admin_succeeds():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -981,6 +1005,7 @@ def test_approve_role_by_org_admin_succeeds():
 # Test: Approving a role by org user should fail
 @pytest.mark.django_db(transaction=True)
 def test_approve_role_by_org_user_fails():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -1031,6 +1056,7 @@ def test_approve_role_by_org_user_fails():
 # Test: removeRole by globalAdmin should work
 @pytest.mark.django_db(transaction=True)
 def test_remove_role_by_global_admin_succeeds():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -1073,6 +1099,7 @@ def test_remove_role_by_global_admin_succeeds():
 # Test: removeRole by globalView should fail
 @pytest.mark.django_db(transaction=True)
 def test_remove_role_by_global_view_fails():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -1116,6 +1143,7 @@ def test_remove_role_by_global_view_fails():
 # Test: removeRole by org admin should succeed
 @pytest.mark.django_db(transaction=True)
 def test_remove_role_by_org_admin_succeeds():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -1163,6 +1191,7 @@ def test_remove_role_by_org_admin_succeeds():
 # Test: removeRole by org user should fail
 @pytest.mark.django_db(transaction=True)
 def test_remove_role_by_org_user_fails():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -1212,6 +1241,7 @@ def test_remove_role_by_org_user_fails():
 # Test: getTags by globalAdmin should work
 @pytest.mark.django_db(transaction=True)
 def test_get_tags_by_global_admin_succeeds():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",
@@ -1237,6 +1267,7 @@ def test_get_tags_by_global_admin_succeeds():
 # Test: getTags by standard user should return no tags
 @pytest.mark.django_db(transaction=True)
 def test_get_tags_by_standard_user_returns_no_tags():
+    """Test organization."""
     user = User.objects.create(
         firstName="",
         lastName="",

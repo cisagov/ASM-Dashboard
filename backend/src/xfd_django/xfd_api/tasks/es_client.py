@@ -33,12 +33,12 @@ class ESClient:
     """ES Client."""
 
     def __init__(self):
-        """Initializes the Elasticsearch client."""
+        """Initialize the Elasticsearch client."""
         endpoint = os.getenv("ELASTICSEARCH_ENDPOINT")
         self.client = Elasticsearch(endpoint)
 
     def sync_organizations_index(self):
-        """Creates or updates the organizations index with mappings."""
+        """Create or updates the organizations index with mappings."""
         try:
             if not self.client.indices.exists(index=ORGANIZATIONS_INDEX):
                 logging.info(f"Creating index {ORGANIZATIONS_INDEX}...")
@@ -59,7 +59,7 @@ class ESClient:
             raise e
 
     def sync_domains_index(self):
-        """Creates or updates the domains index with mappings."""
+        """Create or updates the domains index with mappings."""
         try:
             if not self.client.indices.exists(index=DOMAINS_INDEX):
                 logging.info(f"Creating index {DOMAINS_INDEX}...")
@@ -84,7 +84,7 @@ class ESClient:
             raise e
 
     def update_organizations(self, organizations):
-        """Bulk updates or inserts organizations into Elasticsearch."""
+        """Update or inserts organizations into Elasticsearch."""
         actions = [
             {
                 "_op_type": "update",
@@ -98,7 +98,7 @@ class ESClient:
         self._bulk_update(actions)
 
     def update_domains(self, domains):
-        """Bulk updates or inserts domains into Elasticsearch."""
+        """Update or insert domains into Elasticsearch."""
         actions = [
             {
                 "_op_type": "update",
@@ -116,7 +116,7 @@ class ESClient:
         self._bulk_update(actions)
 
     def update_webpages(self, webpages):
-        """Bulk updates or inserts webpages into Elasticsearch."""
+        """Update or insert webpages into Elasticsearch."""
         actions = [
             {
                 "_op_type": "update",
@@ -138,7 +138,7 @@ class ESClient:
         self._bulk_update(actions)
 
     def delete_all(self):
-        """Deletes all indices in Elasticsearch."""
+        """Delete all indices in Elasticsearch."""
         try:
             logging.info("Deleting all indices...")
             self.client.indices.delete(index="*")
@@ -147,15 +147,15 @@ class ESClient:
             raise e
 
     def search_domains(self, body):
-        """Searches domains index with specified query body."""
+        """Search domains index with specified query body."""
         return self.client.search(index=DOMAINS_INDEX, body=body)
 
     def search_organizations(self, body):
-        """Searches organizations index with specified query body."""
+        """Search organizations index with specified query body."""
         return self.client.search(index=ORGANIZATIONS_INDEX, body=body)
 
     def _bulk_update(self, actions):
-        """Helper function for bulk updates to Elasticsearch."""
+        """Update to Elasticsearch."""
         try:
             helpers.bulk(self.client, actions, raise_on_error=True)
             logging.info("Bulk update completed successfully.")

@@ -1,4 +1,4 @@
-"""/api-keys API logic"""
+"""/api-keys API logic."""
 
 # Standard Python Libraries
 import uuid
@@ -12,7 +12,7 @@ from ..auth import get_org_memberships, is_global_view_admin
 
 
 def post(data, current_user):
-    """POST LOGIC"""
+    """POST LOGIC."""
     # Check if user is GlobalViewAdmin or has memberships
     if not is_global_view_admin(current_user) and not get_org_memberships(current_user):
         raise HTTPException(status_code=403, detail="Unauthorized")
@@ -25,7 +25,7 @@ def post(data, current_user):
 
 
 def delete(notification_id, current_user):
-    """DELETE LOGIC"""
+    """DELETE LOGIC."""
     try:
         # Check if user is GlobalViewAdmin or has memberships
         if not is_global_view_admin(current_user) and not get_org_memberships(
@@ -51,7 +51,7 @@ def delete(notification_id, current_user):
 
 
 def get_all():
-    """GET All LOGIC"""
+    """GET All LOGIC."""
     try:
         # Get all objects from the database
         result = Notification.objects.all()
@@ -64,7 +64,7 @@ def get_all():
 
 
 def get_by_id(notification_id, current_user):
-    """GET by id"""
+    """GET by id."""
     try:
         # Check if user is GlobalViewAdmin or has memberships
         if not is_global_view_admin(current_user) and not get_org_memberships(

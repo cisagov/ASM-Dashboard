@@ -25,10 +25,7 @@ user_pool_id = os.getenv("REACT_APP_USER_POOL_ID")
 
 
 def check_user_expiration():
-    """
-    Check user inactivity and take actions: notify (30 days), deactivate (45 days), and delete (90 days).
-    """
-
+    """Check user inactivity and take actions: notify (30 days), deactivate (45 days), and delete (90 days)."""
     today = now()
     cutoff_30_days = today - timedelta(days=30)
     cutoff_45_days = today - timedelta(days=45)
@@ -122,9 +119,7 @@ def check_user_expiration():
 
 
 def handler(event, context):
-    """
-    AWS Lambda handler for checking user expiration.
-    """
+    """AWS Lambda handler for checking user expiration."""
     try:
         check_user_expiration()
         return {
