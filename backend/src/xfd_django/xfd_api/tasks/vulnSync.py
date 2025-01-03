@@ -1,14 +1,14 @@
 """"VulnSync scan."""
 # Standard Python Libraries
+from datetime import datetime
 import os
 import time
-import dns.resolver
-from datetime import datetime
 
 # Third-Party Libraries
 import django
+import dns.resolver
 import requests
-from xfd_django.models import Domain, Service, Vulnerability, Organization
+from xfd_django.models import Domain, Organization, Service, Vulnerability
 
 # Django setup
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
@@ -22,7 +22,10 @@ def handler(event, context):
     """
     try:
         main()
-        return {"statusCode": 200, "body": "PE Vulnerabilities sync completed successfully."}
+        return {
+            "statusCode": 200,
+            "body": "PE Vulnerabilities sync completed successfully.",
+        }
     except Exception as e:
         return {"statusCode": 500, "body": str(e)}
 
@@ -54,7 +57,9 @@ def main():
                 response = fetch_pe_vuln_data(scan_name, task_id)
 
             if response and response.get("status") == "Failure":
-                print(f"Failed fetching data for task {task_id} for org {org.acronym}, {org.name}")
+                print(
+                    f"Failed fetching data for task {task_id} for org {org.acronym}, {org.name}"
+                )
                 continue
 
             all_vulns.extend(response.get("result", []))
@@ -151,7 +156,9 @@ def save_domain(vuln, org):
             organization=org,
             defaults={
                 "ip": service_ip,
-                "fromRootDomain": None if ip_only else ".".join(service_domain.split(".")[-2:]),
+                "fromRootDomain": None
+                if ip_only
+                else ".".join(service_domain.split(".")[-2:]),
                 "subdomainSource": f"P&E - {vuln['source']}",
                 "ipOnly": ip_only,
             },
@@ -181,7 +188,9 @@ def save_service(vuln, domain):
                     "product": vuln.get("product"),
                     "version": vuln.get("version"),
                     "cpe": vuln.get("cpe"),
-                } if vuln.get("source") == "shodan" else {},
+                }
+                if vuln.get("source") == "shodan"
+                else {},
             },
         )
         return service
