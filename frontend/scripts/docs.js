@@ -18,29 +18,54 @@ app.use(express.static(path.join(__dirname, '../docs/build')));
 
 app.use(
   cors({
-    origin: 'https://docs.crossfeed.cyber.dhs.gov/',
-    methods: 'GET'
+    origin: [
+      /^https:\/\/(.*\.)?crossfeed\.cyber\.dhs\.gov$/,
+      /^https:\/\/(.*\.)?readysetcyber\.cyber\.dhs\.gov$/
+    ],
+    methods: 'GET,POST,PUT,DELETE,OPTIONS'
   })
 );
+
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        baseUri: ["'none'"],
-        defaultSrc: ["'self'"],
-        frameAncestors: ["'none'"],
+        defaultSrc: [
+          "'self'",
+          `${process.env.COGNITO_URL}`,
+          `${process.env.BACKEND_DOMAIN}`
+        ],
+        frameSrc: ["'self'", 'https://www.dhs.gov/ntas/'],
+        imgSrc: [
+          "'self'",
+          'data:',
+          `https://${process.env.DOMAIN}`,
+          'https://www.ssa.gov',
+          'https://www.dhs.gov'
+        ],
         objectSrc: ["'none'"],
-        scriptSrc: ["'none'"]
+        scriptSrc: [
+          "'self'",
+          `${process.env.BACKEND_DOMAIN}`,
+          'https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js',
+          'https://www.ssa.gov/accessibility/andi/fandi.js',
+          'https://www.ssa.gov/accessibility/andi/andi.js',
+          'https://www.dhs.gov'
+        ],
+        frameAncestors: ["'none'"]
       }
     },
-    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
-    xFrameOptions: 'DENY'
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true
+    }
   })
 );
 
 //Middleware to set Cache-Control headers
 app.use((req, res, next) => {
-  res.setHeader('Cache-Control', 'private, max-age=3600');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   next();
 });
 
@@ -50,7 +75,7 @@ app.use((req, res, next) => {
 });
 
 app.use((req, res) => {
-  res.sendFile(path.join(__dirname, '../docs/build/index.html'));
+  res.sendFile(path.join(__dirname, '../docs-build/index.html'));
 });
 
 export const handler = serverless(app, {

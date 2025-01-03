@@ -28,6 +28,7 @@ frontend/coverage
 
 # production
 frontend/build
+frontend/docs-build
 
 # misc
 .env

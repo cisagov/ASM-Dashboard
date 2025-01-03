@@ -31,7 +31,6 @@ custom:
       - pipdeptree
       - Jinja2
       - MarkupSafe
-      - elasticsearch
       - uvloop
 
   # Resource policies for GovCloud (Private) vs Non-GovCloud (Regional)

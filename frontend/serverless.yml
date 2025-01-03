@@ -94,6 +94,12 @@ functions:
           path: /docs
           method: GET
 
+package:
+  include:
+    - scripts/**         # Include handler scripts
+    - build/**           # Include React static assets
+    - docs-build/**      # Include copied Gatsby static assets
+
 plugins:
   - serverless-domain-manager
   - serverless-better-credentials

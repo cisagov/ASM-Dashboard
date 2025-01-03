@@ -1,13 +1,12 @@
 """AWS Elastic Container Service Client."""
 
 # Standard Python Libraries
-import datetime
+from datetime import datetime
 import json
 import os
 
 # Third-Party Libraries
 import boto3
-import docker
 
 from ..schema_models.scan import SCAN_SCHEMA
 
@@ -22,7 +21,14 @@ class ECSClient:
         """Initialize."""
         # Determine if we're running locally or using ECS
         self.is_local = is_local or os.getenv("IS_OFFLINE") or os.getenv("IS_LOCAL")
-        self.docker = docker.from_env() if self.is_local else None
+
+        if self.is_local:
+            # Third-Party Libraries
+            import docker
+
+            self.docker = docker.from_env()
+        else:
+            self.docker = None
         self.ecs = boto3.client("ecs") if not self.is_local else None
         self.cloudwatch_logs = boto3.client("logs") if not self.is_local else None
 
@@ -149,7 +155,7 @@ class ECSClient:
     def get_logs(self, fargate_task_arn):
         """Gets logs for a specific Fargate or Docker task."""
         if self.is_local:
-            # Retrieve logs as bytes from the Docker container
+            # Retrieve logs from the local Docker container
             log_stream = self.docker.containers.get(fargate_task_arn).logs(
                 stdout=True, stderr=True, timestamps=True
             )
@@ -172,7 +178,7 @@ class ECSClient:
 
             # Format the logs as "timestamp message"
             formatted_logs = "\n".join(
-                f"{datetime.utcfromtimestamp(event['timestamp'] / 1000).isoformat()} {event['message']}"
+                f"{datetime.utcfromtimestamp(event['timestamp'] / 1000).isoformat(timespec='seconds')} {event['message']}"
                 for event in events
             )
             return formatted_logs

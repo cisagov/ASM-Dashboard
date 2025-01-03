@@ -215,7 +215,9 @@ def get_scan_task_logs(scan_task_id, current_user):
         ecs_client = ECSClient()
         logs = ecs_client.get_logs(scan_task.fargateTaskArn)
 
-        return Response(content=logs or "", status_code=status.HTTP_200_OK)
+        return Response(
+            content=logs or "", media_type="text/plain", status_code=status.HTTP_200_OK
+        )
 
     except HTTPException as http_exc:
         raise http_exc

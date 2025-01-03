@@ -848,7 +848,6 @@ async def kill_scan_tasks(
 @api_router.get(
     "/scan-tasks/{scan_task_id}/logs",
     dependencies=[Depends(get_current_active_user)],
-    # response_model=scanTaskSchema.GenericResponse,
     tags=["Scan Tasks"],
 )
 async def get_scan_task_logs(

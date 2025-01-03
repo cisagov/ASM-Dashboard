@@ -3,10 +3,15 @@ import asyncio
 import json
 
 # Third-Party Libraries
-from docker import DockerClient
-from docker.errors import DockerException
+from django.conf import settings
+
+if settings.IS_LOCAL:
+    # Third-Party Libraries
+    from docker import DockerClient
+    from docker.errors import DockerException
 
 # Import your updateScanTaskStatus handler
+# Third-Party Libraries
 from xfd_api.tasks.updateScanTaskStatus import handler as update_scan_task_status
 
 
