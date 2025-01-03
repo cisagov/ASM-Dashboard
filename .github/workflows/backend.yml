@@ -39,7 +39,7 @@ jobs:
       - run: pip install -r requirements.txt
 
       - name: Lint with pylint
-        run: pylint src/xfd_django
+        run: PYTHONPATH=/src pylint .
 
   test:
     runs-on: ubuntu-latest
