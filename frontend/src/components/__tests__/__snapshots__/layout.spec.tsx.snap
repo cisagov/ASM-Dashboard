@@ -291,17 +291,28 @@ exports[`Layout component matches snapshot 1`] = `
                 class="MuiGrid-root MuiGrid-container Footer-footerContainer css-11lq3yg-MuiGrid-root"
               >
                 <div
-                  class="MuiGrid-root MuiGrid-item MuiGrid-grid-xs-12 MuiGrid-grid-sm-2 Footer-footerLogo css-2shs9e-MuiGrid-root"
+                  class="MuiGrid-root MuiGrid-item MuiGrid-grid-xs-12 MuiGrid-grid-sm-3 Footer-footerLogo css-1kegxwi-MuiGrid-root"
                 >
-                  <a
-                    class="MuiTypography-root MuiTypography-inherit MuiLink-root MuiLink-underlineAlways css-smdm7r-MuiTypography-root-MuiLink-root"
-                    href="/"
+                  <div
+                    class="MuiStack-root css-niqf4j-MuiStack-root"
                   >
-                    <img
-                      alt="CyHy Dashboard Icon Navigate Home"
-                      src="cyhydashboard.svg"
-                    />
-                  </a>
+                    <a
+                      aria-label="CyHy Dashboard version 0.3.11"
+                      class="MuiTypography-root MuiTypography-inherit MuiLink-root MuiLink-underlineAlways css-smdm7r-MuiTypography-root-MuiLink-root"
+                      href="/"
+                    >
+                      <img
+                        alt="CyHy Dashboard Icon Navigate Home"
+                        src="cyhydashboard.svg"
+                      />
+                    </a>
+                    <span
+                      class="MuiTypography-root MuiTypography-caption css-190nz9y-MuiTypography-root"
+                      tabindex="0"
+                    >
+                      v. 0.3.11
+                    </span>
+                  </div>
                 </div>
                 <div
                   class="MuiGrid-root MuiGrid-item MuiGrid-grid-xs-12 MuiGrid-grid-sm-2 Footer-footerNavItem css-2shs9e-MuiGrid-root"

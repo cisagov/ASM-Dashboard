@@ -35,9 +35,6 @@ module.exports = {
         title: '',
         items: [{ text: 'API Reference', link: '/docs/api-reference/' }],
       },
-      {
-        items: [{ text: 'ReadySetCyber', link: '/docs/rsc/user-guide' }],
-      },
     ],
     secondaryLinks: [
       {

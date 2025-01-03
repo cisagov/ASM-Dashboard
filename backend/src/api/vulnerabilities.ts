@@ -122,9 +122,28 @@ class VulnerabilitySearch {
       });
     }
     if (this.filters?.severity) {
-      qs.andWhere('vulnerability.severity ILIKE :severity', {
-        severity: `%${this.filters.severity}%`
-      });
+      if (this.filters.severity === 'N/A') {
+        qs.andWhere(
+          "vulnerability.severity IS NULL OR vulnerability.severity = ''"
+        );
+      } else if (this.filters.severity === 'Other') {
+        qs.andWhere(
+          `vulnerability.severity NOT ILIKE 'N/A' AND
+         vulnerability.severity NOT ILIKE 'Low' AND
+         vulnerability.severity NOT ILIKE 'Medium' AND
+         vulnerability.severity NOT ILIKE 'High' AND
+         vulnerability.severity NOT ILIKE 'Critical'AND
+         vulnerability.severity NOT ILIKE '' OR
+         vulnerability.severity ILIKE :other`,
+          {
+            other: 'Other'
+          }
+        );
+      } else {
+        qs.andWhere('vulnerability.severity ILIKE :severity', {
+          severity: `%${this.filters.severity}%`
+        });
+      }
     }
     if (this.filters?.cpe) {
       qs.andWhere('vulnerability.cpe ILIKE :cpe', {

@@ -306,29 +306,50 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
     });
   }, [fetchVulnerabilities, initialFilters]);
 
-  const vulRows: VulnerabilityRow[] = vulnerabilities.map((vuln) => ({
-    id: vuln.id,
-    title: vuln.title,
-    severity: vuln.severity ?? 'N/A',
-    kev: vuln.isKev ? 'Yes' : 'No',
-    domain: vuln?.domain?.name,
-    domainId: vuln?.domain?.id,
-    product: vuln.cpe
-      ? vuln.cpe
-      : vuln.service &&
-        vuln.service.products &&
-        vuln.service.products.length > 0 &&
-        vuln.service.products[0].cpe
-      ? vuln.service.products[0].cpe || 'N/A'
-      : 'N/A',
-    createdAt: vuln?.createdAt
-      ? `${differenceInCalendarDays(
-          Date.now(),
-          parseISO(vuln?.createdAt)
-        )} days`
-      : '',
-    state: vuln.state + (vuln.substate ? ` (${vuln.substate})` : '')
-  }));
+  const vulRows: VulnerabilityRow[] = vulnerabilities.map((vuln) => {
+    //The following logic is to format irregular severity levels to match those used in VulnerabilityBarChart.tsx
+
+    const titleCase = (str: string) =>
+      str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+
+    const severityLevels: string[] = ['Low', 'Medium', 'High', 'Critical'];
+
+    const formatSeverity = (severity: string) => {
+      if (severity === null || severity === '' || severity === 'N/A') {
+        return 'N/A';
+      } else if (severityLevels.includes(titleCase(severity))) {
+        return titleCase(severity);
+      } else {
+        return 'Other';
+      }
+    };
+
+    const severity = formatSeverity(vuln.severity ?? '');
+
+    return {
+      id: vuln.id,
+      title: vuln.title,
+      severity: severity,
+      kev: vuln.isKev ? 'Yes' : 'No',
+      domain: vuln?.domain?.name,
+      domainId: vuln?.domain?.id,
+      product: vuln.cpe
+        ? vuln.cpe
+        : vuln.service &&
+          vuln.service.products &&
+          vuln.service.products.length > 0 &&
+          vuln.service.products[0].cpe
+        ? vuln.service.products[0].cpe || 'N/A'
+        : 'N/A',
+      createdAt: vuln?.createdAt
+        ? `${differenceInCalendarDays(
+            Date.now(),
+            parseISO(vuln?.createdAt)
+          )} days`
+        : '',
+      state: vuln.state + (vuln.substate ? ` (${vuln.substate})` : '')
+    };
+  });
 
   const vulCols: GridColDef[] = [
     {

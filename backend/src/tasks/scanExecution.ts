@@ -5,7 +5,15 @@ import { integer } from 'aws-sdk/clients/cloudfront';
 const ecs = new AWS.ECS();
 let docker: any;
 const QUEUE_URL = process.env.QUEUE_URL!;
-const SCAN_LIST = ['dnstwist', 'intelx', 'cybersixgill', 'shodan', 'xpanse'];
+const SCAN_LIST = [
+  'dnstwist',
+  'intelx',
+  'cybersixgill',
+  'shodan',
+  'xpanse',
+  'asmSync',
+  'qualys'
+];
 
 if (process.env.IS_LOCAL) {
   const Docker = require('dockerode');
@@ -152,7 +160,10 @@ async function startLocalContainers(
           `SERVICE_TYPE=${scanType}`,
           `PE_API_URL=${process.env.PE_API_URL}`,
           `PE_API_KEY=${process.env.PE_API_KEY}`,
-          `CF_API_KEY=${process.env.CF_API_KEY}`
+          `CF_API_KEY=${process.env.CF_API_KEY}`,
+          `WHOIS_XML_KEY=${process.env.WHOIS_XML_KEY}`,
+          `QUALYS_USERNAME=${process.env.QUALYS_USERNAME}`,
+          `QUALYS_PASSWORD=${process.env.QUALYS_PASSWORD}`
         ]
       } as any);
       await container.start();
@@ -215,7 +226,7 @@ export const handler: Handler = async (event) => {
       await startDesiredTasks(scanType, desiredCount);
     } else {
       console.log(
-        'Shodan, DNSTwist, IntelX, Xpanse, and Cybersixgill are the only script types available right now. Must be all lowercase.'
+        'Shodan, Qualys, ASMSync, DNSTwist, IntelX, Xpanse, and Cybersixgill are the only script types available right now. Must be all lowercase.'
       );
     }
   } catch (error) {

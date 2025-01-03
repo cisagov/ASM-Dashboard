@@ -165,6 +165,18 @@ resource "aws_ecs_task_definition" "pe_worker" {
       {
         "name": "ELASTICSEARCH_ENDPOINT",
         "valueFrom": "${aws_ssm_parameter.es_endpoint.arn}"
+      },
+      {
+        "name": "WHOIS_XML_KEY",
+        "valueFrom": "${data.aws_ssm_parameter.whoisxml_api_key.arn}"
+      },
+      {
+        "name": "QUALYS_USERNAME",
+        "valueFrom": "${data.aws_ssm_parameter.qualys_username.arn}"
+      },
+      {
+        "name": "QUALYS_PASSWORD",
+        "valueFrom": "${data.aws_ssm_parameter.qualys_password.arn}"
       }
     ]
   }

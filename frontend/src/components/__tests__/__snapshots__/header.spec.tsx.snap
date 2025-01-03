@@ -55,7 +55,7 @@ exports[`Header component matches snapshot 1`] = `
               />
             </a>
             <div
-              class="MuiBox-root css-1cj6uv1"
+              class="MuiBox-root css-sjbm0i"
             >
               <div
                 class="css-1ssxti9"
@@ -81,7 +81,7 @@ exports[`Header component matches snapshot 1`] = `
             </div>
           </div>
           <div
-            class="MuiBox-root css-1xvlbjo"
+            class="MuiBox-root css-m5yhqc"
           >
             <p
               class="MuiTypography-root MuiTypography-body1 css-ahj2mt-MuiTypography-root"
@@ -96,8 +96,7 @@ exports[`Header component matches snapshot 1`] = `
               class="MuiBox-root css-d0uhtl"
             >
               <button
-                class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium css-2oatfu-MuiButtonBase-root-MuiButton-root"
-                style="color: white;"
+                class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium css-r1ziak-MuiButtonBase-root-MuiButton-root"
                 tabindex="0"
                 type="button"
               >
@@ -132,6 +131,26 @@ exports[`Header component matches snapshot 1`] = `
                     />
                   </svg>
                 </span>
+                <span
+                  class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
+                />
+              </button>
+              <button
+                class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeMedium css-1suou01-MuiButtonBase-root-MuiIconButton-root"
+                tabindex="0"
+                type="button"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  data-testid="MenuIcon"
+                  focusable="false"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"
+                  />
+                </svg>
                 <span
                   class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
                 />

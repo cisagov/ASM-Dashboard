@@ -9,7 +9,6 @@ type UserType =
   | 'globalAdmin'
   | 'regionalAdmin'
   | 'globalView'
-  | 'readySetCyber'
   | undefined
   | null;
 
