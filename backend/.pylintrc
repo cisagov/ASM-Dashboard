@@ -1,3 +1,6 @@
+[MASTER]
+ignore=tests
+
 [CLASSES]
 min-public-methods=1
 

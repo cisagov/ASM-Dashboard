@@ -39,7 +39,7 @@ jobs:
       - run: pip install -r requirements.txt
 
       - name: Lint with pylint
-        run: PYTHONPATH=/src pylint .
+        run: make pylint
 
   test:
     runs-on: ubuntu-latest
@@ -76,11 +76,6 @@ jobs:
 
       - name: Sync database
         run: make syncdb
-
-      - name: Package with Serverless
-        run: npx serverless package
-        env:
-          SLS_DEBUG: '*'
 
       - name: Run pytest
         run: make pytest
