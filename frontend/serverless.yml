@@ -14,7 +14,10 @@ custom:
     certificateName: ${file(env.yml):${self:provider.stage}.DOMAIN, ''}
     stage: ${self:provider.stage}
     createRoute53Record: false
-
+  prune:
+    automatic: true
+    includeLayers: true
+    number: 3
   # Resource policies for GovCloud (Private) vs Non-GovCloud (Regional)
   privateResourcePolicy:
     - Effect: Deny
@@ -105,3 +108,4 @@ plugins:
   - serverless-better-credentials
   - serverless-webpack
   - serverless-plugin-ifelse
+  - serverless-prune-versions
