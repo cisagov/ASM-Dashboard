@@ -8,15 +8,28 @@ import fs from 'fs';
 
 export const app = express();
 
+// Rate limiting
 app.use(
   rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 1000
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 1000 // Limit each IP to 1000 requests per windowMs
   })
-); // limit 1000 requests per 15 minutes
+);
 
-app.use(express.static(path.join(__dirname, '../docs/build')));
+// Serve static assets with explicit MIME types
+app.use(
+  express.static(path.join(__dirname, '../docs-build'), {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      } else if (filePath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css');
+      }
+    }
+  })
+);
 
+// CORS settings
 app.use(
   cors({
     origin: [
@@ -27,33 +40,21 @@ app.use(
   })
 );
 
+// Helmet for security headers
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: [
-          "'self'",
-          `${process.env.COGNITO_URL}`,
-          `${process.env.BACKEND_DOMAIN}`
-        ],
-        frameSrc: ["'self'", 'https://www.dhs.gov/ntas/'],
-        imgSrc: [
-          "'self'",
-          'data:',
-          `https://${process.env.DOMAIN}`,
-          'https://www.ssa.gov',
-          'https://www.dhs.gov'
-        ],
-        objectSrc: ["'none'"],
+        defaultSrc: ["'self'"],
         scriptSrc: [
           "'self'",
-          `${process.env.BACKEND_DOMAIN}`,
-          'https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js',
-          'https://www.ssa.gov/accessibility/andi/fandi.js',
-          'https://www.ssa.gov/accessibility/andi/andi.js',
-          'https://www.dhs.gov'
+          'https://ajax.googleapis.com',
+          'https://www.ssa.gov'
         ],
-        frameAncestors: ["'none'"]
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'https://www.ssa.gov'],
+        frameSrc: ["'self'", 'https://www.dhs.gov/ntas/'],
+        objectSrc: ["'none'"]
       }
     },
     hsts: {
@@ -76,23 +77,30 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static assets or fallback to index.html for client-side routing
+// Route to serve `/docs` directly
+app.get('/docs', (req, res) => {
+  res.sendFile(path.join(__dirname, '../docs-build/index.html'));
+});
+
+// Route to serve `/docs/*` for Gatsby client-side routing
 app.get('/docs/*', (req, res) => {
   const rootFolder = path.join(__dirname, '../docs-build');
-  const staticFilePath = path.join(rootFolder, req.path.replace('/docs', ''));
+  const requestedPath = req.path.replace('/docs', '');
+  const staticFilePath = path.join(rootFolder, requestedPath);
+
+  // Debugging logs for path resolution
+  console.log(`Requested path: ${requestedPath}`);
+  console.log(`Resolved file path: ${staticFilePath}`);
 
   // If the requested file exists, serve it
   if (fs.existsSync(staticFilePath) && fs.lstatSync(staticFilePath).isFile()) {
+    console.log(`Serving file: ${staticFilePath}`);
     res.sendFile(staticFilePath);
   } else {
-    // Otherwise, fallback to index.html for Gatsby client-side routing
+    // Fallback to index.html for client-side routing
+    console.log(`File not found, falling back to index.html`);
     res.sendFile(path.join(rootFolder, 'index.html'));
   }
-});
-
-// Serve `/docs` directly
-app.get('/docs', (req, res) => {
-  res.sendFile(path.join(__dirname, '../docs-build/index.html'));
 });
 
 // Fallback for all other routes (non /docs)
@@ -100,6 +108,7 @@ app.get('*', (req, res) => {
   res.status(404).send('Not Found');
 });
 
+// Serverless handler
 export const handler = serverless(app, {
   binary: ['image/*', 'font/*']
 });
