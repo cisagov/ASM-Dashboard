@@ -92,14 +92,22 @@ app.get('/docs', (req, res) => {
 
 // Fallback for all other routes
 app.get('*', (req, res) => {
-  const staticFilePath = path.join(__dirname, '../docs-build', req.path);
+  const rootFolder = path.resolve(__dirname, '../docs-build');
+  const staticFilePath = path.resolve(rootFolder, '.' + req.path);
+
+  // Verify that the file path is under the root directory
+  if (!staticFilePath.startsWith(rootFolder)) {
+    res.statusCode = 403;
+    res.end();
+    return;
+  }
 
   // Serve static file if it exists
   if (fs.existsSync(staticFilePath) && fs.lstatSync(staticFilePath).isFile()) {
     res.sendFile(staticFilePath);
   } else {
     // Otherwise fallback to index.html for client-side routing
-    res.sendFile(path.join(__dirname, '../docs-build/index.html'));
+    res.sendFile(path.join(rootFolder, 'index.html'));
   }
 });
 
