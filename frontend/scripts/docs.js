@@ -80,23 +80,26 @@ app.get('/docs', (req, res) => {
   res.sendFile(path.join(__dirname, '../docs-build/index.html'));
 });
 
+// Fallback to index.html for Gatsby routing
+app.get('/docs/*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../docs-build/index.html'));
+});
+
+// Explicitly handle `/docs` route
+app.get('/docs', (req, res) => {
+  res.sendFile(path.join(__dirname, '../docs-build/index.html'));
+});
+
 // Fallback for all other routes
 app.get('*', (req, res) => {
-  const rootFolder = path.resolve(__dirname, '../docs-build');
-  const staticFilePath = path.resolve(rootFolder, '.' + req.path);
-
-  // Check if the resolved path is within the root folder
-  if (!staticFilePath.startsWith(rootFolder)) {
-    res.status(403).send('Forbidden');
-    return;
-  }
+  const staticFilePath = path.join(__dirname, '../docs-build', req.path);
 
   // Serve static file if it exists
   if (fs.existsSync(staticFilePath) && fs.lstatSync(staticFilePath).isFile()) {
     res.sendFile(staticFilePath);
   } else {
     // Otherwise fallback to index.html for client-side routing
-    res.sendFile(path.join(rootFolder, 'index.html'));
+    res.sendFile(path.join(__dirname, '../docs-build/index.html'));
   }
 });
 
