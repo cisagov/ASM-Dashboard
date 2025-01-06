@@ -102,6 +102,10 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/integration'
     steps:
       - uses: actions/checkout@v3
+      - name: Debug Directory Structure
+        run: |
+          ls -la .
+          ls -la ..
       - uses: actions/setup-node@v3
         with:
           node-version: '18'
