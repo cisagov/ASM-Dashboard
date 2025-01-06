@@ -74,12 +74,24 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('*', (req, res) => {
-  const filePath = path.join(__dirname, '../docs-build', req.path);
+// Serve static assets
+app.use(
+  express.static(path.join(__dirname, '../docs-build'), {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      }
+    }
+  })
+);
 
-  // Check if the file exists in the static assets
-  if (fs.existsSync(filePath) && fs.lstatSync(filePath).isFile()) {
-    res.sendFile(filePath);
+// Fallback to index.html for client-side routing
+app.get('*', (req, res) => {
+  const staticFilePath = path.join(__dirname, '../docs-build', req.path);
+
+  // Serve the file if it exists
+  if (fs.existsSync(staticFilePath) && fs.lstatSync(staticFilePath).isFile()) {
+    res.sendFile(staticFilePath);
   } else {
     // Fallback to index.html for client-side routing
     res.sendFile(path.join(__dirname, '../docs-build/index.html'));
