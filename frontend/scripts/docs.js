@@ -75,40 +75,28 @@ app.use((req, res, next) => {
   next();
 });
 
-// Explicitly handle `/docs` route
-app.get('/docs', (req, res) => {
-  res.sendFile(path.join(__dirname, '../docs-build/index.html'));
-});
-
-// Fallback to index.html for Gatsby routing
+// Serve static assets or fallback to index.html for client-side routing
 app.get('/docs/*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../docs-build/index.html'));
-});
+  const rootFolder = path.join(__dirname, '../docs-build');
+  const staticFilePath = path.join(rootFolder, req.path.replace('/docs', ''));
 
-// Explicitly handle `/docs` route
-app.get('/docs', (req, res) => {
-  res.sendFile(path.join(__dirname, '../docs-build/index.html'));
-});
-
-// Fallback for all other routes
-app.get('*', (req, res) => {
-  const rootFolder = path.resolve(__dirname, '../docs-build');
-  const staticFilePath = path.resolve(rootFolder, '.' + req.path);
-
-  // Verify that the file path is under the root directory
-  if (!staticFilePath.startsWith(rootFolder)) {
-    res.statusCode = 403;
-    res.end();
-    return;
-  }
-
-  // Serve static file if it exists
+  // If the requested file exists, serve it
   if (fs.existsSync(staticFilePath) && fs.lstatSync(staticFilePath).isFile()) {
     res.sendFile(staticFilePath);
   } else {
-    // Otherwise fallback to index.html for client-side routing
+    // Otherwise, fallback to index.html for Gatsby client-side routing
     res.sendFile(path.join(rootFolder, 'index.html'));
   }
+});
+
+// Serve `/docs` directly
+app.get('/docs', (req, res) => {
+  res.sendFile(path.join(__dirname, '../docs-build/index.html'));
+});
+
+// Fallback for all other routes (non /docs)
+app.get('*', (req, res) => {
+  res.status(404).send('Not Found');
 });
 
 export const handler = serverless(app, {
