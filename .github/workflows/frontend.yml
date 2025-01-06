@@ -111,26 +111,25 @@ jobs:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: ${{ runner.os }}-node-
-      - name: Install dependencies
+      - name: Install Frontend Dependencies
         run: npm ci
-      - name: Debug Directory Structure
-        run: |
-          ls -la ../frontend
-          ls -la ../docs/public
+      - name: Install Docs Dependencies
+        run: npm ci
+        working-directory: ../docs
       - name: Build Docs
-        run: |
-          cd ../docs
-          npm ci
-          npm run build
-          cp -R public ../frontend/docs-build
-      
+        run: npm run build
+        working-directory: ../docs
+      - name: Copy Docs to Frontend
+        run: cp -R ../docs/public ../frontend/docs-build
       - name: Build Integration
-        run: cp integration.env .env && npm run build
-      - name: Debug Directory Structure After build
         run: |
-          ls -la ../frontend/docs-build
-          ls -la ../frontend
-          ls -la ../docs/public
+          cp integration.env .env
+          npm run build
+        working-directory: ./frontend
+      - name: Debug Directory Structure After Build
+        run: |
+          ls -la ./frontend/docs-build
+          ls -la ./frontend
       - name: Deploy Integration
         run: npx sls deploy --stage=integration
         env:
