@@ -74,8 +74,16 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use((req, res) => {
-  res.sendFile(path.join(__dirname, '../docs-build/index.html'));
+app.get('*', (req, res) => {
+  const filePath = path.join(__dirname, '../docs-build', req.path);
+
+  // Check if the file exists in the static assets
+  if (fs.existsSync(filePath) && fs.lstatSync(filePath).isFile()) {
+    res.sendFile(filePath);
+  } else {
+    // Fallback to index.html for client-side routing
+    res.sendFile(path.join(__dirname, '../docs-build/index.html'));
+  }
 });
 
 export const handler = serverless(app, {
