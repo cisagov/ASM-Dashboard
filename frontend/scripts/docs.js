@@ -88,14 +88,21 @@ app.use(
 
 // Fallback to index.html for client-side routing
 app.get('*', (req, res) => {
-  const staticFilePath = path.join(__dirname, '../docs-build', req.path);
+  const rootDir = path.resolve(__dirname, '../docs-build');
+  const staticFilePath = path.resolve(rootDir, '.' + req.path);
+
+  // Check that the file path is under the root directory
+  if (!staticFilePath.startsWith(rootDir)) {
+    res.status(403).send('Forbidden');
+    return;
+  }
 
   // Serve the file if it exists
   if (fs.existsSync(staticFilePath) && fs.lstatSync(staticFilePath).isFile()) {
     res.sendFile(staticFilePath);
   } else {
     // Fallback to index.html for client-side routing
-    res.sendFile(path.join(__dirname, '../docs-build/index.html'));
+    res.sendFile(path.join(rootDir, 'index.html'));
   }
 });
 
