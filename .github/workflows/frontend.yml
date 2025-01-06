@@ -113,14 +113,24 @@ jobs:
           restore-keys: ${{ runner.os }}-node-
       - name: Install dependencies
         run: npm ci
+      - name: Debug Directory Structure
+        run: |
+          ls -la ../frontend
+          ls -la ../docs/public
       - name: Build Docs
         run: |
           cd ../docs
           npm ci
           npm run build
           cp -R public ../frontend/docs-build
+      
       - name: Build Integration
         run: cp integration.env .env && npm run build
+      - name: Debug Directory Structure After build
+        run: |
+          ls -la ../frontend/docs-build
+          ls -la ../frontend
+          ls -la ../docs/public
       - name: Deploy Integration
         run: npx sls deploy --stage=integration
         env:

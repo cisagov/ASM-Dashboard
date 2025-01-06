@@ -34,7 +34,7 @@ This quickstart describes the initial setup required to run an instance of Cross
    # Generate schema
    make syncdb
    # Populate sample data
-   make syncdb -- -d populate
+   make syncdb-populate
    ```
 
    If you ever need to drop and recreate the database, you can run `npm run syncdb -- -d dangerouslyforce`.
