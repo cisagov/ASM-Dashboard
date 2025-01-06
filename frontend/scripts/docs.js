@@ -63,37 +63,32 @@ app.use(
   })
 );
 
-//Middleware to set Cache-Control headers
+// Middleware to set Cache-Control headers
 app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   next();
 });
 
+// Middleware to disable XSS protection
 app.use((req, res, next) => {
   res.setHeader('X-XSS-Protection', '0');
   next();
 });
 
-// Serve static assets
-app.use(
-  express.static(path.join(__dirname, '../docs-build'), {
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith('.js')) {
-        res.setHeader('Content-Type', 'application/javascript');
-      }
-    }
-  })
-);
+// Explicitly handle `/docs` route
+app.get('/docs', (req, res) => {
+  res.sendFile(path.join(__dirname, '../docs-build/index.html'));
+});
 
-// Fallback to index.html for client-side routing
+// Fallback for all other routes
 app.get('*', (req, res) => {
   const staticFilePath = path.join(__dirname, '../docs-build', req.path);
 
-  // Serve the file if it exists
+  // Serve static file if it exists
   if (fs.existsSync(staticFilePath) && fs.lstatSync(staticFilePath).isFile()) {
     res.sendFile(staticFilePath);
   } else {
-    // Fallback to index.html for client-side routing
+    // Otherwise fallback to index.html for client-side routing
     res.sendFile(path.join(__dirname, '../docs-build/index.html'));
   }
 });
