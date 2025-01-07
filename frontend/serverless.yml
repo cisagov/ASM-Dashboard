@@ -14,16 +14,57 @@ custom:
     certificateName: ${file(env.yml):${self:provider.stage}.DOMAIN, ''}
     stage: ${self:provider.stage}
     createRoute53Record: false
+  prune:
+    automatic: true
+    includeLayers: true
+    number: 3
+  # Resource policies for GovCloud (Private) vs Non-GovCloud (Regional)
+  privateResourcePolicy:
+    - Effect: Deny
+      Principal: '*'
+      Action: 'execute-api:Invoke'
+      Resource: execute-api:/${self:provider.stage}/*/*
+      Condition:
+        StringNotEquals:
+          'aws:sourceVpce': ${file(env.yml):${self:provider.stage}.VPC_ENDPOINT, ''}
+    - Effect: Allow
+      Principal: '*'
+      Action: execute-api:Invoke
+      Resource: execute-api:/${self:provider.stage}/*/*
+
+  regionalResourcePolicy:
+    - Effect: Allow
+      Principal: '*'
+      Action: execute-api:Invoke
+      Resource: execute-api:/${self:provider.stage}/*/*
+      Condition:
+        IpAddress:
+          aws:SourceIp:
+            - ${file(env.yml):${self:provider.stage}.DMZ_CIDR, ''}
+
+  # Conditional logic for GovCloud vs
+  # non-GovCloud (Private endpoints require a VPC Endpoint)
+  serverlessIfElse:
+    - If: '"${file(env.yml):${self:provider.stage}.ENDPOINT_TYPE}" == "PRIVATE"'
+      Set:
+        provider.vpcEndpointIds:
+          - ${file(env.yml):${self:provider.stage}.VPC_ENDPOINT, ''}
+        provider.apiGateway.resourcePolicy: ${self:custom.privateResourcePolicy}
+      ElseSet:
+        provider.apiGateway.resourcePolicy: ${self:custom.regionalResourcePolicy}
+      ElseExclude:
+        - provider.vpcEndpointIds
 
 provider:
   name: aws
-  region: us-east-1
-  endpointType: REGIONAL
+  region: ${file(env.yml):${self:provider.stage}.REGION, ''}
+  endpointType: ${file(env.yml):${self:provider.stage}.ENDPOINT_TYPE, ''}
   runtime: nodejs16.x
   timeout: 30
   stage: ${opt:stage, 'dev'}
   environment: ${file(env.yml):${self:provider.stage}, ''}
   vpc: ${file(env.yml):${self:provider.stage}-vpc, ''}
+  # Placeholder the will be replaced with Custom entry
   apiGateway:
     binaryMediaTypes:
       - image/*
@@ -33,10 +74,6 @@ provider:
         Principal: '*'
         Action: execute-api:Invoke
         Resource: execute-api:/${self:provider.stage}/*/*
-        Condition:
-          IpAddress:
-            aws:SourceIp:
-              - ${file(env.yml):${self:provider.stage}.DMZ_CIDR, ''}
   logs:
     restApi: true
   deploymentBucket:
@@ -60,8 +97,38 @@ functions:
       - http:
           path: /docs
           method: GET
+      - http:
+          path: /docs/{any+}
+          method: GET
+
+resources:
+  Resources:
+    ApiGatewayPermissionForDocsLambda:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName:
+          Fn::GetAtt: [DocsLambdaFunction, Arn]
+        Action: lambda:InvokeFunction
+        Principal: apigateway.amazonaws.com
+        SourceArn:
+          Fn::Join:
+            - ""
+            - - "arn:aws:execute-api:"
+              - Ref: AWS::Region
+              - ":"
+              - Ref: AWS::AccountId
+              - ":"
+              - Ref: ApiGatewayRestApi
+              - "/*/*/docs*"
+package:
+  include:
+    - scripts/**         # Include handler scripts
+    - build/**           # Include React static assets
+    - docs-build/**      # Include copied Gatsby static assets
 
 plugins:
   - serverless-domain-manager
   - serverless-better-credentials
   - serverless-webpack
+  - serverless-plugin-ifelse
+  - serverless-prune-versions
