@@ -125,7 +125,7 @@ const filterOrder = [
   'Region',
   'Organization',
   'IP',
-  'Domain',
+  'Name',
   'Root Domain(s)',
   'Port',
   'CVE',
