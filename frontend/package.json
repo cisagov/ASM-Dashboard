@@ -100,6 +100,8 @@
     "serverless-better-credentials": "^1.2.0",
     "serverless-domain-manager": "^7.0",
     "serverless-http": "^3.2.0",
+    "serverless-plugin-ifelse": "^1.0.7",
+    "serverless-prune-versions": "^1.0.4",
     "serverless-webpack": "^5.11.0",
     "ts-jest": "^29.1.1",
     "typescript": "^4.8.4",
