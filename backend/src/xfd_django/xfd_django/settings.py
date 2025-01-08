@@ -65,6 +65,7 @@ MESSAGE_TAGS = {
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "xfd_api.apps.XfdApiConfig",
+    "xfd_mini_dl.apps.XfdMiniDlConfig",
 ]
 
 MIDDLEWARE = [
@@ -91,16 +92,16 @@ DATABASES = {
         },
     },
     "mini_data_lake": {
-        'ENGINE': "django.db.backends.postgresql_psycopg2",  # Replace with your database engine
-        'NAME': os.getenv("mdl_database"),
-        'USER': os.getenv('mdl_user'),
-        'PASSWORD': os.getenv('mdl_password'),
-        'HOST': os.getenv('mdl_host'),
-        'PORT': os.getenv('mdl_port'),
-    }
+        "ENGINE": "django.db.backends.postgresql_psycopg2",  # Replace with your database engine
+        "NAME": os.getenv("MDL_NAME"),
+        "USER": os.getenv("MDL_USERNAME"),
+        "PASSWORD": os.getenv("MDL_PASSWORD"),
+        "HOST": os.getenv("DB_HOST"),
+        "PORT": "5432",
+    },
 }
 
-DATABASE_ROUTERS = ['xfd_django.db_routers.MyAppRouter']
+DATABASE_ROUTERS = ["xfd_django.db_routers.MyAppRouter"]
 
 # ElastiCache AWS
 ELASTICACHE_ENDPOINT = os.getenv("ELASTICACHE_ENDPOINT")

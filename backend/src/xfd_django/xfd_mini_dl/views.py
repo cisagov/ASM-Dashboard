@@ -1,3 +1,4 @@
-from django.shortcuts import render
+"""XFD datalake views."""
+# Third-Party Libraries
 
 # Create your views here.

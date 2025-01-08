@@ -18,6 +18,22 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD}
     command: ['postgres', '-c', 'log_statement=all', '-c', 'log_duration=on']
 
+  db_mdl:
+    image: postgres:15.3
+    volumes:
+      - ./postgres-data-mdl:/var/lib/postgresql/data
+      - ./backend/db-init-mdl:/docker-entrypoint-initdb.d
+    ports:
+      - '5433:5432'
+    env_file:
+      - ./.env
+    networks:
+      - backend
+    environment:
+      - POSTGRES_USER=${MDL_USERNAME}
+      - POSTGRES_PASSWORD=${MDL_PASSWORD}
+    command: ['postgres', '-c', 'log_statement=all', '-c', 'log_duration=on']
+
   frontend:
     build: ./frontend
     volumes:
