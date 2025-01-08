@@ -89,8 +89,18 @@ DATABASES = {
         "TEST": {
             "NAME": "crossfeed_test",  # Name of the test database
         },
+    },
+    "mini_data_lake": {
+        'ENGINE': "django.db.backends.postgresql_psycopg2",  # Replace with your database engine
+        'NAME': os.getenv("mdl_database"),
+        'USER': os.getenv('mdl_user'),
+        'PASSWORD': os.getenv('mdl_password'),
+        'HOST': os.getenv('mdl_host'),
+        'PORT': os.getenv('mdl_port'),
     }
 }
+
+DATABASE_ROUTERS = ['xfd_django.db_routers.MyAppRouter']
 
 # ElastiCache AWS
 ELASTICACHE_ENDPOINT = os.getenv("ELASTICACHE_ENDPOINT")
