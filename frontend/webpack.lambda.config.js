@@ -18,7 +18,10 @@ module.exports = {
   },
   plugins: [
     new CopyWebpackPlugin({
-      patterns: [{ from: './build', to: 'build' }]
+      patterns: [
+        { from: './build', to: 'build' }, // React build
+        { from: './docs-build', to: 'docs-build' } // Gatsby docs build
+      ]
     })
   ]
 };
