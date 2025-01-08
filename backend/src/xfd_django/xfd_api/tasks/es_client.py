@@ -1,6 +1,5 @@
 """ES client."""
 # Standard Python Libraries
-import logging
 import os
 
 # Third-Party Libraries
