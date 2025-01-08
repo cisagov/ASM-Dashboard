@@ -26,6 +26,8 @@ import { DefinitionList } from './DefinitionList';
 import { differenceInCalendarDays, parseISO } from 'date-fns';
 import { Webpage } from 'types';
 import { useAuthContext } from 'context';
+import { getSeverityColor } from 'pages/Risk/utils';
+import { Box } from '@mui/system';
 
 const PREFIX = 'DomainDetails';
 
@@ -335,6 +337,30 @@ export const DomainDetails: React.FC<Props> = (props) => {
   const webpageTree = generateWebpageTree(webpages);
   const webpageList = generateWebpageList(webpageTree);
 
+  //Format Severity Level in the advent of an irregular value
+  const titleCase = (severity?: any) => {
+    if (severity === null || severity === undefined) {
+      return 'N/A';
+    } else {
+      return severity.charAt(0).toUpperCase() + severity.slice(1).toLowerCase();
+    }
+  };
+  const severitylevels = ['N/A', 'Low', 'Medium', 'High', 'Critical', 'Other'];
+  const formatSeverity = (severity?: any) => {
+    const titleCaseSev = titleCase(severity);
+    if (severitylevels.includes(titleCaseSev)) {
+      return titleCaseSev;
+    }
+    if (
+      !titleCaseSev ||
+      ['Null', 'N/a', 'undefined', ''].includes(titleCaseSev)
+    ) {
+      return 'N/A';
+    } else {
+      return 'Other';
+    }
+  };
+
   return (
     <>
       <Button
@@ -401,9 +427,20 @@ export const DomainDetails: React.FC<Props> = (props) => {
                     <Typography className={classes.accordionHeading}>
                       {vuln.title}
                     </Typography>
-                    <Typography className={classes.vulnDescription}>
-                      {vuln.severity}
-                    </Typography>
+                    <Box
+                      className={classes.vulnDescription}
+                      sx={{ justifyItems: 'right' }}
+                    >
+                      <Typography
+                        sx={{
+                          borderBottom: `6px solid ${getSeverityColor({
+                            id: formatSeverity(vuln.severity)
+                          })}`
+                        }}
+                      >
+                        {formatSeverity(vuln.severity)}
+                      </Typography>
+                    </Box>
                     <Typography className={classes.vulnDescription}>
                       {vuln.state}
                     </Typography>
