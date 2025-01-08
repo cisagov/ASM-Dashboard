@@ -10,9 +10,6 @@ from elasticsearch import Elasticsearch, helpers
 DOMAINS_INDEX = "domains-5"
 ORGANIZATIONS_INDEX = "organizations-1"
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-
 # Define mappings
 organization_mapping = {
     "properties": {"name": {"type": "text"}, "suggest": {"type": "completion"}}
@@ -41,7 +38,7 @@ class ESClient:
         """Create or updates the organizations index with mappings."""
         try:
             if not self.client.indices.exists(index=ORGANIZATIONS_INDEX):
-                logging.info(f"Creating index {ORGANIZATIONS_INDEX}...")
+                print(f"Creating index {ORGANIZATIONS_INDEX}...")
                 self.client.indices.create(
                     index=ORGANIZATIONS_INDEX,
                     body={
@@ -50,19 +47,19 @@ class ESClient:
                     },
                 )
             else:
-                logging.info(f"Updating index {ORGANIZATIONS_INDEX}...")
+                print(f"Updating index {ORGANIZATIONS_INDEX}...")
                 self.client.indices.put_mapping(
                     index=ORGANIZATIONS_INDEX, body=organization_mapping
                 )
         except Exception as e:
-            logging.error(f"Error syncing organizations index: {e}")
+            print(f"Error syncing organizations index: {e}")
             raise e
 
     def sync_domains_index(self):
         """Create or updates the domains index with mappings."""
         try:
             if not self.client.indices.exists(index=DOMAINS_INDEX):
-                logging.info(f"Creating index {DOMAINS_INDEX}...")
+                print(f"Creating index {DOMAINS_INDEX}...")
                 self.client.indices.create(
                     index=DOMAINS_INDEX,
                     body={
@@ -71,7 +68,7 @@ class ESClient:
                     },
                 )
             else:
-                logging.info(f"Updating index {DOMAINS_INDEX}...")
+                print(f"Updating index {DOMAINS_INDEX}...")
                 self.client.indices.put_mapping(
                     index=DOMAINS_INDEX, body=domain_mapping
                 )
@@ -80,7 +77,7 @@ class ESClient:
                 index=DOMAINS_INDEX, body={"settings": {"refresh_interval": "1800s"}}
             )
         except Exception as e:
-            logging.error(f"Error syncing domains index: {e}")
+            print(f"Error syncing domains index: {e}")
             raise e
 
     def update_organizations(self, organizations):
@@ -140,10 +137,10 @@ class ESClient:
     def delete_all(self):
         """Delete all indices in Elasticsearch."""
         try:
-            logging.info("Deleting all indices...")
+            print("Deleting all indices...")
             self.client.indices.delete(index="*")
         except Exception as e:
-            logging.error(f"Error deleting all indices: {e}")
+            print(f"Error deleting all indices: {e}")
             raise e
 
     def search_domains(self, body):
@@ -157,8 +154,17 @@ class ESClient:
     def _bulk_update(self, actions):
         """Update to Elasticsearch."""
         try:
-            helpers.bulk(self.client, actions, raise_on_error=True)
-            logging.info("Bulk update completed successfully.")
+            success_count, response = helpers.bulk(self.client, actions, raise_on_error=False)
+            print(f"Bulk operation success count: {success_count}")
+            
+            for idx, item in enumerate(response):
+                if 'update' in item and item['update'].get('error'):
+                    print(f"Error indexing document {idx}: {item['update']['error']}")
+                else:
+                    print(f"Successfully indexed document {idx}: {item}")
+            
+            self.client.indices.refresh(index='domains-5')
         except Exception as e:
-            logging.error(f"Bulk operation error: {e}")
+            print(f"Bulk operation error: {e}")
             raise e
+        
