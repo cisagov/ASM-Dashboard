@@ -8,6 +8,9 @@ syncdb:
 syncdb-populate:
 	docker compose exec backend python manage.py syncdb --populate
 
+syncdb-dangerously-force:
+	docker compose exec backend python manage.py syncdb --dangerouslyforce
+
 # Pytest
 # i.e. make pytest FILE=xfd_api/tests/test_domain.py
 pytest:
