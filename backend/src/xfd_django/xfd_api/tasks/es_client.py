@@ -1,6 +1,5 @@
 """ES client."""
 # Standard Python Libraries
-import logging
 import os
 
 # Third-Party Libraries
@@ -154,17 +153,18 @@ class ESClient:
     def _bulk_update(self, actions):
         """Update to Elasticsearch."""
         try:
-            success_count, response = helpers.bulk(self.client, actions, raise_on_error=False)
+            success_count, response = helpers.bulk(
+                self.client, actions, raise_on_error=False
+            )
             print(f"Bulk operation success count: {success_count}")
-            
+
             for idx, item in enumerate(response):
-                if 'update' in item and item['update'].get('error'):
+                if "update" in item and item["update"].get("error"):
                     print(f"Error indexing document {idx}: {item['update']['error']}")
                 else:
                     print(f"Successfully indexed document {idx}: {item}")
-            
-            self.client.indices.refresh(index='domains-5')
+
+            self.client.indices.refresh(index="domains-5")
         except Exception as e:
             print(f"Bulk operation error: {e}")
             raise e
-        
