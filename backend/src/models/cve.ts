@@ -112,6 +112,16 @@ export class Cve extends BaseEntity {
   @ManyToMany(() => Cpe, (cpe) => cpe.cves, {
     cascade: true
   })
-  @JoinTable()
+  @JoinTable({
+    name: 'cve_cpes_cpe',
+    joinColumn: {
+      name: 'cve_id',
+      referencedColumnName: 'id'
+    },
+    inverseJoinColumn: {
+      name: 'cpe_id',
+      referencedColumnName: 'id'
+    }
+  })
   cpes: Cpe[];
 }

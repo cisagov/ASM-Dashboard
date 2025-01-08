@@ -40,7 +40,7 @@ const DocumentationPage = ({ data, location }) => {
                   <SwaggerUI spec={spec} />
                 </div>
               )}
-              {fields.slug === '/dev/architecture/' && (
+              {fields.slug === '/docs/dev/architecture/' && (
                 <div style={{ marginTop: 20 }}>
                   <iframe
                     srcDoc={diagramHTML.default}
