@@ -44,29 +44,39 @@ class Command(BaseCommand):
         with connection.cursor() as cursor:
             try:
                 cursor.execute(
-                    f"CREATE USER {mdl_username} WITH PASSWORD '{mdl_password}';"
+                    "CREATE USER {} WITH PASSWORD '{}';".format(
+                        mdl_username, mdl_password
+                    )
                 )
             except Exception as e:
-                self.stdout.write(f"User creation failed (likely already exists): {e}")
-
-            try:
-                cursor.execute(f"GRANT {mdl_username} TO {os.getenv('DB_USERNAME')};")
-            except Exception as e:
-                self.stdout.write(f"Granting role failed: {e}")
-
-            try:
-                cursor.execute(f"CREATE DATABASE {mdl_name} OWNER {mdl_username};")
-            except Exception as e:
                 self.stdout.write(
-                    f"Database creation failed (likely already exists): {e}"
+                    "User creation failed (likely already exists): {}".format(e)
                 )
 
             try:
                 cursor.execute(
-                    f"GRANT ALL PRIVILEGES ON DATABASE {mdl_name} TO {mdl_username};"
+                    "GRANT {} TO {};".format(mdl_username, os.getenv("DB_USERNAME"))
                 )
             except Exception as e:
-                self.stdout.write(f"Granting privileges failed: {e}")
+                self.stdout.write("Granting role failed: {}".format(e))
+
+            try:
+                cursor.execute(
+                    "CREATE DATABASE {} OWNER {};".format(mdl_name, mdl_username)
+                )
+            except Exception as e:
+                self.stdout.write(
+                    "Database creation failed (likely already exists): {}".format(e)
+                )
+
+            try:
+                cursor.execute(
+                    "GRANT ALL PRIVILEGES ON DATABASE {} TO {};".format(
+                        mdl_name, mdl_username
+                    )
+                )
+            except Exception as e:
+                self.stdout.write("Granting privileges failed: {}".format(e))
 
         # Step 2: Synchronize or Reset the Database
         self.stdout.write("Synchronizing the MDL database schema...")

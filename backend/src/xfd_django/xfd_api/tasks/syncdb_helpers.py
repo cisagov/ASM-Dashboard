@@ -414,7 +414,9 @@ def drop_all_tables(app_label=None):
             # Drop all constraints first to avoid foreign key dependency issues
             cursor.execute("DROP SCHEMA public CASCADE;")
             cursor.execute("CREATE SCHEMA public;")
-            cursor.execute("GRANT ALL ON SCHEMA public TO postgres;")
+            cursor.execute(
+                "GRANT ALL ON SCHEMA public TO {};".format(os.getenv("DB_USERNAME"))
+            )
             cursor.execute("GRANT ALL ON SCHEMA public TO public;")
         except Exception as e:
             print(f"Error resetting schema: {e}")
