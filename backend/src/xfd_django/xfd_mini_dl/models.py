@@ -1768,8 +1768,7 @@ class VulnScan(models.Model):
         blank=True,
         help_text="Additional data collected by the VS vuln scan that is not commonly seen.",
     )
-
-
+     
     class Meta:
         """The Meta class for VulnScan."""
 
@@ -4573,6 +4572,7 @@ class ShodanVulns(models.Model):
     data_source = models.ForeignKey(
         DataSource,
         on_delete=models.CASCADE,
+        null=True,
         db_column="data_source_uid",
         help_text="FK: Foreign Key to data_source",
     )
