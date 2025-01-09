@@ -396,47 +396,30 @@ def drop_all_tables(app_label=None):
 
     if app_label is None:
         raise ValueError(
-            "The 'app_label' parameter is required to synchronize specific models. "
-            "Please provide an app label."
+            "The 'app_label' parameter is required to synchronize specific models."
         )
 
     if app_label not in allowed_labels:
         raise ValueError(
-            "Invalid 'app_label' provided. Must be one of: {}.".format(
-                ", ".join(allowed_labels)
-            )
+            f"Invalid 'app_label' provided. Must be one of: {', '.join(allowed_labels)}."
         )
 
     database = db_mapping.get(app_label, "default")
     print(
-        "Synchronizing database schema for app '{}' in database '{}'...".format(
-            app_label, database
-        )
+        f"Resetting database schema for app '{app_label}' in database '{database}'..."
     )
+
     with connections[database].cursor() as cursor:
-        if app_label:
-            # Get tables for the specified app
-            app_models = apps.get_app_config(app_label).get_models()
-            table_names = [model._meta.db_table for model in app_models]
-        else:
-            # Get all tables if no app is specified
-            cursor.execute(
-                "SELECT tablename FROM pg_tables WHERE schemaname = 'public';"
-            )
-            table_names = [row[0] for row in cursor.fetchall()]
+        try:
+            # Drop all constraints first to avoid foreign key dependency issues
+            cursor.execute("DROP SCHEMA public CASCADE;")
+            cursor.execute("CREATE SCHEMA public;")
+            cursor.execute("GRANT ALL ON SCHEMA public TO postgres;")
+            cursor.execute("GRANT ALL ON SCHEMA public TO public;")
+        except Exception as e:
+            print(f"Error resetting schema: {e}")
 
-        for table in table_names:
-            try:
-                print(f"Dropping table: {table}")
-                cursor.execute(
-                    "DROP TABLE IF EXISTS {} CASCADE;".format(
-                        connections[database].ops.quote_name(table)
-                    )
-                )
-            except Exception as e:
-                print(f"Error dropping table {table}: {e}")
-
-    print("All specified tables dropped successfully.")
+    print("Database schema reset successfully.")
 
 
 def chunked_iterable(iterable, size):

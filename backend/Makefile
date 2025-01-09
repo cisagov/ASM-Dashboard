@@ -8,6 +8,9 @@ syncdb:
 syncdb-populate:
 	docker compose exec backend python manage.py syncdb --populate
 
+syncdb-populate:
+	docker compose exec backend python manage.py syncdb --dangerouslyforce
+
 
 # Synchronize and populate the database
 syncmdl:
