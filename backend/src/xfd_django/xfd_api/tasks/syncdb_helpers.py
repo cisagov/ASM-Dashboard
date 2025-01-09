@@ -314,7 +314,9 @@ def update_table(schema_editor: BaseDatabaseSchemaEditor, model):
                 safe_table_name = connection.ops.quote_name(table_name)
                 safe_column_name = connection.ops.quote_name(column)
                 # Construct and execute the query without f-strings
-                query = "ALTER TABLE {} DROP COLUMN IF EXISTS {};".format(safe_table_name, safe_column_name)
+                query = "ALTER TABLE {} DROP COLUMN IF EXISTS {};".format(
+                    safe_table_name, safe_column_name
+                )
                 cursor.execute(query)
             except Exception as e:
                 print(
