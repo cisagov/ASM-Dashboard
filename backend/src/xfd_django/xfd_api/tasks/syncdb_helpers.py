@@ -249,7 +249,7 @@ def get_ordered_models(target_app_label):
     dependencies = defaultdict(set)
     dependents = defaultdict(set)
 
-    models = apps.get_app_config(target_app_label).get_models()
+    models = list(apps.get_app_config(target_app_label).get_models())
 
     for model in models:
         for field in model._meta.get_fields():
