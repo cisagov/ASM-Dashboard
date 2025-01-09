@@ -1770,12 +1770,12 @@ class VulnScan(models.Model):
     )
 
 
-class Meta:
-    """The Meta class for VulnScan."""
+    class Meta:
+        """The Meta class for VulnScan."""
 
-    app_label = app_label_name
-    managed = manage_db
-    db_table = "vuln_scan"
+        app_label = app_label_name
+        managed = manage_db
+        db_table = "vuln_scan"
 
 
 class Cidr(models.Model):
