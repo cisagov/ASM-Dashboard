@@ -45,7 +45,6 @@ yarn-error.log*
 .build
 dist
 postgres-data
-postgres-data-mdl
 es-data
 matomo-data
 matomo-db-data
