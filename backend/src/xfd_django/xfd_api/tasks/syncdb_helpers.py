@@ -257,7 +257,7 @@ def process_model(schema_editor: BaseDatabaseSchemaEditor, cursor, model):
     table_name = model._meta.db_table
 
     # Check if the table exists
-    cursor.execute(f"SELECT to_regclass('{table_name}');")
+    cursor.execute("SELECT to_regclass(%s);", [table_name])
     table_exists = cursor.fetchone()[0] is not None
 
     if table_exists:
@@ -275,7 +275,7 @@ def process_m2m_tables(schema_editor: BaseDatabaseSchemaEditor, cursor):
             m2m_table_name = field.m2m_db_table()
 
             # Check if the M2M table exists
-            cursor.execute(f"SELECT to_regclass('{m2m_table_name}');")
+            cursor.execute("SELECT to_regclass(%s);", [m2m_table_name])
             table_exists = cursor.fetchone()[0] is not None
 
             if not table_exists:
@@ -310,9 +310,14 @@ def update_table(schema_editor: BaseDatabaseSchemaEditor, model):
         for column in extra_columns:
             print(f"Removing extra column '{column}' from table '{table_name}'")
             try:
-                cursor.execute(
-                    f"ALTER TABLE {table_name} DROP COLUMN IF EXISTS {column};"
+                # Safely quote table and column names
+                safe_table_name = connection.ops.quote_name(table_name)
+                safe_column_name = connection.ops.quote_name(column)
+                # Construct and execute the query without f-strings
+                query = "ALTER TABLE {} DROP COLUMN IF EXISTS {};".format(
+                    safe_table_name, safe_column_name
                 )
+                cursor.execute(query)
             except Exception as e:
                 print(
                     f"Error dropping column '{column}' from table '{table_name}': {e}"
@@ -337,7 +342,7 @@ def cleanup_stale_tables(cursor):
     for table in stale_tables:
         print(f"Removing stale table: {table}")
         try:
-            cursor.execute(f"DROP TABLE {table} CASCADE;")
+            cursor.execute("DROP TABLE %s CASCADE;", [connection.ops.quote_name(table)])
         except Exception as e:
             print(f"Error dropping stale table {table}: {e}")
 
