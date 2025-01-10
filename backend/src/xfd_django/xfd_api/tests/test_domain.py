@@ -30,7 +30,7 @@ def user():
     user = User.objects.create(
         firstName="",
         lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         userType=UserType.GLOBAL_ADMIN,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
@@ -118,7 +118,7 @@ def test_get_domain_by_id(user, domain):
     """Test domain by id."""
     # Get domain by Id.
     response = client.get(
-        f"/domain/{domain.id}",
+        "/domain/{}".format(domain.id),
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
@@ -134,7 +134,7 @@ def test_get_domain_by_id_fails_404(user, domain):
     """Test domain by id to fail."""
     # Get domain by Id.
     response = client.get(
-        f"/domain/{bad_id}",
+        "/domain/{}".format(bad_id),
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
@@ -159,9 +159,9 @@ def test_search_domain_by_ip(user, vulnerability):
 
     # Validate result contain the correct IP
     for domain in data["result"]:
-        assert (
-            domain["ip"] == search_fields["ip"]
-        ), f"Expected IP {search_fields['ip']}, but got {domain['ip']}"
+        assert domain["ip"] == search_fields["ip"], "Expected IP {}, but got {}".format(
+            search_fields["ip"], domain["ip"]
+        )
 
 
 @pytest.mark.django_db(transaction=True)
@@ -186,7 +186,9 @@ def test_search_domain_by_port(user, vulnerability):
         for service in services:
             assert (
                 str(service.port) == search_fields["port"]
-            ), f"Domain with ID {domain_id} does not have a service with port {vulnerability.service.port}"
+            ), "Domain with ID {} does not have a service with port {}".format(
+                domain_id, vulnerability.service.port
+            )
 
 
 @pytest.mark.django_db(transaction=True)
@@ -216,7 +218,9 @@ def test_search_domain_by_service(user, vulnerability):
         service_match = services.filter(id=vulnerability.service.id)
         assert (
             service_match is not None
-        ), f"Domain with ID {domain_id} is not related a service with ID {vulnerability.service.id}"
+        ), "Domain with ID {} is not related to a service with ID {}".format(
+            domain_id, vulnerability.service.id
+        )
 
 
 @pytest.mark.django_db(transaction=True)
@@ -268,7 +272,9 @@ def test_search_domain_by_organization_name(user, vulnerability):
         organization = Organization.objects.get(id=domain["organization"]["id"])
         assert (
             organization.name == search_fields["organizationName"]
-        ), f"Domain with ID {domain['id']} did not contain Organization Id {search_fields['organizationName']}"
+        ), "Domain with ID {} did not contain Organization Id {}".format(
+            domain["id"], search_fields["organizationName"]
+        )
 
 
 @pytest.mark.django_db(transaction=True)
@@ -292,7 +298,9 @@ def test_search_domain_by_vulnerabilities(user, vulnerability):
     for domain in data["result"]:
         assert str(vulnerability.domain.id) == str(
             domain["id"]
-        ), f"Response domain {domain['id']} did not relate back to the expected vulnerability {vulnerability.domain.id}"
+        ), "Response domain {} did not relate back to the expected vulnerability {}".format(
+            domain["id"], vulnerability.domain.id
+        )
 
 
 @pytest.mark.django_db(transaction=True)
@@ -316,7 +324,9 @@ def test_search_domains_multiple_criteria(user, vulnerability):
     for domain in data["result"]:
         assert (
             domain["ip"] == search_fields["ip"]
-        ), f"Domain with ID {domain['id']} does not have an IP {search_fields['ip']}"
+        ), "Domain with ID {} does not have an IP {}".format(
+            domain["id"], search_fields["ip"]
+        )
         domain_id = domain.get("id", None)
 
         assert domain_id is not None, "Domain Id not found in Response"
@@ -324,7 +334,9 @@ def test_search_domains_multiple_criteria(user, vulnerability):
         for service in services:
             assert (
                 str(service.port) == search_fields["port"]
-            ), f"Domain with ID {domain_id} does not have a service with port {vulnerability.service.port}"
+            ), "Domain with ID {} does not have a service with port {}".format(
+                domain_id, vulnerability.service.port
+            )
 
 
 @pytest.mark.django_db(transaction=True)

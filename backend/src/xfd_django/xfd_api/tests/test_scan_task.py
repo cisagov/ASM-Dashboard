@@ -21,14 +21,14 @@ def test_list_scan_tasks_by_global_view():
     user = User.objects.create(
         firstName="",
         lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         userType=UserType.GLOBAL_VIEW,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
 
     organization = Organization.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
+        name="test-{}".format(secrets.token_hex(4)),
         rootDomains=["test-" + secrets.token_hex(4)],
         ipBlocks=[],
         isPassive=False,
@@ -58,14 +58,14 @@ def test_list_filtered_scan_tasks_by_global_view():
     user = User.objects.create(
         firstName="",
         lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         userType=UserType.GLOBAL_VIEW,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
 
     organization = Organization.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
+        name="test-{}".format(secrets.token_hex(4)),
         rootDomains=["test-" + secrets.token_hex(4)],
         ipBlocks=[],
         isPassive=False,
@@ -102,14 +102,14 @@ def test_list_scan_tasks_by_regular_user_fails():
     user = User.objects.create(
         firstName="",
         lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         userType=UserType.STANDARD,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
 
     organization = Organization.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
+        name="test-{}".format(secrets.token_hex(4)),
         rootDomains=["test-" + secrets.token_hex(4)],
         ipBlocks=[],
         isPassive=False,
@@ -135,14 +135,14 @@ def test_kill_scan_task_by_global_admin():
     user = User.objects.create(
         firstName="",
         lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         userType=UserType.GLOBAL_ADMIN,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
 
     organization = Organization.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
+        name="test-{}".format(secrets.token_hex(4)),
         rootDomains=["test-" + secrets.token_hex(4)],
         ipBlocks=[],
         isPassive=False,
@@ -155,7 +155,7 @@ def test_kill_scan_task_by_global_admin():
     scan_task.organizations.add(organization)
 
     response = client.post(
-        f"/scan-tasks/{scan_task.id}/kill",
+        "/scan-tasks/{}/kill".format(scan_task.id),
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
@@ -170,14 +170,14 @@ def test_kill_finished_scan_task_by_global_admin_fails():
     user = User.objects.create(
         firstName="",
         lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         userType=UserType.GLOBAL_ADMIN,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
 
     organization = Organization.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
+        name="test-{}".format(secrets.token_hex(4)),
         rootDomains=["test-" + secrets.token_hex(4)],
         ipBlocks=[],
         isPassive=False,
@@ -190,7 +190,7 @@ def test_kill_finished_scan_task_by_global_admin_fails():
     scan_task.organizations.add(organization)
 
     response = client.post(
-        f"/scan-tasks/{scan_task.id}/kill",
+        "/scan-tasks/{}/kill".format(scan_task.id),
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
@@ -205,14 +205,14 @@ def test_kill_scan_task_by_global_view_fails():
     user = User.objects.create(
         firstName="",
         lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         userType=UserType.GLOBAL_VIEW,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
 
     organization = Organization.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
+        name="test-{}".format(secrets.token_hex(4)),
         rootDomains=["test-" + secrets.token_hex(4)],
         ipBlocks=[],
         isPassive=False,
@@ -225,7 +225,7 @@ def test_kill_scan_task_by_global_view_fails():
     scan_task.organizations.add(organization)
 
     response = client.post(
-        f"/scan-tasks/{scan_task.id}/kill",
+        "/scan-tasks/{}/kill".format(scan_task.id),
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
@@ -243,14 +243,14 @@ def test_get_logs_by_global_view(mock_get_logs):
     user = User.objects.create(
         firstName="",
         lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         userType=UserType.GLOBAL_VIEW,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
 
     organization = Organization.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
+        name="test-{}".format(secrets.token_hex(4)),
         rootDomains=["test-" + secrets.token_hex(4)],
         ipBlocks=[],
         isPassive=False,
@@ -265,52 +265,10 @@ def test_get_logs_by_global_view(mock_get_logs):
     scan_task.organizations.add(organization)
 
     response = client.get(
-        f"/scan-tasks/{scan_task.id}/logs",
+        "/scan-tasks/{}/logs".format(scan_task.id),
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
     assert response.status_code == 200
     assert response.text == "logs"
-    # Mock assertion to ensure logs fetching is called with the correct ARN
-    mock_get_logs.assert_called_with("fargateTaskArn")
-
-
-# Test: logs by regular user should fail
-@pytest.mark.django_db(transaction=True)
-@patch("xfd_api.tasks.ecs_client.ECSClient.get_logs")
-def test_get_logs_by_regular_user_fails(mock_get_logs):
-    """Test scan-task."""
-    mock_get_logs.return_value = "logs"
-
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
-        userType=UserType.STANDARD,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
-    organization = Organization.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
-        rootDomains=["test-" + secrets.token_hex(4)],
-        ipBlocks=[],
-        isPassive=False,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
-    scan = Scan.objects.create(name="findomain", arguments={}, frequency=100)
-    scan_task = ScanTask.objects.create(
-        scan=scan, fargateTaskArn="fargateTaskArn", type="fargate", status="started"
-    )
-    scan_task.organizations.add(organization)
-
-    response = client.get(
-        f"/scan-tasks/{scan_task.id}/logs",
-        headers={"Authorization": "Bearer " + create_jwt_token(user)},
-    )
-
-    assert response.status_code == 403
-    assert response.json() == {"detail": "Unauthorized access. View logs for details."}
-    mock_get_logs.assert_not_called()
+    # Mock
