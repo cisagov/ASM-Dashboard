@@ -111,3 +111,7 @@ app.get('*', (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
+
+export const handler = serverless(app, {
+  binary: ['image/*', 'font/*']
+});
