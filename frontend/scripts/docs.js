@@ -88,21 +88,27 @@ app.use(
 
 // Fallback to index.html for client-side routing
 app.get('*', (req, res) => {
-  const rootDir = path.resolve(__dirname, '../docs-build');
-  const staticFilePath = path.resolve(rootDir, '.' + req.path);
+  const rootDir = path.resolve(__dirname, '../docs-build'); // Define the root directory
+  const requestedPath = path.join(rootDir, req.path); // Join the requested path with rootDir
+  const resolvedPath = path.resolve(requestedPath); // Resolve to an absolute path
 
-  // Check that the file path is under the root directory
-  if (!staticFilePath.startsWith(rootDir)) {
+  // Ensure the resolved path is within the rootDir
+  if (!resolvedPath.startsWith(rootDir)) {
     res.status(403).send('Forbidden');
     return;
   }
 
-  // Serve the file if it exists
-  if (fs.existsSync(staticFilePath) && fs.lstatSync(staticFilePath).isFile()) {
-    res.sendFile(staticFilePath);
-  } else {
-    // Fallback to index.html for client-side routing
-    res.sendFile(path.join(rootDir, 'index.html'));
+  // Check if the file exists and is a valid file
+  try {
+    if (fs.existsSync(resolvedPath) && fs.lstatSync(resolvedPath).isFile()) {
+      res.sendFile(resolvedPath); // Serve the file
+    } else {
+      // Fallback to index.html for client-side routing
+      res.sendFile(path.join(rootDir, 'index.html'));
+    }
+  } catch (error) {
+    console.error('Error while serving file:', error);
+    res.status(500).send('Internal Server Error');
   }
 });
 
