@@ -27,7 +27,7 @@ def handler(event, context):
         elif mode == "es":
             return handle_es_query(query)
         else:
-            return {"statusCode": 400, "body": f"Unsupported mode: {mode}"}
+            return {"statusCode": 400, "body": "Unsupported mode: {}".format(mode)}
     except Exception as e:
         return {"statusCode": 500, "body": str(e)}
 
@@ -50,4 +50,7 @@ def handle_es_query(query):
         client.delete_all()
         return {"statusCode": 200, "body": "Index successfully deleted."}
     else:
-        return {"statusCode": 400, "body": f"Unsupported Elasticsearch query: {query}"}
+        return {
+            "statusCode": 400,
+            "body": "Unsupported Elasticsearch query: {}".format(query),
+        }

@@ -19,7 +19,7 @@ def build_sort(sort_direction: str, sort_field: str) -> Optional[List[Dict[str, 
         return None
     if sort_field in NON_KEYWORD_FIELDS:
         return [{sort_field: {"order": sort_direction}}]
-    return [{f"{sort_field}.keyword": {"order": sort_direction}}]
+    return [{"{}.keyword".format(sort_field): {"order": sort_direction}}]
 
 
 def build_match(search_term: str) -> Dict[str, Any]:
@@ -54,8 +54,8 @@ def get_term_filter_value(field, field_value):
     if isinstance(field_value, (int, float)):
         return {field: field_value}
     if field == "name" and field_value and "*" not in field_value:
-        field_value = f"*{field_value}*"
-    return {f"{field}.keyword": field_value}
+        field_value = "*{}*".format(field_value)
+    return {"{}.keyword".format(field): field_value}
 
 
 def get_term_filter(term_filter):

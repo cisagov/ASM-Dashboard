@@ -171,7 +171,7 @@ def delete_user(target_user_id, current_user):
         # Return success response
         return {
             "status": "success",
-            "message": f"User {target_user_id} has been deleted successfully.",
+            "message": "User {} has been deleted successfully.".format(target_user_id),
         }
 
     except Exception as e:
@@ -362,7 +362,7 @@ async def update_user(target_user_id, body, current_user):
         user = User.objects.get(id=target_user_id)
         user.firstName = update_data.firstName or user.firstName
         user.lastName = update_data.lastName or user.lastName
-        user.fullName = f"{user.firstName} {user.lastName}"
+        user.fullName = "{} {}".format(user.firstName, user.lastName)
         user.userType = update_data.userType or user.userType
         user.state = update_data.state or user.state
         user.regionId = update_data.regionId or user.regionId
@@ -456,7 +456,7 @@ def update_user_v2(user_id, user_data, current_user):
     except HTTPException as http_exc:
         raise http_exc
     except Exception as e:
-        print(f"Error updating user: {e}")
+        print("Error updating user: {}".format(e))
         raise HTTPException(status_code=500, detail="An unexpected error occurred.")
 
 
@@ -490,7 +490,9 @@ def approve_user_registration(user_id, current_user):
         raise http_exc
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail="Failed to send email: {}".format(str(e))
+        )
 
     return {"statusCode": 200, "body": "User registration approved."}
 
@@ -528,7 +530,7 @@ def deny_user_registration(user_id: str, current_user: User):
     except ObjectDoesNotExist:
         raise HTTPException(status_code=404, detail="User not found.")
     except Exception as e:
-        print(f"Error denying registration: {e}")
+        print("Error denying registration: {}".format(e))
         raise HTTPException(
             status_code=500, detail="Error processing registration denial."
         )
@@ -627,5 +629,5 @@ def invite(new_user_data, current_user):
         raise http_exc
 
     except Exception as e:
-        print(f"Error inviting user: {e}")
+        print("Error inviting user: {}".format(e))
         raise HTTPException(status_code=500, detail="Error inviting user.")

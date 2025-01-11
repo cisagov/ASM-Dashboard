@@ -67,7 +67,7 @@ async def fetch_all_results(
         try:
             response = client.search_domains(request)
         except Exception as e:
-            print(f"Elasticsearch error: {e}")
+            print("Elasticsearch error: {}".format(e))
             raise HTTPException(status_code=500, detail="Error querying Elasticsearch.")
 
         hits = response.get("hits", {}).get("hits", [])
@@ -97,9 +97,9 @@ def process_results(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 if "name" in product:
                     product_name = product["name"].lower()
                     product_version = product.get("version", "")
-                    products[
-                        product_name
-                    ] = f"{product['name']} {product_version}".strip()
+                    products[product_name] = "{} {}".format(
+                        product["name"], product_version
+                    ).strip()
 
         res["products"] = ", ".join(products.values())
         processed_results.append(res)
@@ -204,7 +204,7 @@ async def search_export(search_body: DomainSearchBody, current_user) -> Dict[str
     try:
         csv_url = s3_client.save_csv(csv_content, "domains")
     except Exception as e:
-        print(f"S3 upload error: {e}")
+        print("S3 upload error: {}".format(e))
         raise HTTPException(status_code=500, detail="Error uploading CSV to S3.")
 
     return {"url": csv_url}

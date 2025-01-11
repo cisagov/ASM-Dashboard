@@ -58,7 +58,7 @@ def manage_elasticsearch_indices(dangerouslyforce):
         es_client.sync_domains_index()
         print("Elasticsearch indices synchronized.")
     except Exception as e:
-        print(f"Error managing Elasticsearch indices: {e}")
+        print("Error managing Elasticsearch indices: {}".format(e))
 
 
 def populate_sample_data():
@@ -95,7 +95,7 @@ def create_sample_user(organization):
     user = User.objects.create(
         firstName="Sample",
         lastName="User",
-        email=f"user{random.randint(1, 1000)}@example.com",
+        email="user{}@example.com".format(random.randint(1, 1000)),
         userType=UserType.GLOBAL_ADMIN,
         state=random.choice(SAMPLE_STATES),
         regionId=random.choice(SAMPLE_REGION_IDS),
@@ -124,7 +124,7 @@ def create_api_key_for_user(user):
     )
 
     # Print the raw key for debugging or manual testing
-    print(f"Created API key for user {user.email}: {key}")
+    print("Created API key for user {}: {}".format(user.email, key))
 
 
 def generate_random_name():
@@ -132,14 +132,14 @@ def generate_random_name():
     adjective = random.choice(adjectives)
     noun = random.choice(nouns)
     entity = random.choice(["City", "County", "Agency", "Department"])
-    return f"{adjective.capitalize()} {entity} {noun.capitalize()}"
+    return "{} {} {}".format(adjective.capitalize(), entity, noun.capitalize())
 
 
 def create_sample_domain(organization):
     """Create a sample domain linked to an organization."""
-    domain_name = (
-        f"{random.choice(adjectives)}-{random.choice(nouns)}.crossfeed.local".lower()
-    )
+    domain_name = "{}-{}.crossfeed.local".format(
+        random.choice(adjectives), random.choice(nouns)
+    ).lower()
     ip = ".".join(map(str, (random.randint(0, 255) for _ in range(4))))
     return Domain.objects.create(
         name=domain_name,
@@ -196,7 +196,7 @@ def synchronize():
             # Step 1: Process models in dependency order
             ordered_models = get_ordered_models(apps)
             for model in ordered_models:
-                print(f"Processing model: {model.__name__}")
+                print("Processing model: {}".format(model.__name__))
                 process_model(schema_editor, cursor, model)
 
             # Step 2: Handle Many-to-Many tables
@@ -244,7 +244,7 @@ def get_ordered_models(apps):
         print("Circular dependencies detected. Breaking cycles arbitrarily.")
         for model, deps in dependencies.items():
             if deps:
-                print(f"Breaking dependency for model: {model.__name__}")
+                print("Breaking dependency for model: {}".format(model.__name__))
                 dependencies[model] = set()
 
         ordered.extend(dependencies.keys())
@@ -257,14 +257,14 @@ def process_model(schema_editor: BaseDatabaseSchemaEditor, cursor, model):
     table_name = model._meta.db_table
 
     # Check if the table exists
-    cursor.execute(f"SELECT to_regclass('{table_name}');")
+    cursor.execute("SELECT to_regclass('{}');".format(table_name))
     table_exists = cursor.fetchone()[0] is not None
 
     if table_exists:
-        print(f"Updating table for model: {model.__name__}")
+        print("Updating table for model: {}".format(model.__name__))
         update_table(schema_editor, model)
     else:
-        print(f"Creating table for model: {model.__name__}")
+        print("Creating table for model: {}".format(model.__name__))
         schema_editor.create_model(model)
 
 
@@ -275,14 +275,18 @@ def process_m2m_tables(schema_editor: BaseDatabaseSchemaEditor, cursor):
             m2m_table_name = field.m2m_db_table()
 
             # Check if the M2M table exists
-            cursor.execute(f"SELECT to_regclass('{m2m_table_name}');")
+            cursor.execute("SELECT to_regclass('{}');".format(m2m_table_name))
             table_exists = cursor.fetchone()[0] is not None
 
             if not table_exists:
-                print(f"Creating Many-to-Many table: {m2m_table_name}")
+                print("Creating Many-to-Many table: {}".format(m2m_table_name))
                 schema_editor.create_model(field.remote_field.through)
             else:
-                print(f"Many-to-Many table {m2m_table_name} already exists. Skipping.")
+                print(
+                    "Many-to-Many table {} already exists. Skipping.".format(
+                        m2m_table_name
+                    )
+                )
 
 
 def update_table(schema_editor: BaseDatabaseSchemaEditor, model):
@@ -302,20 +306,28 @@ def update_table(schema_editor: BaseDatabaseSchemaEditor, model):
         missing_columns = db_fields - existing_columns
         for field in model._meta.fields:
             if field.column in missing_columns:
-                print(f"Adding column '{field.column}' to table '{table_name}'")
+                print(
+                    "Adding column '{}' to table '{}'".format(field.column, table_name)
+                )
                 schema_editor.add_field(model, field)
 
         # Remove extra columns
         extra_columns = existing_columns - db_fields
         for column in extra_columns:
-            print(f"Removing extra column '{column}' from table '{table_name}'")
+            print(
+                "Removing extra column '{}' from table '{}'".format(column, table_name)
+            )
             try:
                 cursor.execute(
-                    f"ALTER TABLE {table_name} DROP COLUMN IF EXISTS {column};"
+                    "ALTER TABLE {} DROP COLUMN IF EXISTS {};".format(
+                        table_name, column
+                    )
                 )
             except Exception as e:
                 print(
-                    f"Error dropping column '{column}' from table '{table_name}': {e}"
+                    "Error dropping column '{}' from table '{}': {}".format(
+                        column, table_name, e
+                    )
                 )
 
 
@@ -335,11 +347,11 @@ def cleanup_stale_tables(cursor):
 
     stale_tables = existing_tables - expected_tables
     for table in stale_tables:
-        print(f"Removing stale table: {table}")
+        print("Removing stale table: {}".format(table))
         try:
-            cursor.execute(f"DROP TABLE {table} CASCADE;")
+            cursor.execute("DROP TABLE {} CASCADE;".format(table))
         except Exception as e:
-            print(f"Error dropping stale table {table}: {e}")
+            print("Error dropping stale table {}: {}".format(table, e))
 
 
 def drop_all_tables():
@@ -380,7 +392,7 @@ def sync_es_organizations():
     try:
         # Fetch all organization IDs
         organization_ids = list(Organization.objects.values_list("id", flat=True))
-        print(f"Found {len(organization_ids)} organizations to sync.")
+        print("Found {} organizations to sync.".format(len(organization_ids)))
 
         if organization_ids:
             # Split IDs into chunks
@@ -393,7 +405,7 @@ def sync_es_organizations():
                         "id", "name", "country", "state", "regionId", "tags"
                     )
                 )
-                print(f"Syncing {len(organizations)} organizations...")
+                print("Syncing {} organizations...".format(len(organizations)))
 
                 # Attempt to update Elasticsearch
                 update_organization_chunk(es_client, organizations)
@@ -403,5 +415,5 @@ def sync_es_organizations():
             print("No organizations to sync.")
 
     except Exception as e:
-        print(f"Error syncing organizations: {e}")
+        print("Error syncing organizations: {}".format(e))
         raise e
