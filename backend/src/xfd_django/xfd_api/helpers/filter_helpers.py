@@ -13,15 +13,7 @@ NULL_VALUES = ["None", "Null", "N/A", "Undefined", ""]
 
 def format_severity(severity: str) -> str:
     """Format severity to classify as 'N/A', standard severity, or 'Other'."""
-    if (
-        severity is None
-        or severity in NULL_VALUES
-        # strip().lower() == "none"
-        # or severity.strip().lower() == "null"
-        # or severity.strip().lower() == "n/a"
-        # or severity.strip().lower() == "undefined"
-        # or severity.strip() == ""
-    ):
+    if severity is None or severity in NULL_VALUES:
         return "N/A"
     elif severity.title() in SEVERITY_LEVELS:
         return severity.title()
