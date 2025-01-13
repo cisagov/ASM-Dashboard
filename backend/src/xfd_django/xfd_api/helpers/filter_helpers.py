@@ -8,17 +8,19 @@ from ..schema_models.vulnerability import VulnerabilityFilters
 
 # Define the severity levels
 SEVERITY_LEVELS = ["Low", "Medium", "High", "Critical"]
+NULL_VALUES = ["None", "Null", "N/A", "Undefined", ""]
 
 
 def format_severity(severity: str) -> str:
     """Format severity to classify as 'N/A', standard severity, or 'Other'."""
     if (
         severity is None
-        or severity.strip().lower() == "none"
-        or severity.strip().lower() == "null"
-        or severity.strip().lower() == "n/a"
-        or severity.strip().lower() == "undefined"
-        or severity.strip() == ""
+        or severity in NULL_VALUES
+        # strip().lower() == "none"
+        # or severity.strip().lower() == "null"
+        # or severity.strip().lower() == "n/a"
+        # or severity.strip().lower() == "undefined"
+        # or severity.strip() == ""
     ):
         return "N/A"
     elif severity.title() in SEVERITY_LEVELS:
