@@ -328,7 +328,9 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
       }
       if (
         !titleCaseSev ||
-        ['Null', 'N/a', 'undefined', ''].includes(titleCaseSev)
+        ['None', 'Null', 'N/a', 'Undefined', 'undefined', ''].includes(
+          titleCaseSev
+        )
       ) {
         return 'N/A';
       } else {

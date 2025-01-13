@@ -34,7 +34,14 @@ async def get_stats_count_from_cache(redis_client, redis_key_prefix, filtered_or
         if response:
             stats_list = json.loads(response)
             for stat in stats_list:
-                aggregated_stats[stat["id"]] += stat["value"]
+                stat_id = stat["id"]
+                # Handle the case where the stat ID is None.
+                # None/Null values come from Redis as "0" and cannot be incremented.
+                if stat_id in [None, "None"]:
+                    stat_id = "None"
+                    if stat["value"] == 0:
+                        stat["value"] = 1
+                aggregated_stats[stat_id] += stat["value"]
 
     return [
         {"id": stat_id, "value": value, "label": stat_id}
