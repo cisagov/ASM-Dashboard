@@ -115,7 +115,6 @@ const Risk: React.FC<ContextType & {}> = ({
           filters: riskFilters
         }
       });
-      console.log(result);
       const max = Math.max(...result.vulnerabilities.byOrg.map((p) => p.value));
       colorScale = scaleLinear<string>()
         .domain([0, Math.log(max)])

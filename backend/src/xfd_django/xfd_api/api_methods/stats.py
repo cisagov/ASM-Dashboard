@@ -203,7 +203,6 @@ async def get_num_vulns(filter_data, current_user, redis_client, filtered_org_id
         raise HTTPException(status_code=500, detail=f"Redis error: {redis_error}")
 
     except Exception as e:
-        print("Stats debug print")
         raise HTTPException(
             status_code=500, detail=f"An unexpected error occurred: {e}"
         )
