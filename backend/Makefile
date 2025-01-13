@@ -1,5 +1,6 @@
 .PHONY: syncdb
 .PHONY: populate-cache
+.PHONY: pytest
 
 # Synchronize and populate the database
 syncdb:
