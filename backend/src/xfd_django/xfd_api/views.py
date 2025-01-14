@@ -112,7 +112,9 @@ async def get_redis_client(request: Request):
     tags=["Analytics"],
 )
 async def matomo_proxy(
-    path: str, request: Request, current_user: User = Depends(get_current_active_user)
+    path: str, 
+    request: Request, 
+    current_user: User = Depends(get_current_active_user)
 ):
     """Proxy requests to the Matomo analytics instance."""
     # Public paths -- directly allowed
@@ -132,14 +134,26 @@ async def matomo_proxy(
             url=f"https://cdn.jsdelivr.net/gh/matomo-org/matomo@3.14.1{request.url.path}"
         )
 
-    # Ensure only global admin can access other paths
-    if current_user.userType != "globalAdmin":
-        raise HTTPException(status_code=403, detail="Unauthorized")
+    # # Ensure only global admin can access other paths
+    # if current_user.userType != "globalAdmin":
+    #     raise HTTPException(status_code=403, detail="Unauthorized")
 
     # Handle the proxy request to Matomo
-    return await proxy.proxy_request(
-        request, os.getenv("MATOMO_URL", ""), path, cookie_name="MATOMO_SESSID"
-    )
+    # return await proxy.proxy_request(
+    #     request, os.getenv("MATOMO_URL", ""), path, cookie_name="MATOMO_SESSID"
+    # )
+    try:
+        response = await proxy.proxy_request(
+            path=path,
+            request=request,
+            target_url=os.getenv("MATOMO_URL"),
+            cookie_name="MATOMO_SESSID",
+        )
+        print(f"Proxy request successful for path: {path}")
+        return response
+    except Exception as e:
+        print(f"Error during proxy request: {e}")
+        raise HTTPException(status_code=500, detail="Error handling proxy request")
 
 
 # P&E Proxy
