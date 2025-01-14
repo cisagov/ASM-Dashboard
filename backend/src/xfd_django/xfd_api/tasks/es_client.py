@@ -10,9 +10,6 @@ from elasticsearch import Elasticsearch, helpers
 DOMAINS_INDEX = "domains-5"
 ORGANIZATIONS_INDEX = "organizations-1"
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-
 # Define mappings
 organization_mapping = {
     "properties": {"name": {"type": "text"}, "suggest": {"type": "completion"}}
@@ -140,7 +137,7 @@ class ESClient:
     def delete_all(self):
         """Delete all indices in Elasticsearch."""
         try:
-            logging.info("Deleting all indices...")
+            print("Deleting all indices...")
             self.client.indices.delete(index="*")
         except Exception as e:
             logging.error("Error deleting all indices: {}".format(e))
@@ -157,8 +154,24 @@ class ESClient:
     def _bulk_update(self, actions):
         """Update to Elasticsearch."""
         try:
-            helpers.bulk(self.client, actions, raise_on_error=True)
-            logging.info("Bulk update completed successfully.")
+            success_count, response = helpers.bulk(
+                self.client, actions, raise_on_error=False
+            )
+            logging.info("Bulk operation success count: {}".format(success_count))
+
+            for idx, item in enumerate(response):
+                if "update" in item and item["update"].get("error"):
+                    logging.error(
+                        "Error indexing document {}: {}".format(
+                            idx, item["update"]["error"]
+                        )
+                    )
+                else:
+                    logging.info(
+                        "Successfully indexed document {}: {}".format(idx, item)
+                    )
+
+            self.client.indices.refresh(index="domains-5")
         except Exception as e:
             logging.error("Bulk operation error: {}".format(e))
             raise e

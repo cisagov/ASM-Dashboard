@@ -72,6 +72,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
 ]
 
 
@@ -123,3 +124,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 PROJECT_NAME = "XFD Python API"
 
 DJANGO_SETTINGS_MODULE = "xfd_django.settings"
+
+# Ensure cookies are only sent over HTTPS
+SESSION_COOKIE_SECURE = not IS_LOCAL  # Only secure in production
+CSRF_COOKIE_SECURE = not IS_LOCAL
+
+# Prevent JavaScript access to cookies to mitigate XSS attacks
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+
+# SameSite policy to prevent CSRF via cross-origin requests
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"

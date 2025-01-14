@@ -257,7 +257,7 @@ def process_model(schema_editor: BaseDatabaseSchemaEditor, cursor, model):
     table_name = model._meta.db_table
 
     # Check if the table exists
-    cursor.execute("SELECT to_regclass('{}');".format(table_name))
+    cursor.execute("SELECT to_regclass(%s);", [table_name])
     table_exists = cursor.fetchone()[0] is not None
 
     if table_exists:
@@ -275,7 +275,7 @@ def process_m2m_tables(schema_editor: BaseDatabaseSchemaEditor, cursor):
             m2m_table_name = field.m2m_db_table()
 
             # Check if the M2M table exists
-            cursor.execute("SELECT to_regclass('{}');".format(m2m_table_name))
+            cursor.execute("SELECT to_regclass(%s);", [m2m_table_name])
             table_exists = cursor.fetchone()[0] is not None
 
             if not table_exists:
@@ -318,11 +318,14 @@ def update_table(schema_editor: BaseDatabaseSchemaEditor, model):
                 "Removing extra column '{}' from table '{}'".format(column, table_name)
             )
             try:
-                cursor.execute(
-                    "ALTER TABLE {} DROP COLUMN IF EXISTS {};".format(
-                        table_name, column
-                    )
+                # Safely quote table and column names
+                safe_table_name = connection.ops.quote_name(table_name)
+                safe_column_name = connection.ops.quote_name(column)
+                # Construct and execute the query without f-strings
+                query = "ALTER TABLE {} DROP COLUMN IF EXISTS {};".format(
+                    safe_table_name, safe_column_name
                 )
+                cursor.execute(query)
             except Exception as e:
                 print(
                     "Error dropping column '{}' from table '{}': {}".format(
@@ -349,7 +352,7 @@ def cleanup_stale_tables(cursor):
     for table in stale_tables:
         print("Removing stale table: {}".format(table))
         try:
-            cursor.execute("DROP TABLE {} CASCADE;".format(table))
+            cursor.execute("DROP TABLE %s CASCADE;", [connection.ops.quote_name(table)])
         except Exception as e:
             print("Error dropping stale table {}: {}".format(table, e))
 

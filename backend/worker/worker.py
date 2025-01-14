@@ -40,11 +40,11 @@ async def main():
 
     # Execute the task
     if getattr(scan_schema, "global_scan", False):
-        await scan_fn(command_options)
+        scan_fn(command_options)
     else:
         # Non-global task: execute per organization
         for org in organizations:
-            await scan_fn(
+            scan_fn(
                 {
                     **command_options,
                     "organizationId": org["id"],

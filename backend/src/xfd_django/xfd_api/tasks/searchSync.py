@@ -21,7 +21,7 @@ def chunked_queryset(queryset, chunk_size):
         yield [first] + list(islice(it, chunk_size - 1))
 
 
-async def handler(command_options):
+def handler(command_options):
     """Handle the synchronization of domains with Elasticsearch."""
     organization_id = command_options.get("organizationId")
     domain_id = command_options.get("domainId")
