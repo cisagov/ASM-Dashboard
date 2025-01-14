@@ -183,9 +183,15 @@ def get_users(current_user):
     """Retrieve a list of all users."""
     try:
         # Check if user is a regional admin or global admin
-        if not is_global_view_admin(current_user):
+        can_access_users = False
+
+        if is_global_view_admin(current_user) or is_regional_admin(current_user):
+            can_access_users = True
+
+        if not can_access_users:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
+        # Get Users
         users = User.objects.all().prefetch_related("roles__organization")
 
         # Return the updated user details
