@@ -69,7 +69,7 @@ def fetch_pe_vuln_task(org_acronym):
     """Fetch PE vulnerability task data."""
     print(f"Fetching PE vulnerability task for organization: {org_acronym}")
     headers = {
-        "Authorization": os.getenv("CF_API_KEY"),
+        "X-API-KEY": os.getenv("CF_API_KEY"),
         "access_token": os.getenv("PE_API_KEY"),
         "Content-Type": "",
     }
@@ -93,7 +93,7 @@ def fetch_pe_vuln_data(scan_name, task_id):
     """Fetch PE vulnerability data for a task."""
     url = f"https://api.staging-cd.crossfeed.cyber.dhs.gov/pe/apiv1/crossfeed_vulns/task/?task_id={task_id}&scan_name={scan_name}"
     headers = {
-        "Authorization": os.getenv("CF_API_KEY"),
+        "X-API-KEY": os.getenv("CF_API_KEY"),
         "access_token": os.getenv("PE_API_KEY"),
         "Content-Type": "",
     }
