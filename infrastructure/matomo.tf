@@ -55,6 +55,7 @@ resource "aws_iam_role_policy" "matomo_task_execution_role_policy" {
     {
       "Effect": "Allow",
       "Action": [
+        "ssm:GetParameters",
         "logs:CreateLogStream",
         "logs:PutLogEvents"
       ],
@@ -71,7 +72,7 @@ resource "aws_ecs_task_definition" "matomo" {
 [
   {
     "name": "main",
-    "image": "matomo:3.14.1",
+    "image": "matomo:5.2.1",
     "essential": true,
     "logConfiguration": {
       "logDriver": "awslogs",
