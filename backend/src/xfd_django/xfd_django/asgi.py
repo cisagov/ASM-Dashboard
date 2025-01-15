@@ -35,7 +35,6 @@ apps.populate(settings.INSTALLED_APPS)
 
 def set_security_headers(response: Response):
     """Apply security headers to the HTTP response."""
-
     # Set Content Security Policy (CSP)
     csp_value = "; ".join(
         [
@@ -55,8 +54,12 @@ def set_security_headers(response: Response):
     response.headers["Strict-Transport-Security"] = hsts_value
 
     # Additional security headers
-    response.headers["X-XSS-Protection"] = "1; mode=block" if settings.SECURE_BROWSER_XSS_FILTER else "0"
-    response.headers["X-Content-Type-Options"] = "nosniff" if settings.SECURE_CONTENT_TYPE_NOSNIFF else ""
+    response.headers["X-XSS-Protection"] = (
+        "1; mode=block" if settings.SECURE_BROWSER_XSS_FILTER else "0"
+    )
+    response.headers["X-Content-Type-Options"] = (
+        "nosniff" if settings.SECURE_CONTENT_TYPE_NOSNIFF else ""
+    )
     response.headers["Cache-Control"] = settings.SECURE_CACHE_CONTROL
     response.headers["Access-Control-Allow-Credentials"] = (
         "true" if settings.SECURE_ACCESS_CONTROL_ALLOW_CREDENTIALS else "false"
