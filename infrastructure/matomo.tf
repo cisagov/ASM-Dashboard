@@ -55,6 +55,7 @@ resource "aws_iam_role_policy" "matomo_task_execution_role_policy" {
     {
       "Effect": "Allow",
       "Action": [
+        "ssm:GetParameters",
         "logs:CreateLogStream",
         "logs:PutLogEvents"
       ],
