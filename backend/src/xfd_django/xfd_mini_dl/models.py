@@ -1768,7 +1768,7 @@ class VulnScan(models.Model):
         blank=True,
         help_text="Additional data collected by the VS vuln scan that is not commonly seen.",
     )
-     
+
     class Meta:
         """The Meta class for VulnScan."""
 
