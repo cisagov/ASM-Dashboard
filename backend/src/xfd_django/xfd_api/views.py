@@ -145,6 +145,7 @@ async def matomo_proxy(
 # P&E Proxy
 @api_router.api_route(
     "/pe/{path:path}",
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     dependencies=[Depends(get_current_active_user)],
     tags=["Analytics"],
 )
