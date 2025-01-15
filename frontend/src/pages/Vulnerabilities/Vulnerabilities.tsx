@@ -77,7 +77,7 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
   children?: React.ReactNode;
   groupBy?: string;
 }) => {
-  const { currentOrganization, apiPost, apiPut } = useAuthContext();
+  const { currentOrganization, apiPost, apiPut, user } = useAuthContext();
   const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
   const [totalResults, setTotalResults] = useState(0);
   const [loadingError, setLoadingError] = useState(false);
@@ -150,7 +150,12 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
             userOrgIsExcluded = true;
           }
         });
-        if (currentOrganization && !userOrgIsExcluded) {
+
+        if (
+          currentOrganization &&
+          !userOrgIsExcluded &&
+          user?.userType === 'standard'
+        ) {
           tableFilters['organization'] = currentOrganization.id;
         }
         if (tableFilters['isKev']) {
@@ -174,7 +179,7 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
         return;
       }
     },
-    [apiPost, currentOrganization]
+    [apiPost, currentOrganization, user?.userType]
   );
 
   const fetchVulnerabilities = useCallback(
