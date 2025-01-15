@@ -71,7 +71,7 @@ resource "aws_ecs_task_definition" "matomo" {
 [
   {
     "name": "main",
-    "image": "matomo:3.14.1",
+    "image": "matomo:5.2.1",
     "essential": true,
     "logConfiguration": {
       "logDriver": "awslogs",
@@ -223,7 +223,7 @@ resource "aws_db_instance" "matomo_db" {
     Stage    = var.stage
     Owner    = "Crossfeed managed resource"
     ART      = "No Art"
-    POC      = "Lamar Steward   Craig Duhn"
+    POC      = "Lamar Stewart   Craig Duhn"
     PocEmail = "lamar.stewart@cisa.dhs.gov"
   }
 }
