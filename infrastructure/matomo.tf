@@ -224,7 +224,7 @@ resource "aws_db_instance" "matomo_db" {
     Stage    = var.stage
     Owner    = "Crossfeed managed resource"
     ART      = "No Art"
-    POC      = "Lamar Stewart   Craig Duhn"
+    POC      = "Lamar Steward   Craig Duhn"
     PocEmail = "lamar.stewart@cisa.dhs.gov"
   }
 }
