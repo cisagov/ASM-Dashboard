@@ -347,9 +347,14 @@ def update_table(schema_editor: BaseDatabaseSchemaEditor, model, database):
         for column in extra_columns:
             print(f"Removing extra column '{column}' from table '{table_name}'")
             try:
-                cursor.execute(
-                    f"ALTER TABLE {table_name} DROP COLUMN IF EXISTS {column};"
+                # Safely quote table and column names
+                safe_table_name = connections[database].ops.quote_name(table_name)
+                safe_column_name = connections[database].ops.quote_name(column)
+                # Construct and execute the query without f-strings
+                query = "ALTER TABLE {} DROP COLUMN IF EXISTS {};".format(
+                    safe_table_name, safe_column_name
                 )
+                cursor.execute(query)
             except Exception as e:
                 print(
                     f"Error dropping column '{column}' from table '{table_name}': {e}"
