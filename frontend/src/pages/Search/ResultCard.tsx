@@ -5,7 +5,7 @@ import clsx from 'classnames';
 import { Result } from '../../context/SearchProvider';
 // @ts-ignore:next-line
 import { parseISO, formatDistanceToNow } from 'date-fns';
-import DOMPurify from 'dompurify';
+import { sanitize } from 'dompurify';
 
 // Sync this with the backend client in es-client.ts.
 export interface WebpageRecord {
@@ -150,7 +150,7 @@ export const ResultCard: React.FC<Props> = (props) => {
               <React.Fragment key={idx}>
                 <code
                   dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(body, { ALLOWED_TAGS: ['em'] })
+                    __html: sanitize(body, { ALLOWED_TAGS: ['em'] })
                   }}
                 />
               </React.Fragment>
