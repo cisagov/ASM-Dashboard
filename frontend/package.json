@@ -45,6 +45,7 @@
     "http-proxy-middleware": "^3.0.3",
     "jspdf": "^2.5.1",
     "jwt-decode": "^3.1.2",
+    "nanoid": "^5.0.9",
     "papaparse": "^5.3.2",
     "postcss": "^8.4.18",
     "query-string": "^7.1.1",
