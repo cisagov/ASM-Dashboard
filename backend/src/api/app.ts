@@ -30,7 +30,7 @@ import fetch from 'node-fetch';
 import * as searchOrganizations from './organizationSearch';
 import { Logger, RecordMessage } from '../tools/logger';
 
-const sanitizer = require('sanitizer');
+const sanitizer = require('dompurify');
 
 if (
   (process.env.IS_OFFLINE || process.env.IS_LOCAL) &&
