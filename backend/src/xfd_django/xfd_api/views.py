@@ -129,7 +129,7 @@ async def matomo_proxy(
         "/plugins/Morpheus/fonts/matomo.ttf",
     ]:
         return RedirectResponse(
-            url=f"https://cdn.jsdelivr.net/gh/matomo-org/matomo@3.14.1{request.url.path}"
+            url=f"https://cdn.jsdelivr.net/gh/matomo-org/matomo@5.2.1{request.url.path}"
         )
 
     # Ensure only global admin can access other paths
@@ -145,6 +145,7 @@ async def matomo_proxy(
 # P&E Proxy
 @api_router.api_route(
     "/pe/{path:path}",
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     dependencies=[Depends(get_current_active_user)],
     tags=["Analytics"],
 )
