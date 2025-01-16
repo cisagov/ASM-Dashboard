@@ -312,12 +312,6 @@ class Cve(models.Model):
         managed = manage_db
         db_table = "cve"
 
-    def save(self, *args, **kwargs):
-        """Format the model before saving."""
-        self.name = self.name.lower()
-        self.reverseName = ".".join(reversed(self.name.split(".")))
-        super().save(*args, **kwargs)
-
 
 class Notification(models.Model):
     """The Notification model."""
@@ -4758,6 +4752,12 @@ class SubDomains(models.Model):
         managed = manage_db
         db_table = "sub_domains"
         unique_together = (("sub_domain", "root_domain"),)
+
+    def save(self, *args, **kwargs):
+        """Format the model before saving."""
+        self.name = self.name.lower()
+        self.reverse_name = ".".join(reversed(self.sub_domain.split(".")))
+        super().save(*args, **kwargs)
 
 
 class TopCves(models.Model):
