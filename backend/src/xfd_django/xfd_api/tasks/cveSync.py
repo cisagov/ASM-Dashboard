@@ -61,7 +61,7 @@ def fetch_cve_data(page):
     """Fetch CVE data for a specific page."""
     print(f"Fetching CVE data for page {page}")
     headers = {
-        "Authorization": os.getenv("CF_API_KEY"),
+        "X-API-KEY": os.getenv("CF_API_KEY"),
         "access_token": os.getenv("PE_API_KEY"),
         "Content-Type": "",
     }
@@ -85,7 +85,7 @@ def fetch_cve_data_task(task_id):
     """Fetch task result for CVE data."""
     url = f"https://api.staging-cd.crossfeed.cyber.dhs.gov/pe/apiv1/cves_by_modified_date/task/{task_id}"
     headers = {
-        "Authorization": os.getenv("CF_API_KEY"),
+        "X-API-KEY": os.getenv("CF_API_KEY"),
         "access_token": os.getenv("PE_API_KEY"),
         "Content-Type": "",
     }

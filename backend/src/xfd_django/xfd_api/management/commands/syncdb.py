@@ -1,6 +1,7 @@
 """Populate command."""
 # Third-Party Libraries
 from django.core.management.base import BaseCommand
+from xfd_api.tasks.searchSync import handler as sync_es_domains
 from xfd_api.tasks.syncdb_helpers import (
     drop_all_tables,
     manage_elasticsearch_indices,
@@ -53,5 +54,8 @@ class Command(BaseCommand):
             populate_sample_data()
             self.stdout.write("Sample data population complete.")
 
-        # Step 4: Sync organizations in ES
-        sync_es_organizations()
+            # Step 4: Sync organizations in ES
+            sync_es_organizations()
+
+            # Step 5: Sync domains in ES
+            sync_es_domains({})
