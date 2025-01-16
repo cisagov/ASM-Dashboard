@@ -204,7 +204,7 @@ resource "aws_db_instance" "matomo_db" {
   multi_az                            = true
   backup_retention_period             = 35
   storage_encrypted                   = true
-  iam_database_authentication_enabled = true
+  iam_database_authentication_enabled = false
   allow_major_version_upgrade         = true
   deletion_protection                 = true
   enabled_cloudwatch_logs_exports     = ["audit", "error", "general", "slowquery"]
