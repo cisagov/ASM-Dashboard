@@ -3,6 +3,9 @@ USER root
 
 RUN apk update && apk upgrade && apk add g++ make py3-pip
 
+##Create non root user
+RUN useradd -m -u 504 xfd_api
+
 WORKDIR /app
 COPY ./package* ./
 
