@@ -11,4 +11,3 @@ ALTER DATABASE mini_data_lake_local OWNER TO mdl_local;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
 
 SET ROLE mdl_local;
-

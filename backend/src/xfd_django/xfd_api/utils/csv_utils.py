@@ -1,19 +1,19 @@
+# Standard Python Libraries
+import csv
 from hashlib import sha256
 import json
-import csv
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 
 def create_checksum(input: List[Dict]) -> str:
     input_as_json = json.dumps(input)
-    input_as_bytes = input_as_json.encode('utf-8')
+    input_as_bytes = input_as_json.encode("utf-8")
     return sha256(input_as_bytes).hexdigest()
-
-
 
 
 def json_to_csv(json_array: List[Dict[str, Any]]) -> str:
     if not json_array:
-        return ''
+        return ""
 
     # Extract headers (keys) from the first object in the array
     headers = list(json_array[0].keys())
@@ -22,8 +22,9 @@ def json_to_csv(json_array: List[Dict[str, Any]]) -> str:
     rows = []
     for obj in json_array:
         row = [
-            ",".join(obj[header]) if isinstance(obj[header], list) else 
-            (f'"{obj[header]}"' if obj[header] is not None else '""')
+            ",".join(obj[header])
+            if isinstance(obj[header], list)
+            else (f'"{obj[header]}"' if obj[header] is not None else '""')
             for header in headers
         ]
         rows.append(",".join(row))
