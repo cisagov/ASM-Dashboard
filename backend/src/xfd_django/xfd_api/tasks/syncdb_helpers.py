@@ -12,8 +12,9 @@ import secrets
 # Third-Party Libraries
 from django.apps import apps
 from django.conf import settings
-from django.db import connection, transaction
+from django.db import connections, transaction
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.utils import OperationalError
 from xfd_api.models import (
     ApiKey,
     Domain,
@@ -183,32 +184,60 @@ def create_sample_services_and_vulnerabilities(domain):
         )
 
 
-def synchronize():
+def synchronize(target_app_label=None):
     """
     Synchronize the database schema with Django models.
 
     Handles creation, update, and removal of tables and fields dynamically,
     including Many-to-Many linking tables.
     """
-    print("Synchronizing database schema with models...")
-    with connection.cursor() as cursor:
-        with connection.schema_editor() as schema_editor:
-            # Step 1: Process models in dependency order
-            ordered_models = get_ordered_models(apps)
-            for model in ordered_models:
-                print(f"Processing model: {model.__name__}")
-                process_model(schema_editor, cursor, model)
+    allowed_labels = ["xfd_mini_dl", "xfd_api"]
+    db_mapping = {
+        "xfd_mini_dl": "mini_data_lake",
+        "xfd_api": "default",
+    }
 
-            # Step 2: Handle Many-to-Many tables
-            print("Processing Many-to-Many tables...")
-            process_m2m_tables(schema_editor, cursor)
+    if target_app_label is None:
+        raise ValueError(
+            "The 'target_app_label' parameter is required to synchronize specific models. "
+            "Please provide an app label."
+        )
 
-            # Step 3: Cleanup stale tables
-            cleanup_stale_tables(cursor)
+    if target_app_label not in allowed_labels:
+        raise ValueError(
+            "Invalid 'target_app_label' provided. Must be one of: {}.".format(
+                ", ".join(allowed_labels)
+            )
+        )
+
+    # Get database name for 'connections':
+    # The 'connections' object gets all databases defined in setting.py
+    database = db_mapping.get(target_app_label, "default")
+    print(
+        "Synchronizing database schema for app '{}' in database '{}'...".format(
+            target_app_label, database
+        )
+    )
+
+    # Warning: Cursor automatically closes after use of 'with'
+    with connections[database].schema_editor() as schema_editor:
+        # Step 1: Process models in dependency order
+        ordered_models = get_ordered_models(target_app_label)
+        for model in ordered_models:
+            print(f"Processing model: {model.__name__}")
+            process_model(schema_editor, model, database)
+
+        # Step 2: Handle Many-to-Many tables
+        print("Processing Many-to-Many tables...")
+        process_m2m_tables(schema_editor, ordered_models, database)
+
+        # Step 3: Cleanup stale tables
+        cleanup_stale_tables(ordered_models, database)
+
     print("Database synchronization complete.")
 
 
-def get_ordered_models(apps):
+def get_ordered_models(target_app_label):
     """
     Get models in dependency order to ensure foreign key constraints are respected.
 
@@ -219,7 +248,8 @@ def get_ordered_models(apps):
 
     dependencies = defaultdict(set)
     dependents = defaultdict(set)
-    models = list(apps.get_models())
+
+    models = list(apps.get_app_config(target_app_label).get_models())
 
     for model in models:
         for field in model._meta.get_fields():
@@ -252,45 +282,52 @@ def get_ordered_models(apps):
     return ordered
 
 
-def process_model(schema_editor: BaseDatabaseSchemaEditor, cursor, model):
+def process_model(schema_editor: BaseDatabaseSchemaEditor, model, database):
     """Process a single model: create or update its table."""
     table_name = model._meta.db_table
 
-    # Check if the table exists
-    cursor.execute(f"SELECT to_regclass('{table_name}');")
-    table_exists = cursor.fetchone()[0] is not None
-
-    if table_exists:
-        print(f"Updating table for model: {model.__name__}")
-        update_table(schema_editor, model)
-    else:
-        print(f"Creating table for model: {model.__name__}")
-        schema_editor.create_model(model)
-
-
-def process_m2m_tables(schema_editor: BaseDatabaseSchemaEditor, cursor):
-    """Handle creation of Many-to-Many linking tables."""
-    for model in apps.get_models():
-        for field in model._meta.local_many_to_many:
-            m2m_table_name = field.m2m_db_table()
-
-            # Check if the M2M table exists
-            cursor.execute(f"SELECT to_regclass('{m2m_table_name}');")
+    with connections[database].cursor() as cursor:
+        try:
+            # Check if the table exists
+            cursor.execute("SELECT to_regclass(%s);", [table_name])
             table_exists = cursor.fetchone()[0] is not None
 
-            if not table_exists:
-                print(f"Creating Many-to-Many table: {m2m_table_name}")
-                schema_editor.create_model(field.remote_field.through)
+            if table_exists:
+                print(f"Updating table for model: {model.__name__}")
+                update_table(schema_editor, model, database)
             else:
-                print(f"Many-to-Many table {m2m_table_name} already exists. Skipping.")
+                print(f"Creating table for model: {model.__name__}")
+                schema_editor.create_model(model)
+        except Exception as e:
+            print(f"Error processing model {model.__name__}: {e}")
 
 
-def update_table(schema_editor: BaseDatabaseSchemaEditor, model):
+def process_m2m_tables(schema_editor: BaseDatabaseSchemaEditor, models, database):
+    """Handle creation of Many-to-Many linking tables."""
+    with connections[database].cursor() as cursor:
+        for model in models:
+            for field in model._meta.local_many_to_many:
+                m2m_table_name = field.m2m_db_table()
+
+                # Check if the M2M table exists
+                cursor.execute(f"SELECT to_regclass('{m2m_table_name}');")
+                table_exists = cursor.fetchone()[0] is not None
+
+                if not table_exists:
+                    print(f"Creating Many-to-Many table: {m2m_table_name}")
+                    schema_editor.create_model(field.remote_field.through)
+                else:
+                    print(
+                        f"Many-to-Many table {m2m_table_name} already exists. Skipping."
+                    )
+
+
+def update_table(schema_editor: BaseDatabaseSchemaEditor, model, database):
     """Update an existing table for the given model. Ensure columns match fields."""
     table_name = model._meta.db_table
     db_fields = {field.column for field in model._meta.fields}
 
-    with connection.cursor() as cursor:
+    with connections[database].cursor() as cursor:
         # Get existing columns
         cursor.execute(
             "SELECT column_name FROM information_schema.columns WHERE table_name = %s;",
@@ -310,57 +347,86 @@ def update_table(schema_editor: BaseDatabaseSchemaEditor, model):
         for column in extra_columns:
             print(f"Removing extra column '{column}' from table '{table_name}'")
             try:
-                cursor.execute(
-                    f"ALTER TABLE {table_name} DROP COLUMN IF EXISTS {column};"
+                # Safely quote table and column names
+                safe_table_name = connections[database].ops.quote_name(table_name)
+                safe_column_name = connections[database].ops.quote_name(column)
+                # Construct and execute the query without f-strings
+                query = "ALTER TABLE {} DROP COLUMN IF EXISTS {};".format(
+                    safe_table_name, safe_column_name
                 )
+                cursor.execute(query)
             except Exception as e:
                 print(
                     f"Error dropping column '{column}' from table '{table_name}': {e}"
                 )
 
 
-def cleanup_stale_tables(cursor):
+def cleanup_stale_tables(models, database):
     """Remove tables that no longer correspond to any Django model or Many-to-Many relationship."""
     print("Checking for stale tables...")
-    model_tables = {model._meta.db_table for model in apps.get_models()}
-    m2m_tables = {
-        field.m2m_db_table()
-        for model in apps.get_models()
-        for field in model._meta.local_many_to_many
-    }
-    expected_tables = model_tables.union(m2m_tables)
 
-    cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public';")
-    existing_tables = {row[0] for row in cursor.fetchall()}
+    with connections[database].cursor() as cursor:
+        model_tables = {model._meta.db_table for model in models}
+        m2m_tables = {
+            field.m2m_db_table()
+            for model in models
+            for field in model._meta.local_many_to_many
+        }
+        expected_tables = model_tables.union(m2m_tables)
 
-    stale_tables = existing_tables - expected_tables
-    for table in stale_tables:
-        print(f"Removing stale table: {table}")
-        try:
-            cursor.execute(f"DROP TABLE {table} CASCADE;")
-        except Exception as e:
-            print(f"Error dropping stale table {table}: {e}")
+        cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public';")
+        existing_tables = {row[0] for row in cursor.fetchall()}
+
+        stale_tables = existing_tables - expected_tables
+        for table in stale_tables:
+            print("Removing stale table: {}".format(table))
+            try:
+                # Use `quote_ident` to safely handle table names with special characters or reserved words
+                cursor.execute(
+                    "DROP TABLE {} CASCADE;".format(
+                        connections[database].ops.quote_name(table)
+                    )
+                )
+            except OperationalError as e:
+                print("Error dropping stale table {}: {}".format(table, e))
 
 
-def drop_all_tables():
+def drop_all_tables(app_label=None):
     """Drop all tables in the database. Used with `dangerouslyforce`."""
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            DO $$ DECLARE
-                r RECORD;
-            BEGIN
-                FOR r IN (
-                    SELECT tablename
-                    FROM pg_tables
-                    WHERE schemaname = 'public'
-                ) LOOP
-                    EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
-                END LOOP;
-            END $$;
-            """
+    allowed_labels = ["xfd_mini_dl", "xfd_api"]
+    db_mapping = {
+        "xfd_mini_dl": "mini_data_lake",
+        "xfd_api": "default",
+    }
+
+    if app_label is None:
+        raise ValueError(
+            "The 'app_label' parameter is required to synchronize specific models."
         )
-    print("All tables dropped successfully.")
+
+    if app_label not in allowed_labels:
+        raise ValueError(
+            f"Invalid 'app_label' provided. Must be one of: {', '.join(allowed_labels)}."
+        )
+
+    database = db_mapping.get(app_label, "default")
+    print(
+        f"Resetting database schema for app '{app_label}' in database '{database}'..."
+    )
+
+    with connections[database].cursor() as cursor:
+        try:
+            # Drop all constraints first to avoid foreign key dependency issues
+            cursor.execute("DROP SCHEMA public CASCADE;")
+            cursor.execute("CREATE SCHEMA public;")
+            cursor.execute(
+                "GRANT ALL ON SCHEMA public TO {};".format(os.getenv("DB_USERNAME"))
+            )
+            cursor.execute("GRANT ALL ON SCHEMA public TO public;")
+        except Exception as e:
+            print(f"Error resetting schema: {e}")
+
+    print("Database schema reset successfully.")
 
 
 def chunked_iterable(iterable, size):

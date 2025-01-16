@@ -65,6 +65,7 @@ MESSAGE_TAGS = {
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "xfd_api.apps.XfdApiConfig",
+    "xfd_mini_dl.apps.XfdMiniDlConfig",
 ]
 
 MIDDLEWARE = [
@@ -72,6 +73,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
 ]
 
 
@@ -89,8 +91,18 @@ DATABASES = {
         "TEST": {
             "NAME": "crossfeed_test",  # Name of the test database
         },
-    }
+    },
+    "mini_data_lake": {
+        "ENGINE": "django.db.backends.postgresql_psycopg2",  # Replace with your database engine
+        "NAME": os.getenv("MDL_NAME"),
+        "USER": os.getenv("MDL_USERNAME"),
+        "PASSWORD": os.getenv("MDL_PASSWORD"),
+        "HOST": os.getenv("DB_HOST"),
+        "PORT": "5432",
+    },
 }
+
+DATABASE_ROUTERS = ["xfd_django.db_routers.MyAppRouter"]
 
 # ElastiCache AWS
 ELASTICACHE_ENDPOINT = os.getenv("ELASTICACHE_ENDPOINT")
@@ -123,3 +135,59 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 PROJECT_NAME = "XFD Python API"
 
 DJANGO_SETTINGS_MODULE = "xfd_django.settings"
+
+# Ensure cookies are only sent over HTTPS
+SESSION_COOKIE_SECURE = not IS_LOCAL  # Only secure in production
+CSRF_COOKIE_SECURE = not IS_LOCAL
+
+# Prevent JavaScript access to cookies to mitigate XSS attacks
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+
+# SameSite policy to prevent CSRF via cross-origin requests
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+
+# SECURITY CONFIGURATION
+SECURE_HSTS_SECONDS = 31536000  # Enable HSTS for 1 year
+SECURE_HSTS_PRELOAD = True
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_CACHE_CONTROL = "no-cache, no-store, must-revalidate"
+SECURE_CSP_POLICY = {
+    "default-src": ["'self'"],
+    "connect-src": [
+        "'self'",
+        os.getenv("COGNITO_URL"),
+        os.getenv("BACKEND_DOMAIN"),
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js",
+    ],
+    "frame-src": ["'self'", "https://www.dhs.gov/ntas/"],
+    "img-src": [
+        "'self'",
+        "data:",
+        os.getenv("FRONTEND_DOMAIN"),
+        "https://www.ssa.gov",
+        "https://www.dhs.gov",
+        "https://fastapi.tiangolo.com/img/favicon.png",
+    ],
+    "object-src": ["'none'"],
+    "script-src": [
+        "'self'",
+        os.getenv("BACKEND_DOMAIN"),
+        "https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js",
+        "https://www.ssa.gov/accessibility/andi/fandi.js",
+        "https://www.ssa.gov/accessibility/andi/andi.js",
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js",
+        "'sha256-QOOQu4W1oxGqd2nbXbxiA1Di6OHQOLQD+o+G9oWL8YY='",
+        "https://www.dhs.gov",
+    ],
+    "style-src": [
+        "'self'",
+        "'unsafe-inline'",
+        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui.css",
+    ],
+    "frame-ancestors": ["'none'"],
+}
+SECURE_ACCESS_CONTROL_ALLOW_CREDENTIALS = True
