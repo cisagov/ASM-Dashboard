@@ -22,7 +22,9 @@ async def get_stats_count_from_cache(redis_client, redis_key_prefix, filtered_or
     aggregated_stats = defaultdict(int)
 
     # Fetch data from Redis by organization ID
-    redis_keys = [f"{redis_key_prefix}:{org_id}" for org_id in filtered_org_ids]
+    redis_keys = [
+        "{}:{}".format(redis_key_prefix, org_id) for org_id in filtered_org_ids
+    ]
     redis_responses = await asyncio.gather(
         *(redis_client.get(redis_key) for redis_key in redis_keys),
         return_exceptions=True,
@@ -92,18 +94,18 @@ def populate_stats_cache(
 
         # Store stats in Redis
         for group_id, data in stats_by_group.items():
-            redis_key = f"{redis_key_prefix}:{group_id}"
+            redis_key = "{}:{}".format(redis_key_prefix, group_id)
             redis_client.set(redis_key, json.dumps(data))
 
         return {
             "status": "success",
-            "message": f"Cache populated successfully for {redis_key_prefix}.",
+            "message": "Cache populated successfully for {}.".format(redis_key_prefix),
         }
 
     except Exception as e:
         return {
             "status": "error",
-            "message": f"An unexpected error occurred: {e}",
+            "message": "An unexpected error occurred: {}".format(e),
         }
 
 
@@ -119,5 +121,5 @@ async def get_total_count(filtered_org_ids):
         return total_count
 
     except Exception as e:
-        print(f"Unexpected error fetching total count: {e}")
+        print("Unexpected error fetching total count: {}".format(e))
         return 0

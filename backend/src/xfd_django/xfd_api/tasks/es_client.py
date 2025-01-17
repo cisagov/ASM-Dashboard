@@ -1,5 +1,6 @@
 """ES client."""
 # Standard Python Libraries
+import logging
 import os
 
 # Third-Party Libraries
@@ -37,7 +38,7 @@ class ESClient:
         """Create or updates the organizations index with mappings."""
         try:
             if not self.client.indices.exists(index=ORGANIZATIONS_INDEX):
-                print(f"Creating index {ORGANIZATIONS_INDEX}...")
+                logging.info("Creating index %s...", ORGANIZATIONS_INDEX)
                 self.client.indices.create(
                     index=ORGANIZATIONS_INDEX,
                     body={
@@ -46,19 +47,19 @@ class ESClient:
                     },
                 )
             else:
-                print(f"Updating index {ORGANIZATIONS_INDEX}...")
+                logging.info("Updating index %s...", ORGANIZATIONS_INDEX)
                 self.client.indices.put_mapping(
                     index=ORGANIZATIONS_INDEX, body=organization_mapping
                 )
         except Exception as e:
-            print(f"Error syncing organizations index: {e}")
+            logging.error("Error syncing organizations index: %s", e)
             raise e
 
     def sync_domains_index(self):
         """Create or updates the domains index with mappings."""
         try:
             if not self.client.indices.exists(index=DOMAINS_INDEX):
-                print(f"Creating index {DOMAINS_INDEX}...")
+                logging.info("Creating index %s...", DOMAINS_INDEX)
                 self.client.indices.create(
                     index=DOMAINS_INDEX,
                     body={
@@ -67,7 +68,7 @@ class ESClient:
                     },
                 )
             else:
-                print(f"Updating index {DOMAINS_INDEX}...")
+                logging.info("Updating index %s...", DOMAINS_INDEX)
                 self.client.indices.put_mapping(
                     index=DOMAINS_INDEX, body=domain_mapping
                 )
@@ -76,7 +77,7 @@ class ESClient:
                 index=DOMAINS_INDEX, body={"settings": {"refresh_interval": "1800s"}}
             )
         except Exception as e:
-            print(f"Error syncing domains index: {e}")
+            logging.error("Error syncing domains index: %s", e)
             raise e
 
     def update_organizations(self, organizations):
@@ -117,7 +118,7 @@ class ESClient:
             {
                 "_op_type": "update",
                 "_index": DOMAINS_INDEX,
-                "_id": f"webpage_{webpage['webpage_id']}",
+                "_id": "webpage_{}".format(webpage["webpage_id"]),
                 "routing": webpage["webpage_domainId"],
                 "doc": {
                     **webpage,
@@ -139,7 +140,7 @@ class ESClient:
             print("Deleting all indices...")
             self.client.indices.delete(index="*")
         except Exception as e:
-            print(f"Error deleting all indices: {e}")
+            logging.error("Error deleting all indices: %s", e)
             raise e
 
     def search_domains(self, body):
@@ -156,15 +157,17 @@ class ESClient:
             success_count, response = helpers.bulk(
                 self.client, actions, raise_on_error=False
             )
-            print(f"Bulk operation success count: {success_count}")
+            logging.info("Bulk operation success count: %s", success_count)
 
             for idx, item in enumerate(response):
                 if "update" in item and item["update"].get("error"):
-                    print(f"Error indexing document {idx}: {item['update']['error']}")
+                    logging.error(
+                        "Error indexing document %s: %s", idx, item["update"]["error"]
+                    )
                 else:
-                    print(f"Successfully indexed document {idx}: {item}")
+                    logging.info("Successfully indexed document %s: %s", idx, item)
 
             self.client.indices.refresh(index="domains-5")
         except Exception as e:
-            print(f"Bulk operation error: {e}")
+            logging.error("Bulk operation error: %s", e)
             raise e

@@ -167,7 +167,7 @@ def export_domains(domain_search: DomainSearch, current_user):
                     for product in service.products.all():
                         if product.name:
                             product_entry = (
-                                f"{product.name} {product.version}"
+                                "{} {}".format(product.name, product.version)
                                 if product.version
                                 else product.name
                             )
@@ -221,5 +221,5 @@ def export_domains(domain_search: DomainSearch, current_user):
 
     except Exception as e:
         # Log the exception for debugging (optional)
-        print(f"Error exporting domains: {e}")
+        print("Error exporting domains: {}".format(e))
         raise HTTPException(status_code=500, detail=str(e))
