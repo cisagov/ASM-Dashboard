@@ -899,7 +899,9 @@ export const updateV2 = wrapHandler(async (event) => {
   }
 
   // Check if authorizer's region matches the user's
-  if (!matchesUserRegion(event, user.regionId)) return Unauthorized;
+  // Allows new users to select their state without a region on initial account creation
+  if (user.invitePending === false && !matchesUserRegion(event, user.regionId))
+    return Unauthorized;
 
   if (body.state) {
     body.regionId = REGION_STATE_MAP[body.state];
