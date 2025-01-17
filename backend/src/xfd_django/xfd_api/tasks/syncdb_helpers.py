@@ -437,7 +437,9 @@ def create_scan_user():
 
             if not user_exists:
                 # Create the user
-                cursor.execute("CREATE ROLE {} LOGIN PASSWORD %s;".format(user), [password])
+                cursor.execute(
+                    "CREATE ROLE {} LOGIN PASSWORD %s;".format(user), [password]
+                )
                 print("User '{}' created successfully.".format(user))
             else:
                 print("User '{}' already exists. Skipping creation.".format(user))
@@ -445,9 +447,13 @@ def create_scan_user():
             # Grant privileges (idempotent as well)
             cursor.execute("GRANT CONNECT ON DATABASE {} TO {};".format(db_name, user))
             cursor.execute("GRANT USAGE ON SCHEMA public TO {};".format(user))
-            cursor.execute("GRANT SELECT ON ALL TABLES IN SCHEMA public TO {};".format(user))
             cursor.execute(
-                "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO {};".format(user)
+                "GRANT SELECT ON ALL TABLES IN SCHEMA public TO {};".format(user)
+            )
+            cursor.execute(
+                "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO {};".format(
+                    user
+                )
             )
 
             print("User '{}' configured successfully.".format(user))
