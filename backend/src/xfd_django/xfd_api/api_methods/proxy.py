@@ -24,11 +24,36 @@ async def proxy_request(
     target_url: str,
     path: Optional[str] = None,
     cookie_name: Optional[str] = None,
+    public_paths: Optional[list] = None,
 ):
-    """Proxy the request to the target URL."""
+    """
+    Proxy the request to the target URL.
+
+    - Handles public paths without authentication.
+    - Manipulates cookies for session-based authentication.
+    """
     headers = dict(request.headers)
 
-    # Cookie manipulation for specific cookie names
+    # Handle public paths
+    if public_paths and path in public_paths:
+        async with httpx.AsyncClient() as client:
+            proxy_response = await client.request(
+                method=request.method,
+                url=f"{target_url}/{path}",
+                headers=headers,
+                params=request.query_params,
+                content=await request.body(),
+            )
+        proxy_response_headers = dict(proxy_response.headers)
+        proxy_response_headers.pop("transfer-encoding", None)
+
+        return Response(
+            content=proxy_response.content,
+            status_code=proxy_response.status_code,
+            headers=proxy_response_headers,
+        )
+
+    # Handle cookies for private paths
     if cookie_name:
         cookies = manipulate_cookie(request, cookie_name)
         if cookies:
