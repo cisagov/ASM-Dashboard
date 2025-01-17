@@ -65,7 +65,7 @@ def fetch_cve_data(page):
     """Fetch CVE data for a specific page."""
     print("Fetching CVE data for page {}".format(page))
     headers = {
-        "Authorization": os.getenv("CF_API_KEY"),
+        "X-API-KEY": os.getenv("CF_API_KEY"),
         "access_token": os.getenv("PE_API_KEY"),
         "Content-Type": "",
     }
@@ -91,7 +91,7 @@ def fetch_cve_data_task(task_id):
         task_id
     )
     headers = {
-        "Authorization": os.getenv("CF_API_KEY"),
+        "X-API-KEY": os.getenv("CF_API_KEY"),
         "access_token": os.getenv("PE_API_KEY"),
         "Content-Type": "",
     }

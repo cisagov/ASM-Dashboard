@@ -75,7 +75,7 @@ def fetch_pe_vuln_task(org_acronym):
     """Fetch PE vulnerability task data."""
     print("Fetching PE vulnerability task for organization: {}".format(org_acronym))
     headers = {
-        "Authorization": os.getenv("CF_API_KEY"),
+        "X-API-KEY": os.getenv("CF_API_KEY"),
         "access_token": os.getenv("PE_API_KEY"),
         "Content-Type": "",
     }
@@ -101,7 +101,7 @@ def fetch_pe_vuln_data(scan_name, task_id):
         task_id, scan_name
     )
     headers = {
-        "Authorization": os.getenv("CF_API_KEY"),
+        "X-API-KEY": os.getenv("CF_API_KEY"),
         "access_token": os.getenv("PE_API_KEY"),
         "Content-Type": "",
     }
