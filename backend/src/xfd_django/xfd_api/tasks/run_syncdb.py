@@ -55,8 +55,8 @@ def handler(event, context):
             "body": "Database synchronization completed successfully.",
         }
     except Exception as e:
-        print(f"Error during syncdb: {str(e)}")
+        print("Error during syncdb: {}".format(str(e)))
         return {
             "statusCode": 500,
-            "body": f"Database synchronization failed: {str(e)}",
+            "body": "Database synchronization failed: {}".format(str(e)),
         }

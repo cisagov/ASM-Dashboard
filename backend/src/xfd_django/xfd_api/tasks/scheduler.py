@@ -49,8 +49,8 @@ class Scheduler:
         self.orgs_per_scan_task = orgs_per_scan_task
         self.num_existing_tasks = self.ecs.get_num_tasks()
 
-        print(f"Number of running Fargate tasks: {self.num_existing_tasks}")
-        print(f"Number of queued scan tasks: {len(self.queued_scan_tasks)}")
+        print("Number of running Fargate tasks: {}".format(self.num_existing_tasks))
+        print("Number of queued scan tasks: {}".format(len(self.queued_scan_tasks)))
 
     def launch_single_scan_task(
         self,
@@ -92,7 +92,9 @@ class Scheduler:
             scan_task.status = "queued"
             if not scan_task.queuedAt:
                 scan_task.queuedAt = timezone.now()
-            print(f"Reached maximum concurrency, queueing scantask {scan_task.id}")
+            print(
+                "Reached maximum concurrency, queueing scantask {}".format(scan_task.id)
+            )
             scan_task.save()
             return
 
@@ -101,25 +103,29 @@ class Scheduler:
                 result = self.ecs.run_command(command_options)
                 if not result.get("tasks"):
                     print(
-                        f"Failed to start Fargate task for scan {scan.name}, failures: {result.get('failures')}"
+                        "Failed to start Fargate task for scan {}, failures: {}".format(
+                            scan.name, result.get("failures")
+                        )
                     )
                     raise Exception(
-                        f"Failed to start Fargate task for scan {scan.name}"
+                        "Failed to start Fargate task for scan {}".format(scan.name)
                     )
 
                 task_arn = result["tasks"][0]["taskArn"]
                 scan_task.fargateTaskArn = task_arn
                 print(
-                    f"Successfully invoked scan {scan.name} with Fargate on {len(organizations)} organizations. Task ARN: {task_arn}"
+                    "Successfully invoked scan {} with Fargate on {} organizations. Task ARN: {}".format(
+                        scan.name, len(organizations), task_arn
+                    )
                 )
             else:
-                raise Exception(f"Invalid task type: {task_type}")
+                raise Exception("Invalid task type: {}".format(task_type))
 
             scan_task.status = "requested"
             scan_task.requestedAt = timezone.now()
             self.num_launched_tasks += 1
         except Exception as error:
-            print(f"Error invoking {scan.name} scan: {error}")
+            print("Error invoking {} scan: {}".format(scan.name, error))
             scan_task.output = str(error)
             scan_task.status = "failed"
             scan_task.finishedAt = timezone.now()
@@ -165,7 +171,7 @@ class Scheduler:
             prev_num_launched_tasks = self.num_launched_tasks
 
             if scan.name not in SCAN_SCHEMA:
-                print(f"Invalid scan name: {scan.name}")
+                print("Invalid scan name: {}".format(scan.name))
                 continue
 
             scan_schema = SCAN_SCHEMA[scan.name]

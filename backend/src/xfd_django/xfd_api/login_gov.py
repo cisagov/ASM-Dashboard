@@ -16,7 +16,7 @@ discovery_url = (
 try:
     jwk_set = {"keys": [json.loads(os.getenv("LOGIN_GOV_JWT_KEY", ""))]}
 except Exception as error:
-    print(f"Error: {error}")
+    print("Error: {}".format(error))
     jwk_set = {"keys": [{}]}
 
 # OpenID Connect Client Configuration
@@ -46,12 +46,12 @@ def login():
     state = random_string(32)
 
     # Create authorization URL
-    authorization_url = (
-        f"{config['authorization_endpoint']}?response_type=code"
-        f"&client_id={client_options['client_id']}"
-        f"&redirect_uri={client_options['redirect_uris'][0]}"
-        f"&scope=openid+email"
-        f"&nonce={nonce}&state={state}&prompt=select_account"
+    authorization_url = "{}?response_type=code&client_id={}&redirect_uri={}&scope=openid+email&nonce={}&state={}&prompt=select_account".format(
+        config["authorization_endpoint"],
+        client_options["client_id"],
+        client_options["redirect_uris"][0],
+        nonce,
+        state,
     )
 
     return {"url": authorization_url, "state": state, "nonce": nonce}
@@ -90,5 +90,5 @@ def callback(body):
     # Decode the ID token without verifying the signature
     # (optional depending on your security model)
     decoded_token = jwt.decode(id_token, options={"verify_signature": False})
-    print(f"Decoded Token from login_gov: {decoded_token}")
+    print("Decoded Token from login_gov: {}".format(decoded_token))
     return decoded_token

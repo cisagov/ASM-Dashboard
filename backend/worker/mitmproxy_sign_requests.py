@@ -109,7 +109,7 @@ class SignRequests:
         except Exception as e:
             flow.response = http.HTTPResponse.make(
                 500,
-                f"mitmproxy failed:<br> {e}<br><br>{traceback.format_exc()}",
+                "mitmproxy failed:<br> {}<br><br>{}".format(e, traceback.format_exc()),
                 {"Content-Type": "text/html"},
             )
 
