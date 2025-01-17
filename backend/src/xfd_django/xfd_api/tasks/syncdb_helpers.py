@@ -211,7 +211,7 @@ def synchronize(target_app_label=None):
         )
 
     # Get database name for 'connections':
-    # The 'connections' object gets all databases defined in setting.py
+    # The 'connections' object gets all databases defined in settings.py
     database = db_mapping.get(target_app_label, "default")
     print(
         "Synchronizing database schema for app '{}' in database '{}'...".format(
