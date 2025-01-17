@@ -410,3 +410,46 @@ def sync_es_organizations():
     except Exception as e:
         print(f"Error syncing organizations: {e}")
         raise e
+
+
+def create_scan_user():
+    """Create and configure the scanning user if it does not already exist."""
+    # Only create if not in the DMZ
+    is_dmz = os.getenv("IS_DMZ", "0") == "1"
+
+    if is_dmz:
+        print("IS_DMZ is set to 1. Skipping creation of the scanning user.")
+        return
+
+    user = os.getenv("POSTGRES_SCAN_USER")
+    password = os.getenv("POSTGRES_SCAN_PASSWORD")
+    if not user or not password:
+        print("POSTGRES_SCAN_USER or POSTGRES_SCAN_PASSWORD is not set.")
+        return
+
+    db_name = settings.DATABASES["default"]["NAME"]
+
+    with connection.cursor() as cursor:
+        try:
+            # Check if the user already exists
+            cursor.execute("SELECT 1 FROM pg_roles WHERE rolname = %s;", [user])
+            user_exists = cursor.fetchone() is not None
+
+            if not user_exists:
+                # Create the user
+                cursor.execute("CREATE ROLE {} LOGIN PASSWORD %s;".format(user), [password])
+                print("User '{}' created successfully.".format(user))
+            else:
+                print("User '{}' already exists. Skipping creation.".format(user))
+
+            # Grant privileges (idempotent as well)
+            cursor.execute("GRANT CONNECT ON DATABASE {} TO {};".format(db_name, user))
+            cursor.execute("GRANT USAGE ON SCHEMA public TO {};".format(user))
+            cursor.execute("GRANT SELECT ON ALL TABLES IN SCHEMA public TO {};".format(user))
+            cursor.execute(
+                "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO {};".format(user)
+            )
+
+            print("User '{}' configured successfully.".format(user))
+        except Exception as e:
+            print("Error creating or configuring scan user: {}".format(e))
