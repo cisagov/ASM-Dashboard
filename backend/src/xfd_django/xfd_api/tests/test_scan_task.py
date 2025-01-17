@@ -271,4 +271,46 @@ def test_get_logs_by_global_view(mock_get_logs):
 
     assert response.status_code == 200
     assert response.text == "logs"
-    # Mock
+    # Mock assertion to ensure logs fetching is called with the correct ARN
+    mock_get_logs.assert_called_with("fargateTaskArn")
+
+
+# Test: logs by regular user should fail
+@pytest.mark.django_db(transaction=True)
+@patch("xfd_api.tasks.ecs_client.ECSClient.get_logs")
+def test_get_logs_by_regular_user_fails(mock_get_logs):
+    """Test scan-task."""
+    mock_get_logs.return_value = "logs"
+
+    user = User.objects.create(
+        firstName="",
+        lastName="",
+        email="{}@example.com".format(secrets.token_hex(4)),
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+
+    organization = Organization.objects.create(
+        name="test-{}".format(secrets.token_hex(4)),
+        rootDomains=["test-" + secrets.token_hex(4)],
+        ipBlocks=[],
+        isPassive=False,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+
+    scan = Scan.objects.create(name="findomain", arguments={}, frequency=100)
+    scan_task = ScanTask.objects.create(
+        scan=scan, fargateTaskArn="fargateTaskArn", type="fargate", status="started"
+    )
+    scan_task.organizations.add(organization)
+
+    response = client.get(
+        "/scan-tasks/{}/logs".format(scan_task.id),
+        headers={"Authorization": "Bearer " + create_jwt_token(user)},
+    )
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Unauthorized access. View logs for details."}
+    mock_get_logs.assert_not_called()

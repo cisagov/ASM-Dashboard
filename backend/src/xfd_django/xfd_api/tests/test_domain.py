@@ -218,7 +218,7 @@ def test_search_domain_by_service(user, vulnerability):
         service_match = services.filter(id=vulnerability.service.id)
         assert (
             service_match is not None
-        ), "Domain with ID {} is not related to a service with ID {}".format(
+        ), "Domain with ID {} is not related a service with ID {}".format(
             domain_id, vulnerability.service.id
         )
 
