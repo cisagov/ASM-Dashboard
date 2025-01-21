@@ -40,7 +40,9 @@ custom:
       Condition:
         IpAddress:
           aws:SourceIp:
-            - ${file(env.yml):${self:provider.stage}.DMZ_CIDR, ''}
+            'Fn::Split':
+              - ','
+              - ${file(env.yml):${self:provider.stage}.DMZ_CIDR, ''}
 
   # Conditional logic for GovCloud vs
   # non-GovCloud (Private endpoints require a VPC Endpoint)
