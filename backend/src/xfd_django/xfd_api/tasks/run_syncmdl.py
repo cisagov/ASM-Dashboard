@@ -13,13 +13,17 @@ os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 # Initialize Django
 django.setup()
 
+
 def handler(event, context):
     """Trigger syncmdl."""
     dangerouslyforce = event.get("dangerouslyforce", False)
 
     try:
         call_command("syncmdl", dangerouslyforce=dangerouslyforce)
-
+        return {
+            "statusCode": 200,
+            "body": "Database synchronization completed successfully.",
+        }
     except Exception as e:
         print("Error during syncmdl: {}".format(str(e)))
         return {
