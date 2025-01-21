@@ -39,11 +39,11 @@ class Command(BaseCommand):
         # Step 1: Database Reset and Migration
         if dangerouslyforce:
             self.stdout.write("Dropping and recreating the database...")
-            drop_all_tables()
-            synchronize()
+            drop_all_tables(app_label="xfd_api")
+            synchronize(target_app_label="xfd_api")
         else:
             self.stdout.write("Applying migrations...")
-            synchronize()
+            synchronize(target_app_label="xfd_api")
 
         # Step 2: Elasticsearch Index Management
         manage_elasticsearch_indices(dangerouslyforce)
