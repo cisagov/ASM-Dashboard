@@ -117,7 +117,7 @@ def pull_cities():
                         )
                     time.sleep(1)
                 except Exception as e:
-                    print(f"Error: {e}")
+                    print("Error: {}".format(e))
                     pass
 
         df = pd.DataFrame(holding_pen, columns=["State", "County", "City", "URL"])

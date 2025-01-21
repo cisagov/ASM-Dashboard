@@ -213,8 +213,7 @@ def hash_key(key: str) -> str:
 # async def get_user_info_from_cognito(token):
 #     """Get user info from cognito."""
 #     jwks_url = (
-#         f"https://cognito-idp.us-east-1.amazonaws.com/"
-#         f"{os.getenv('REACT_APP_USER_POOL_ID')}/.well-known/jwks.json"
+#         "https://cognito-idp.us-east-1.amazonaws.com/{}/.well-known/jwks.json".format(os.getenv('REACT_APP_USER_POOL_ID'))
 #     )
 #     response = requests.get(jwks_url)
 #     jwks = response.json()
@@ -368,7 +367,7 @@ async def get_jwt_from_code(auth_code: str):
         proxy_url = os.getenv("LZ_PROXY_URL")
 
         scope = "openid"
-        authorize_token_url = f"https://{domain}/oauth2/token"
+        authorize_token_url = "https://{}/oauth2/token".format(domain)
         authorize_token_body = {
             "grant_type": "authorization_code",
             "client_id": client_id,
@@ -400,7 +399,7 @@ async def get_jwt_from_code(auth_code: str):
 
         # Decode the token without verifying the signature (if needed)
         decoded_token = jwt.decode(id_token, options={"verify_signature": False})
-        print(f"decoded token: {decoded_token}")
+        print("decoded token: {}".format(decoded_token))
         return {
             "refresh_token": refresh_token,
             "id_token": id_token,
@@ -409,7 +408,7 @@ async def get_jwt_from_code(auth_code: str):
         }
 
     except Exception as error:
-        print(f"get_jwt_from_code post error: {error}")
+        print("get_jwt_from_code post error: {}".format(error))
 
 
 def can_access_user(current_user, target_user_id) -> bool:

@@ -67,11 +67,13 @@ def listen_for_docker_events():
                     continue
 
                 # Log and process the event
-                print(f"Processing Docker event: {json.dumps(payload, indent=2)}")
+                print(
+                    "Processing Docker event: {}".format(json.dumps(payload, indent=2))
+                )
                 # Use asyncio to process the event
                 asyncio.run(update_scan_task_status(payload, None))
             except Exception as e:
-                print(f"Error processing Docker event: {e}")
+                print("Error processing Docker event: {}".format(e))
 
     except Exception as e:
-        print(f"Error connecting to Docker: {e}")
+        print("Error connecting to Docker: {}".format(e))

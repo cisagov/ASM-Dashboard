@@ -34,8 +34,10 @@ def send_invite_email(email, organization=None):
     frontend_domain = settings.FRONTEND_DOMAIN
     reply_to = settings.CROSSFEED_SUPPORT_EMAIL_REPLYTO
 
-    org_name_part = f"the {organization.name} organization on " if organization else ""
-    message = f"""
+    org_name_part = (
+        "the {} organization on ".format(organization.name) if organization else ""
+    )
+    message = """
     Hi there,
 
     You've been invited to join {org_name_part}CyHy Dashboard. To accept the invitation and start using CyHy Dashboard, sign on at {frontend_domain}/signup.
@@ -52,7 +54,9 @@ def send_invite_email(email, organization=None):
     For more information on using CyHy Dashboard, view the CyHy Dashboard user guide at https://docs.crossfeed.cyber.dhs.gov/user-guide/quickstart/.
 
     If you encounter any difficulties, please feel free to reply to this email (or send an email to {reply_to}).
-    """
+    """.format(
+        org_name_part=org_name_part, frontend_domain=frontend_domain, reply_to=reply_to
+    )
     send_email(email, "CyHy Dashboard Invitation", message)
 
 
@@ -73,9 +77,9 @@ def send_email(recipient, subject, body):
 
     try:
         ses_client.send_email(**email_params)
-        print(f"Email sent to {recipient}")
+        print("Email sent to {}".format(recipient))
     except ClientError as e:
-        print(f"Error sending email: {e}")
+        print("Error sending email: {}".format(e))
 
 
 def send_registration_approved_email(
