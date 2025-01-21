@@ -6,6 +6,20 @@ from fastapi import HTTPException
 from ..models import Vulnerability
 from ..schema_models.vulnerability import VulnerabilityFilters
 
+# Define the severity levels
+SEVERITY_LEVELS = ["Low", "Medium", "High", "Critical"]
+NULL_VALUES = ["None", "Null", "N/A", "Undefined", ""]
+
+
+def format_severity(severity: str) -> str:
+    """Format severity to classify as 'N/A', standard severity, or 'Other'."""
+    if severity is None or severity in NULL_VALUES:
+        return "N/A"
+    elif severity.title() in SEVERITY_LEVELS:
+        return severity.title()
+    else:
+        return "Other"
+
 
 def sort_direction(sort, order):
     """
@@ -100,7 +114,34 @@ def apply_vuln_filters(
 
     # Partial match on severity
     if vulnerability_filters.severity:
-        q &= Q(severity__icontains=vulnerability_filters.severity)
+        severity_category = format_severity(vulnerability_filters.severity)
+
+        if severity_category == "N/A":
+            q &= (
+                Q(severity=None)
+                | Q(severity__icontains="none")
+                | Q(severity__icontains="null")
+                | Q(severity__icontains="n/a")
+                | Q(severity__icontains="undefined")
+                | Q(severity="")
+            )
+
+        elif severity_category == "Other":
+            q &= ~(
+                Q(severity=None)
+                | Q(severity__icontains="none")
+                | Q(severity__icontains="null")
+                | Q(severity__icontains="undefined")
+                | Q(severity="")
+                | Q(severity__icontains="N/A")
+                | Q(severity__icontains="Low")
+                | Q(severity__icontains="Medium")
+                | Q(severity__icontains="High")
+                | Q(severity__icontains="Critical")
+            )
+
+        elif severity_category in SEVERITY_LEVELS:
+            q &= Q(severity__icontains=severity_category)
 
     # Partial match on cpe
     if vulnerability_filters.cpe:

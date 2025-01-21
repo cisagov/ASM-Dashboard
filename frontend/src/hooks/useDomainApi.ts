@@ -39,8 +39,6 @@ export const useDomainApi = (showAll?: boolean) => {
         tableFilters['organization'] = currentOrganization.id;
       }
 
-      console.log('filters here', tableFilters);
-
       const { result, count, url } = await apiPost<ApiResponse>(
         doExport ? '/domain/export' : '/domain/search',
         {

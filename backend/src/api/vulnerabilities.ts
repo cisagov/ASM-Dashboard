@@ -124,11 +124,12 @@ class VulnerabilitySearch {
     if (this.filters?.severity) {
       if (this.filters.severity === 'N/A') {
         qs.andWhere(
-          "vulnerability.severity IS NULL OR vulnerability.severity = ''"
+          "vulnerability.severity IS NULL OR vulnerability.severity = '' OR vulnerability.severity ILIKE 'N/A' OR vulnerability.severity ILIKE 'NULL'"
         );
       } else if (this.filters.severity === 'Other') {
         qs.andWhere(
-          `vulnerability.severity NOT ILIKE 'N/A' AND
+          `vulnerability.severity NOT ILIKE 'NULL' AND
+          vulnerability.severity NOT ILIKE 'N/A' AND
          vulnerability.severity NOT ILIKE 'Low' AND
          vulnerability.severity NOT ILIKE 'Medium' AND
          vulnerability.severity NOT ILIKE 'High' AND

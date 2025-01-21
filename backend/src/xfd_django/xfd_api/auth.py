@@ -540,6 +540,7 @@ def get_stats_org_ids(current_user, filters):
                 is_global_view_admin(current_user)
                 or (is_regional_admin_for_organization(current_user, org_id))
                 or (is_org_admin(current_user, org_id))
+                or (get_org_memberships(current_user))
             ):
                 organization_ids.add(org_id)
 
