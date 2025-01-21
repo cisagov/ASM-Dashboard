@@ -6,7 +6,6 @@ from uuid import UUID
 
 # Third-Party Libraries
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
-from fastapi.responses import RedirectResponse
 from redis import asyncio as aioredis
 
 # from .schemas import Cpe
@@ -118,36 +117,7 @@ async def matomo_proxy(
 ):
     """Proxy requests to the Matomo analytics instance."""
     MATOMO_URL = os.getenv("MATOMO_URL", "")
-
-    # Redirect font requests to CDN
-    font_paths = [
-        "/plugins/Morpheus/fonts/matomo.woff2",
-        "/plugins/Morpheus/fonts/matomo.woff",
-        "/plugins/Morpheus/fonts/matomo.ttf",
-    ]
-    if request.url.path in font_paths:
-        return RedirectResponse(
-            url=f"https://cdn.jsdelivr.net/gh/matomo-org/matomo@5.2.1{request.url.path}"
-        )
-
-    # Public paths allowed without authentication
-    public_paths = ["matomo.php", "matomo.js", "index.php"]
-    if path in public_paths:
-        return await proxy.proxy_request(request, MATOMO_URL, path)
-
-    # Authentication for private paths
-    if not current_user:
-        current_user = await get_current_active_user(request)
-    if current_user is None or current_user.userType != "globalAdmin":
-        raise HTTPException(status_code=403, detail="Unauthorized")
-
-    # Proxy private paths
-    return await proxy.proxy_request(
-        request=request,
-        target_url=MATOMO_URL,
-        path=path,
-        cookie_name="MATOMO_SESSID",
-    )
+    return await proxy.matomo_proxy_handler(request, path, current_user, MATOMO_URL)
 
 
 # P&E Proxy
@@ -158,19 +128,19 @@ async def matomo_proxy(
     tags=["Analytics"],
 )
 async def pe_proxy(
-    path: str, request: Request, current_user: User = Depends(get_current_active_user)
+    path: str,
+    request: Request,
+    current_user: UserSchema = Depends(get_current_active_user),
 ):
     """Proxy requests to the P&E Django application."""
+    PE_API_URL = os.getenv("PE_API_URL", "")
+
     # Ensure only Global Admin and Global View users can access
     if current_user.userType not in ["globalView", "globalAdmin"]:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     # Proxy the request to the P&E Django application
-    return await proxy.proxy_request(
-        request=request,
-        target_url=os.getenv("PE_API_URL", ""),
-        path=path,
-    )
+    return await proxy.proxy_request(request, PE_API_URL, path)
 
 
 # ========================================
