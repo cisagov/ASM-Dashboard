@@ -139,17 +139,8 @@ export const handler: Handler = async (event) => {
       }
     }
 
-    console.log('Done. Running search sync...');
-    for (const organizationId of organizationIds) {
-      await searchSyncDomains({
-        organizationId,
-        scanId: 'scanId',
-        scanName: 'scanName',
-        organizationName: 'organizationName',
-        scanTaskId: 'scanTaskId'
-      });
-    }
     console.log('Done.');
   }
+  await searchSyncDomains();
   await searchSyncOrgs();
 };

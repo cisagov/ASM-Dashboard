@@ -11,9 +11,7 @@ import pRetry from 'p-retry';
 export const DOMAIN_CHUNK_SIZE = typeof jest === 'undefined' ? 50 : 10;
 export const ORGANIZATION_CHUNK_SIZE = typeof jest === 'undefined' ? 50 : 10;
 
-export const handler = async (commandOptions: CommandOptions) => {
-  const { organizationId, domainId } = commandOptions;
-
+export const handler = async (organizationId?: string) => {
   console.log('Running searchSync');
   await connectToDatabase();
 
