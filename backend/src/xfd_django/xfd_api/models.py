@@ -582,7 +582,7 @@ class User(models.Model):
 
     def save(self, *args, **kwargs):
         """Save user with fullName."""
-        self.fullName = f"{self.firstName} {self.lastName}"
+        self.fullName = "{} {}".format(self.firstName, self.lastName)
         super().save(*args, **kwargs)
 
     class Meta:

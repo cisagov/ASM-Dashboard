@@ -39,7 +39,9 @@ class S3Client:
     def save_csv(self, body, name=""):
         """Save a CSV file in S3 and returns a temporary URL for access."""
         try:
-            key = f"{random.random()}/{name}-{datetime.utcnow().isoformat()}.csv"
+            key = "{}/{}-{}.csv".format(
+                random.random(), name, datetime.utcnow().isoformat()
+            )
             bucket = os.getenv("EXPORT_BUCKET_NAME")
 
             # Save CSV to S3
@@ -61,7 +63,7 @@ class S3Client:
     def export_report(self, report_name, org_id):
         """Generate a presigned URL for a report."""
         try:
-            key = f"{org_id}/{report_name}"
+            key = "{}/{}".format(org_id, report_name)
             bucket = os.getenv("REPORTS_BUCKET_NAME")
 
             url = self.s3.generate_presigned_url(
@@ -78,7 +80,7 @@ class S3Client:
         """List all reports in a specified organization's folder."""
         try:
             bucket = os.getenv("REPORTS_BUCKET_NAME")
-            prefix = f"{org_id}/"
+            prefix = "{}/".format(org_id)
 
             response = self.s3.list_objects_v2(
                 Bucket=bucket, Prefix=prefix, Delimiter=""
@@ -95,9 +97,9 @@ class S3Client:
         try:
             response = self.s3.head_object(Bucket=bucket, Key=filename)
             if response:
-                print(f"File '{filename}' exists in bucket {bucket}.")
+                print("File '{}' exists in bucket {}.".format(filename, bucket))
         except self.s3.exceptions.NoSuchKey:
-            print(f"File '{filename}' does not exist in bucket {bucket}.")
+            print("File '{}' does not exist in bucket {}.".format(filename, bucket))
             return None
         except ClientError as e:
             print("Error checking for file in S3: %s", e)

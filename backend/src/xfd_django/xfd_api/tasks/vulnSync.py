@@ -36,12 +36,16 @@ def main():
 
     # For each organization, fetch vulnerability data
     for org in all_orgs:
-        print(f"Processing organization: {org.acronym}, {org.name}")
+        print("Processing organization: {}, {}".format(org.acronym, org.name))
 
         # Fetch PE vulnerability task data
         data = fetch_pe_vuln_task(org.acronym)
         if not data or not data.get("tasks_dict"):
-            print(f"Failed to start PE API task for org: {org.acronym}, {org.name}")
+            print(
+                "Failed to start PE API task for org: {}, {}".format(
+                    org.acronym, org.name
+                )
+            )
             continue
 
         all_vulns = []
@@ -53,7 +57,9 @@ def main():
 
             if response and response.get("status") == "Failure":
                 print(
-                    f"Failed fetching data for task {task_id} for org {org.acronym}, {org.name}"
+                    "Failed fetching data for task {} for org {}, {}".format(
+                        task_id, org.acronym, org.name
+                    )
                 )
                 continue
 
@@ -67,9 +73,9 @@ def main():
 
 def fetch_pe_vuln_task(org_acronym):
     """Fetch PE vulnerability task data."""
-    print(f"Fetching PE vulnerability task for organization: {org_acronym}")
+    print("Fetching PE vulnerability task for organization: {}".format(org_acronym))
     headers = {
-        "Authorization": os.getenv("CF_API_KEY"),
+        "X-API-KEY": os.getenv("CF_API_KEY"),
         "access_token": os.getenv("PE_API_KEY"),
         "Content-Type": "",
     }
@@ -85,15 +91,17 @@ def fetch_pe_vuln_task(org_acronym):
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching PE task: {e}")
+        print("Error fetching PE task: {}".format(e))
         return None
 
 
 def fetch_pe_vuln_data(scan_name, task_id):
     """Fetch PE vulnerability data for a task."""
-    url = f"https://api.staging-cd.crossfeed.cyber.dhs.gov/pe/apiv1/crossfeed_vulns/task/?task_id={task_id}&scan_name={scan_name}"
+    url = "https://api.staging-cd.crossfeed.cyber.dhs.gov/pe/apiv1/crossfeed_vulns/task/?task_id={}&scan_name={}".format(
+        task_id, scan_name
+    )
     headers = {
-        "Authorization": os.getenv("CF_API_KEY"),
+        "X-API-KEY": os.getenv("CF_API_KEY"),
         "access_token": os.getenv("PE_API_KEY"),
         "Content-Type": "",
     }
@@ -103,7 +111,7 @@ def fetch_pe_vuln_data(scan_name, task_id):
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching PE vulnerability data: {e}")
+        print("Error fetching PE vulnerability data: {}".format(e))
         return None
 
 
@@ -114,7 +122,7 @@ def process_vulnerability(vuln, org):
         service = save_service(vuln, domain)
         save_vulnerability(vuln, domain, service)
     except Exception as e:
-        print(f"Error processing vulnerability: {e}")
+        print("Error processing vulnerability: {}".format(e))
 
 
 def save_domain(vuln, org):
@@ -149,13 +157,13 @@ def save_domain(vuln, org):
                 "fromRootDomain": None
                 if ip_only
                 else ".".join(service_domain.split(".")[-2:]),
-                "subdomainSource": f"P&E - {vuln['source']}",
+                "subdomainSource": "P&E - {}".format(vuln["source"]),
                 "ipOnly": ip_only,
             },
         )
         return domain
     except Exception as e:
-        print(f"Failed to save domain: {e}")
+        print("Failed to save domain: {}".format(e))
         raise
 
 
@@ -183,7 +191,7 @@ def save_service(vuln, domain):
         )
         return service
     except Exception as e:
-        print(f"Failed to save service: {e}")
+        print("Failed to save service: {}".format(e))
         raise
 
 
@@ -208,5 +216,5 @@ def save_vulnerability(vuln, domain, service):
             },
         )
     except Exception as e:
-        print(f"Failed to save vulnerability: {e}")
+        print("Failed to save vulnerability: {}".format(e))
         raise

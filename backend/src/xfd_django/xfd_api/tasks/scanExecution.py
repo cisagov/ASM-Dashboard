@@ -49,7 +49,7 @@ def to_snake_case(input_string):
 def start_desired_tasks(scan_type, desired_count, shodan_api_keys=None):
     """Start the desired number of tasks on AWS ECS or local Docker based on configuration."""
     shodan_api_keys = shodan_api_keys or []
-    queue_url = f"{QUEUE_URL}{scan_type}-queue"
+    queue_url = "{}{}-queue".format(QUEUE_URL, scan_type)
 
     batch_size = 1 if scan_type == "shodan" else 10
     remaining_count = desired_count
@@ -96,9 +96,9 @@ def start_desired_tasks(scan_type, desired_count, shodan_api_keys=None):
                         ]
                     },
                 )
-                print(f"Tasks started: {current_batch_count}")
+                print("Tasks started: {}".format(current_batch_count))
             except ClientError as e:
-                print(f"Error starting tasks: {e}")
+                print("Error starting tasks: {}".format(e))
                 raise e
 
         remaining_count -= current_batch_count
@@ -109,7 +109,9 @@ def start_local_containers(count, scan_type, queue_url, shodan_api_key=""):
     for i in range(count):
         try:
             container_name = to_snake_case(
-                f"crossfeed_worker_{scan_type}_{i}_{random.randint(1, 10_000_000)}"
+                "crossfeed_worker_{}_{}_{}".format(
+                    scan_type, i, random.randint(1, 10_000_000)
+                )
             )
             container = docker.containers.create(
                 name=container_name,
@@ -118,25 +120,25 @@ def start_local_containers(count, scan_type, queue_url, shodan_api_key=""):
                 mem_limit="4g",
                 detach=True,
                 environment=[
-                    f"DB_DIALECT={os.getenv('DB_DIALECT')}",
-                    f"DB_HOST={os.getenv('DB_HOST')}",
+                    "DB_DIALECT={}".format(os.getenv("DB_DIALECT")),
+                    "DB_HOST={}".format(os.getenv("DB_HOST")),
                     "IS_LOCAL=true",
-                    f"DB_PORT={os.getenv('DB_PORT')}",
-                    f"DB_NAME={os.getenv('DB_NAME')}",
-                    f"DB_USERNAME={os.getenv('DB_USERNAME')}",
-                    f"DB_PASSWORD={os.getenv('DB_PASSWORD')}",
-                    f"SERVICE_QUEUE_URL={queue_url}",
-                    f"SERVICE_TYPE={scan_type}",
-                    f"PE_SHODAN_API_KEYS={shodan_api_key}",
-                    f"WHOIS_XML_KEY={os.getenv('WHOIS_XML_KEY')}",
-                    f"QUALYS_USERNAME={os.getenv('QUALYS_USERNAME')}",
-                    f"QUALYS_PASSWORD={os.getenv('QUALYS_PASSWORD')}",
+                    "DB_PORT={}".format(os.getenv("DB_PORT")),
+                    "DB_NAME={}".format(os.getenv("DB_NAME")),
+                    "DB_USERNAME={}".format(os.getenv("DB_USERNAME")),
+                    "DB_PASSWORD={}".format(os.getenv("DB_PASSWORD")),
+                    "SERVICE_QUEUE_URL={}".format(queue_url),
+                    "SERVICE_TYPE={}".format(scan_type),
+                    "PE_SHODAN_API_KEYS={}".format(shodan_api_key),
+                    "WHOIS_XML_KEY={}".format(os.getenv("WHOIS_XML_KEY")),
+                    "QUALYS_USERNAME={}".format(os.getenv("QUALYS_USERNAME")),
+                    "QUALYS_PASSWORD={}".format(os.getenv("QUALYS_PASSWORD")),
                 ],
             )
             container.start()
-            print(f"Started container: {container_name}")
+            print("Started container: {}".format(container_name))
         except Exception as e:
-            print(f"Error starting container {i}: {e}")
+            print("Error starting container {}: {}".format(i, e))
 
 
 def handler(event, context):
@@ -171,5 +173,5 @@ def handler(event, context):
 
         return {"statusCode": 200, "body": "Tasks started successfully."}
     except Exception as e:
-        print(f"Error in handler: {e}")
+        print("Error in handler: {}".format(e))
         return {"statusCode": 500, "body": json.dumps(str(e))}

@@ -62,7 +62,7 @@ def pull_counties():
                 }
             )
         except Exception as e:
-            print(f"Error: {e}")
+            print("Error: {}".format(e))
             pass
 
         time.sleep(1)

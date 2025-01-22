@@ -46,7 +46,7 @@ def handler(command_options):
     if domain_id:
         domain_queryset = domain_queryset.filter(id=domain_id)
 
-    print(f"Found {domain_queryset.count()} domains to sync.")
+    print("Found {} domains to sync.".format(domain_queryset.count()))
 
     # Chunk domains for processing
     for domain_chunk in chunked_queryset(domain_queryset, DOMAIN_CHUNK_SIZE):
@@ -55,7 +55,7 @@ def handler(command_options):
             .select_related("organization")
             .prefetch_related("vulnerabilities", "services")
         )
-        print(f"Syncing {len(domains)} domains...")
+        print("Syncing {} domains...".format(len(domains)))
 
         # Update Elasticsearch
         try:
@@ -156,7 +156,7 @@ def handler(command_options):
                 ]
             )
         except Exception as e:
-            print(f"Error syncing domains to Elasticsearch: {e}")
+            print("Error syncing domains to Elasticsearch: {}".format(e))
             continue
 
         # Mark domains as synced

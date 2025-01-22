@@ -21,7 +21,7 @@ def test_standard_user_not_authorized_to_access_pe_proxy():
     user = User.objects.create(
         firstName="Standard",
         lastName="User",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         userType=UserType.STANDARD,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
@@ -31,7 +31,7 @@ def test_standard_user_not_authorized_to_access_pe_proxy():
     token = create_jwt_token(user)
 
     # Make a GET request to the P&E proxy endpoint with the user's token
-    response = client.get("/pe", headers={"Authorization": f"Bearer {token}"})
+    response = client.get("/pe", headers={"Authorization": "Bearer {}".format(token)})
 
     # Assert that the user receives a 403 Unauthorized response
     assert response.status_code == 403
@@ -45,7 +45,7 @@ def test_global_admin_authorized_to_access_pe_proxy():
     user = User.objects.create(
         firstName="Admin",
         lastName="User",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         userType=UserType.GLOBAL_ADMIN,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
@@ -55,7 +55,7 @@ def test_global_admin_authorized_to_access_pe_proxy():
     token = create_jwt_token(user)
 
     # Make a GET request to the P&E proxy endpoint with the global admin's token
-    response = client.get("/pe", headers={"Authorization": f"Bearer {token}"})
+    response = client.get("/pe", headers={"Authorization": "Bearer {}".format(token)})
 
     # Assert that the global admin is authorized and receives either a 200 or 504 response
     assert response.status_code in [200, 504]
@@ -68,7 +68,7 @@ def test_global_view_user_authorized_to_access_pe_proxy():
     user = User.objects.create(
         firstName="View",
         lastName="User",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         userType=UserType.GLOBAL_VIEW,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),

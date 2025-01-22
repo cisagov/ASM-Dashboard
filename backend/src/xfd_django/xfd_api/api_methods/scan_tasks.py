@@ -37,9 +37,9 @@ def list_scan_tasks(search_data: Optional[ScanTaskSearch], current_user):
 
         # Determine the correct ordering based on the 'order' field
         ordering_field = (
-            f"-{search_data.sort}"
+            "-{}".format(search_data.sort)
             if search_data.order and search_data.order.upper() == "DESC"
-            else search_data.sort
+            else "{}".format(search_data.sort)
         )
 
         # Construct query based on filters
@@ -71,7 +71,7 @@ def list_scan_tasks(search_data: Optional[ScanTaskSearch], current_user):
         for task in qs:
             # Ensure scan is not None before accessing its properties
             if task.scan is None:
-                print(f"Warning: ScanTask {task.id} has no scan associated.")
+                print("Warning: ScanTask {} has no scan associated.".format(task.id))
                 scan_data = None
             else:
                 scan_data = {
@@ -177,7 +177,7 @@ def kill_scan_task(scan_task_id, current_user):
         utc_now = datetime.now(timezone.utc)
         scan_task.status = "failed"
         scan_task.finishedAt = utc_now
-        scan_task.output = f"Manually stopped at {utc_now.isoformat()}"
+        scan_task.output = "Manually stopped at {}".format(utc_now.isoformat())
         scan_task.save()
 
         return {"statusCode": 200, "message": "ScanTask successfully marked as failed."}
