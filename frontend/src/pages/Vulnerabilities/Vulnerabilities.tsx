@@ -77,7 +77,7 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
   children?: React.ReactNode;
   groupBy?: string;
 }) => {
-  const { currentOrganization, apiPost, apiPut } = useAuthContext();
+  const { currentOrganization, apiPost, apiPut, user } = useAuthContext();
   const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
   const [totalResults, setTotalResults] = useState(0);
   const [loadingError, setLoadingError] = useState(false);
@@ -150,7 +150,12 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
             userOrgIsExcluded = true;
           }
         });
-        if (currentOrganization && !userOrgIsExcluded) {
+
+        if (
+          currentOrganization &&
+          !userOrgIsExcluded &&
+          user?.userType === 'standard'
+        ) {
           tableFilters['organization'] = currentOrganization.id;
         }
         if (tableFilters['isKev']) {
@@ -174,7 +179,7 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
         return;
       }
     },
-    [apiPost, currentOrganization]
+    [apiPost, currentOrganization, user?.userType]
   );
 
   const fetchVulnerabilities = useCallback(
@@ -312,19 +317,33 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
     const titleCase = (str: string) =>
       str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 
-    const severityLevels: string[] = ['Low', 'Medium', 'High', 'Critical'];
+    const severityLevels: string[] = [
+      'N/A',
+      'Low',
+      'Medium',
+      'High',
+      'Critical',
+      'Other'
+    ];
 
-    const formatSeverity = (severity: string) => {
-      if (severity === null || severity === '' || severity === 'N/A') {
+    const formatSeverity = (severity?: any) => {
+      const titleCaseSev = titleCase(severity);
+      if (severityLevels.includes(titleCaseSev)) {
+        return titleCaseSev;
+      }
+      if (
+        !titleCaseSev ||
+        ['None', 'Null', 'N/a', 'Undefined', 'undefined', ''].includes(
+          titleCaseSev
+        )
+      ) {
         return 'N/A';
-      } else if (severityLevels.includes(titleCase(severity))) {
-        return titleCase(severity);
       } else {
         return 'Other';
       }
     };
 
-    const severity = formatSeverity(vuln.severity ?? '');
+    const severity = formatSeverity(vuln.severity ?? 'N/A');
 
     return {
       id: vuln.id,
@@ -388,10 +407,12 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
       flex: 0.5,
       sortComparator: (v1, v2, cellParams1, cellParams2) => {
         const severityLevels: Record<string, number> = {
-          Low: 1,
-          Medium: 2,
-          High: 3,
-          Critical: 4
+          'N/A': 1,
+          Low: 2,
+          Medium: 3,
+          High: 4,
+          Critical: 5,
+          Other: 6
         };
         return (
           severityLevels[cellParams1.value] - severityLevels[cellParams2.value]
@@ -399,10 +420,12 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
       },
       renderCell: (cellValues: GridRenderCellParams) => {
         const severityLevels: Record<string, number> = {
+          NA: 0,
           Low: 1,
           Medium: 2,
           High: 3,
-          Critical: 4
+          Critical: 4,
+          Other: 5
         };
         return (
           <Stack>
