@@ -94,10 +94,10 @@ DATABASES = {
     },
     "mini_data_lake": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",  # Replace with your database engine
-        "NAME": os.getenv("MDL_NAME"),
-        "USER": os.getenv("MDL_USERNAME"),
-        "PASSWORD": os.getenv("MDL_PASSWORD"),
-        "HOST": os.getenv("DB_HOST"),
+        "NAME": "mini_data_lake_local",
+        "USER": "dmz_mdl",
+        "PASSWORD": "mini_data_lake",
+        "HOST": "127.0.0.1",
         "PORT": "5432",
     },
 }

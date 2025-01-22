@@ -69,6 +69,7 @@ from .schema_models.saved_search import (
     SavedSearchList,
     SavedSearchUpdate,
 )
+from .schema_models.sync import SyncResponse, SyncBody
 from .schema_models.saved_search import SavedSearch as SavedSearchSchema
 from .schema_models.search import DomainSearchBody, SearchResponse
 from .schema_models.user import (
@@ -850,6 +851,21 @@ async def get_scan_task_logs(
 # ========================================
 #   Search Endpoints
 # ========================================
+
+@api_router.post(
+    '/sync',
+    dependencies=[Depends(get_current_active_user)],
+    response_model=SyncResponse,
+    tags=["Sync"]
+)
+async def sync(
+    sync_body: SyncBody, request: Request, current_user: User = Depends(get_current_active_user)
+):
+    print(request)
+    print(sync_body)
+    return 200
+    
+
 
 
 @api_router.post(
