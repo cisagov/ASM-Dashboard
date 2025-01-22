@@ -1,28 +1,36 @@
+# Standard Python Libraries
 import os
+
 # Uncomment the below to run the script standalone
 import sys
+
+# Third-Party Libraries
 import django
+
 # Dynamically add the project root to sys.path
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.append(PROJECT_ROOT)
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'xfd_django.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
 django.setup()
+# Standard Python Libraries
 # Uncomment the above to run the script standalone
 import datetime
 from ipaddress import IPv4Network, IPv6Network
-from django.db.models import Prefetch
 import json
 from typing import List, Optional, TypedDict
 from uuid import uuid4
+
+# Third-Party Libraries
+from django.db.models import Prefetch
 import psycopg2
 from psycopg2.extensions import connection, cursor
 from xfd_api.utils.chunk import chunk_list_by_bytes
 from xfd_api.utils.csv_utils import convert_to_csv, write_csv_to_file
-
+from xfd_mini_dl.models import Cidr, Location, Organization, Sector
 
 #  Look into Error creating location 'NoneType' object is not subscriptable
 
-from xfd_mini_dl.models import Sector, Organization, Cidr, Location
+
 
 async def handler(event):
     try:
@@ -30,6 +38,7 @@ async def handler(event):
         return {"statusCode": 200, "body": "VS Sync completed successfully"}
     except Exception as e:
         return {"statusCode": 500, "body": str(e)}
+
 
 def load_test_data():
     file_path = os.path.expanduser("~/Downloads/requests_full_redshift.json")
@@ -100,21 +109,21 @@ def main():
                         "name": request["agency"]["name"],
                         "acronym": request["_id"],
                         "retired": True if request["retired"] else False,
-                    } 
+                    }
                     try:
                         sector_obj, created = Sector.objects.update_or_create(
-                            acronym=sector['acronym'],
+                            acronym=sector["acronym"],
                             defaults={
-                                "name": sector['name'],
-                                "retired": sector['retired']
-                            }
+                                "name": sector["name"],
+                                "retired": sector["retired"],
+                            },
                         )
                         if created:
-                            print('Created sector', sector_obj.id)
-                        print('Updated sector', sector_obj.id)
+                            print("Created sector", sector_obj.id)
+                        print("Updated sector", sector_obj.id)
                         sector_child_dict[sector_obj.id] = request["children"]
                     except Exception as e:
-                        print('Error occured creating sector', e)
+                        print("Error occured creating sector", e)
                     try:
                         # TO-DO - Save Sectors to the Data Lake
                         # TO-DO - Add sector and orgs to the sector_child_dict so we can link them after creating orgs
@@ -171,13 +180,11 @@ def main():
                 "period_start_vs_timestamp": request.get("period_start"),
                 "report_types": json.dumps(request.get("report_types")),
                 "scan_types": json.dumps(request.get("scan_types")),
-                "is_passive": False
+                "is_passive": False,
             }
 
             # TO-DO Save organization to MDL and return org id
-            org_record = save_organization_to_mdl(
-                org_dict, network_list, location_dict
-            )
+            org_record = save_organization_to_mdl(org_dict, network_list, location_dict)
 
             org_id_dict[request["_id"]] = org_record.id
 
@@ -193,13 +200,13 @@ def main():
                         if org_id_dict[acronym]:
                             children_ids.append(org_id_dict[acronym])
                     except KeyError:
-                        print('Org id dict @ acronym did not exist')
+                        print("Org id dict @ acronym did not exist")
                 for id in children_ids:
                     try:
                         Organization.objects.filter(id=id).update(parent=org.id)
-                        print('Succesfully linked child to parent')
+                        print("Succesfully linked child to parent")
                     except Exception as e:
-                        print('Error occured linking child to parent')
+                        print("Error occured linking child to parent")
         # Working on sectors
         for key in sector_child_dict.keys():
             item = sector_child_dict[key]
@@ -211,33 +218,34 @@ def main():
                         if org_id_dict[acronym]:
                             organization_ids.append(org_id_dict[acronym])
                     except KeyError:
-                        print('Org id dict @ acronym did not exist')
+                        print("Org id dict @ acronym did not exist")
             organizations = Organization.objects.filter(id__in=organization_ids)
             if len(organization_ids) > 0:
-                print('Adding orgs to sector')
+                print("Adding orgs to sector")
                 print(sector.id)
                 print(organization_ids)
                 sector.organizations.add(*organizations)
                 print("Succesfully added organizations to sector")
 
-
-            
     shaped_orgs = None
     try:
         shaped_orgs = fetch_orgs_and_relations(mdl_connection)
     except Exception as e:
         print("Error occurred sending Data to /sync", e)
-    
+
     if shaped_orgs:
         # Convert to CSV and save a local copy?
         # Do we need to chunk?
-        print('Shaped orgs exist, chunk them and slam')
+        print("Shaped orgs exist, chunk them and slam")
         chunks: List[List] = chunk_list_by_bytes(shaped_orgs, 4194304)
         for idx, chunk in enumerate(chunks):
             csv_data = convert_to_csv(chunk)
             now = datetime.datetime.now()
-            write_csv_to_file(csv_data, f"csv-output_{idx}_{now.day}-{now.month}-{now.year}",)
-            print('Succesfully chunked organization CSV data.')
+            write_csv_to_file(
+                csv_data,
+                f"csv-output_{idx}_{now.day}-{now.month}-{now.year}",
+            )
+            print("Succesfully chunked organization CSV data.")
     # To - Do
     # Perform a checksum on each chunk
     # Send the data and checksum to /sync
@@ -246,19 +254,21 @@ def main():
 # Helper and utility functions
 def fetch_orgs_and_relations(connection: connection):
     # Prefetch related ManyToMany fields (sectors, cidrs) and reverse ForeignKey (children)
-    sectors_prefetch = Prefetch('sectors')
-    cidrs_prefetch = Prefetch('cidrs')
-    children_prefetch = Prefetch('organization_set')  # Default reverse name for self-referential ForeignKey
+    sectors_prefetch = Prefetch("sectors")
+    cidrs_prefetch = Prefetch("cidrs")
+    children_prefetch = Prefetch(
+        "organization_set"
+    )  # Default reverse name for self-referential ForeignKey
 
     # Fetch organizations with all the necessary relations
     organizations = Organization.objects.select_related(
-        'location',   # ForeignKey
-        'parent',     # Self-referential ForeignKey for parent organization
-        'org_type'    # ForeignKey for organization type
+        "location",  # ForeignKey
+        "parent",  # Self-referential ForeignKey for parent organization
+        "org_type",  # ForeignKey for organization type
     ).prefetch_related(
         sectors_prefetch,  # ManyToManyField for sectors
-        cidrs_prefetch,    # ManyToManyField for CIDRs
-        children_prefetch  # Reverse ForeignKey for children organizations
+        cidrs_prefetch,  # ManyToManyField for CIDRs
+        children_prefetch,  # Reverse ForeignKey for children organizations
     )
 
     # Iterate through results and access related fields
@@ -266,8 +276,7 @@ def fetch_orgs_and_relations(connection: connection):
     for org in organizations:
         shaped_orgs.append(organization_to_dict(org))
     return shaped_orgs
-        
-    
+
 
 def organization_to_dict(org):
     """Converts an Organization instance and its relations to a nested dictionary."""
@@ -281,18 +290,21 @@ def organization_to_dict(org):
         "location": {
             "id": str(org.location.id) if org.location else None,
             "name": org.location.name if org.location else None,
-        } if org.location else None,
+        }
+        if org.location
+        else None,
         "parent": {
             "id": str(org.parent.id) if org.parent else None,
             "name": org.parent.name if org.parent else None,
-        } if org.parent else None,
+        }
+        if org.parent
+        else None,
         "children": [
             {"id": str(child.id), "name": child.name}
             for child in org.organization_set.all()
         ],
         "sectors": [
-            {"id": str(sector.id), "name": sector.name}
-            for sector in org.sectors.all()
+            {"id": str(sector.id), "name": sector.name} for sector in org.sectors.all()
         ],
         "cidrs": [
             {
@@ -305,12 +317,11 @@ def organization_to_dict(org):
         ],
     }
 
+
 # Fetch organizations with their relations
 organizations = Organization.objects.select_related(
-    'location', 'parent', 'org_type'
-).prefetch_related(
-    Prefetch('sectors'), Prefetch('cidrs'), Prefetch('organization_set')
-)
+    "location", "parent", "org_type"
+).prefetch_related(Prefetch("sectors"), Prefetch("cidrs"), Prefetch("organization_set"))
 
 # Convert organizations to a nested dictionary
 org_dicts = [organization_to_dict(org) for org in organizations]
@@ -326,51 +337,53 @@ def save_organization_to_mdl(org_dict, network_list, location):
     location_obj = None
     try:
         location_obj, created = Location.objects.update_or_create(
-        gnis_id=location['gnis_id'],  # Lookup field
-        defaults={  # Fields to update or set if creating
-            'name': location.get('name', None),
-            'country_abrv': location.get('country_abrv', None),
-            'country': location.get('country', None),
-            'county': location.get('county', None),
-            'county_fips': location.get('county_fips', None),
-            'state_abrv': location.get('state_abrv', None),
-            'state': location.get('state', None),
-            }
+            gnis_id=location["gnis_id"],  # Lookup field
+            defaults={  # Fields to update or set if creating
+                "name": location.get("name", None),
+                "country_abrv": location.get("country_abrv", None),
+                "country": location.get("country", None),
+                "county": location.get("county", None),
+                "county_fips": location.get("county_fips", None),
+                "state_abrv": location.get("state_abrv", None),
+                "state": location.get("state", None),
+            },
         )
     except Exception as e:
-        print('Error creating location', e)
+        print("Error creating location", e)
     org_obj = None
     try:
-        organization_obj = Organization.objects.get(acronym=org_dict['acronym'])
-        organization_obj.name = org_dict['name']
-        organization_obj.retired = org_dict['retired']
-        organization_obj.type = org_dict['type']
-        organization_obj.stakeholder = org_dict['stakeholder']
-        organization_obj.enrolled_in_vs_timestamp = org_dict['enrolled_in_vs_timestamp']
-        organization_obj.period_start_vs_timestamp = org_dict['period_start_vs_timestamp']
-        organization_obj.report_types = org_dict['report_types']
-        organization_obj.scan_types = org_dict['scan_types']
+        organization_obj = Organization.objects.get(acronym=org_dict["acronym"])
+        organization_obj.name = org_dict["name"]
+        organization_obj.retired = org_dict["retired"]
+        organization_obj.type = org_dict["type"]
+        organization_obj.stakeholder = org_dict["stakeholder"]
+        organization_obj.enrolled_in_vs_timestamp = org_dict["enrolled_in_vs_timestamp"]
+        organization_obj.period_start_vs_timestamp = org_dict[
+            "period_start_vs_timestamp"
+        ]
+        organization_obj.report_types = org_dict["report_types"]
+        organization_obj.scan_types = org_dict["scan_types"]
         organization_obj.location = location_obj
         organization_obj.save()
         org_obj = organization_obj
     except Organization.DoesNotExist:
         organization_obj = Organization.objects.create(
-                id=str(uuid4()),
-                name=org_dict['name'],
-                acronym=org_dict['acronym'],
-                retired=org_dict['retired'],
-                type=org_dict['type'],
-                stakeholder=org_dict['stakeholder'],
-                enrolled_in_vs_timestamp=org_dict['enrolled_in_vs_timestamp'],
-                period_start_vs_timestamp=org_dict['period_start_vs_timestamp'],
-                report_types=org_dict['report_types'],
-                scan_types=org_dict['scan_types'],
-                location=location_obj,
-                is_passive=False
-            )
+            id=str(uuid4()),
+            name=org_dict["name"],
+            acronym=org_dict["acronym"],
+            retired=org_dict["retired"],
+            type=org_dict["type"],
+            stakeholder=org_dict["stakeholder"],
+            enrolled_in_vs_timestamp=org_dict["enrolled_in_vs_timestamp"],
+            period_start_vs_timestamp=org_dict["period_start_vs_timestamp"],
+            report_types=org_dict["report_types"],
+            scan_types=org_dict["scan_types"],
+            location=location_obj,
+            is_passive=False,
+        )
         org_obj = organization_obj
     except Exception as e:
-        print('Error occured creating org', type(e))
+        print("Error occured creating org", type(e))
 
     if org_obj:
         # Create cidrs and link them
@@ -379,28 +392,26 @@ def save_organization_to_mdl(org_dict, network_list, location):
     return org_obj
 
 
-
 def save_cidr_to_mdl(cidr_dict: dict, org: Organization):
     # print('Creating or updating CIDR for', org)
     try:
         # Look for an existing object by the unique constraints
         cidr_obj = Cidr.objects.filter(
-            network=cidr_dict['network'], 
-            start_ip=cidr_dict['start_ip']
+            network=cidr_dict["network"], start_ip=cidr_dict["start_ip"]
         ).first()
-        
+
         if cidr_obj:
             # Update the existing object
-            cidr_obj.end_ip = cidr_dict['end_ip']
+            cidr_obj.end_ip = cidr_dict["end_ip"]
             cidr_obj.save()
             created = False
         else:
             # Create a new object
             cidr_obj = Cidr.objects.create(
                 id=str(uuid4()),
-                network=cidr_dict['network'],
-                start_ip=cidr_dict['start_ip'],
-                end_ip=cidr_dict['end_ip']
+                network=cidr_dict["network"],
+                start_ip=cidr_dict["start_ip"],
+                end_ip=cidr_dict["end_ip"],
             )
             created = True
 
@@ -413,14 +424,15 @@ def save_cidr_to_mdl(cidr_dict: dict, org: Organization):
         #     print('Updated existing CIDR and linked:', cidr_obj.id)
 
     except Exception as e:
-        print('Error occurred while creating or updating CIDR:', e)
- 
+        print("Error occurred while creating or updating CIDR:", e)
 
 
 # def fetch_org_and_children(org_id: str, cursor: cursor):
 #     cursor.execute("SELECT * FROM organization WHERE id == %s", [org_id])
 
+# Standard Python Libraries
 import time
+
 start_time = time.time()
 main()
 end_time = time.time()

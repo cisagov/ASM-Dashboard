@@ -1,9 +1,9 @@
 # Standard Python Libraries
 import csv
 from hashlib import sha256
+from io import StringIO
 import json
 from typing import Any, Dict, List
-from io import StringIO
 
 
 def create_checksum(input: List[Dict]) -> str:
@@ -33,7 +33,6 @@ def json_to_csv(json_array: List[Dict[str, Any]]) -> str:
     # Combine headers and rows into CSV format
     csv_data = [",".join(headers)] + rows
     return "\n".join(csv_data)
-
 
 
 def convert_to_csv(data):
@@ -66,7 +65,7 @@ def write_csv_to_file(csv_data, file_path):
         None
     """
     try:
-        with open(file_path, mode='w', encoding='utf-8') as file:
+        with open(file_path, mode="w", encoding="utf-8") as file:
             file.write(csv_data)
         print(f"CSV data successfully written to file: {file_path}")
     except Exception as e:

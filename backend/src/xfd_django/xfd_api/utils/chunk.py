@@ -1,6 +1,9 @@
-import sys
+# Standard Python Libraries
 import json
+import sys
 from typing import List
+
+
 def chunk_list_by_bytes(input_list: List, max_bytes: int) -> List[List]:
     """
     Splits a list into chunks where the total byte size of each chunk is less than or equal to max_bytes.
@@ -19,9 +22,9 @@ def chunk_list_by_bytes(input_list: List, max_bytes: int) -> List[List]:
     for item in input_list:
         # Serialize item to calculate its actual size
         try:
-            item_size = len(json.dumps(item).encode('utf-8'))
+            item_size = len(json.dumps(item).encode("utf-8"))
         except TypeError:
-            item_size = len(json.dumps(str(item)).encode('utf-8'))
+            item_size = len(json.dumps(str(item)).encode("utf-8"))
 
         if current_size + item_size > max_bytes:
             # Start a new chunk
