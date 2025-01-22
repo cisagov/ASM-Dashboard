@@ -25,13 +25,13 @@ async def proxy_request(
     if cookie_name:
         cookies = request.cookies.get(cookie_name)
         if cookies:
-            headers["Cookie"] = f"{cookie_name}={cookies}"
+            headers["Cookie"] = "{}={}".format(cookie_name, cookies[cookie_name])
 
     # Send the request to the target
     async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
         proxy_response = await client.request(
             method=request.method,
-            url=f"{target_url}/{path}" if path else target_url,
+            url="{}/{}".format(target_url, path),
             headers=headers,
             params=request.query_params,
             content=await request.body(),
@@ -56,8 +56,9 @@ async def matomo_proxy_handler(
     MATOMO_URL: str,
 ):
     """
-    Handles Matomo-specific proxy logic, including public paths, font redirects,
-    and authentication for private paths.
+    Handle Matomo-specific proxy logic.
+
+    Includes public paths, font redirects, and authentication for private paths.
     """
     # Redirect font requests to CDN
     font_paths = {

@@ -35,7 +35,7 @@ class Command(BaseCommand):
         desired_count = options["desired_count"]
         api_key_list = options["api_key_list"]
         org_list = options.get("org_list", [])
-        queue = options.get("queue", f"staging-{scan_type}-queue")
+        queue = options.get("queue", "staging-{}-queue".format(scan_type))
 
         if not org_list:
             self.stdout.write(self.style.ERROR("Organization list cannot be empty."))
@@ -76,7 +76,7 @@ class Command(BaseCommand):
             # Close the connection
             connection.close()
         except Exception as e:
-            print(f"Error sending message to queue {queue}: {e}")
+            print("Error sending message to queue {}: {}".format(queue, e))
 
     @staticmethod
     def local_scan_execution(scan_type, desired_count, api_key_list=""):

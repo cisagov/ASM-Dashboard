@@ -1191,7 +1191,9 @@ async def call_search_vulnerabilities(
         # Convert each ORM instance to a Pydantic model
         result = [GetVulnerabilityResponse.model_validate(v) for v in vulnerabilities]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Serialization error: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail="Serialization error: {}".format(str(e))
+        )
 
     return VulnerabilitySearchResponse(result=result, count=count)
 

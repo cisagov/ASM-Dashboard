@@ -8,20 +8,20 @@ from xfd_api.auth import get_jwt_from_code, process_user
 
 async def handle_okta_callback(request):
     """POST API LOGIC."""
-    print(f"Request from /auth/okta-callback: {str(request)}")
+    print("Request from /auth/okta-callback: {}".format(str(request)))
     body = await request.json()
-    print(f"Request json from callback: {str(request)}")
-    print(f"Request json from callback: {body}")
-    print(f"Body type: {type(body)}")
+    print("Request json from callback: {}".format(str(request)))
+    print("Request json from callback: {}".format(body))
+    print("Body type: {}".format(type(body)))
     code = body.get("code")
-    print(f"Code: {code}")
+    print("Code: {}".format(code))
     if not code:
         return HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Code not found in request body",
         )
     jwt_data = await get_jwt_from_code(code)
-    print(f"JWT Data: {jwt_data}")
+    print("JWT Data: {}".format(jwt_data))
     if jwt_data is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
