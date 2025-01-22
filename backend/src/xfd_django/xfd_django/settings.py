@@ -99,6 +99,9 @@ DATABASES = {
         "PASSWORD": "mini_data_lake",
         "HOST": "127.0.0.1",
         "PORT": "5432",
+        "TEST": {
+            "NAME": "mini_data_lake_test",  # Test database for mini_data_lake
+        },
     },
 }
 
