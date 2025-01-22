@@ -502,7 +502,7 @@ def create_scan_user():
 
     db_name = settings.DATABASES["default"]["NAME"]
 
-    with connection.cursor() as cursor:
+    with connections["default"].cursor() as cursor:
         try:
             # Check if the user already exists
             cursor.execute("SELECT 1 FROM pg_roles WHERE rolname = %s;", [user])
