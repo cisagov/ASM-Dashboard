@@ -1,4 +1,3 @@
-
 const { test, expect, Page } = require('../../axe-test');
 
 test.describe.configure({ mode: 'parallel' });

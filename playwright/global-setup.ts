@@ -1,4 +1,4 @@
-import { chromium, FullConfig} from '@playwright/test';
+import { chromium, FullConfig } from '@playwright/test';
 import * as OTPAuth from 'otpauth';
 import * as dotenv from 'dotenv';
 
@@ -16,7 +16,6 @@ let totp = new OTPAuth.TOTP({
 });
 
 async function globalSetup(config: FullConfig) {
-
   const browser = await chromium.launch();
   const page = await browser.newPage();
 

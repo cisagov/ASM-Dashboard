@@ -104,7 +104,8 @@ def fetch_cve_data_task(task_id):
         print("Error fetching CVE task data: {}".format(e))
         return None
 
-#TODO DRY the following three functions (save_to_db,
+
+# TODO DRY the following three functions (save_to_db,
 # save_cpes_to_db,
 # save_cve_to_db), all save functions. Try to make a single function that can
 # be used for all save functions.

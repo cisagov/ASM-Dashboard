@@ -22,6 +22,6 @@
     "start": "docker compose build --parallel && docker compose up --force-recreate",
     "ts-prune": "ts-prune"
   },
-  "version": "1.0.0",
-  "type": "module"
+  "type": "module",
+  "version": "1.0.0"
 }

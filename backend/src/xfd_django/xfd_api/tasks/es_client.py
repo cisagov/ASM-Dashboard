@@ -112,8 +112,6 @@ class ESClient:
         ]
         self._bulk_update(actions)
 
-
-
     def delete_all(self):
         """Delete all indices in Elasticsearch."""
         try:

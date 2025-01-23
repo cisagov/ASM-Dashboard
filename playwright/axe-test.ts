@@ -10,7 +10,7 @@ type AxeFixture = {
 // This new "test" can be used in multiple test files, and each of them will get
 // a consistently configured AxeBuilder instance.
 export const test = base.extend<AxeFixture>({
-  makeAxeBuilder: async ( use) => {
+  makeAxeBuilder: async (use) => {
     const makeAxeBuilder = () =>
       new AxeBuilder({ page }).withTags([
         'wcag2a',

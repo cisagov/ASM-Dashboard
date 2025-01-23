@@ -43,7 +43,8 @@ class SignRequests:
         self.signature_auth = HTTPSignatureHeaderAuth(
             key=self.private_key.encode(), key_id=key_id, algorithm="rsa-sha256"
         )
-    #TODO are key_id and algorithm necessary?
+
+    # TODO are key_id and algorithm necessary?
     def key_resolver(self, key_id, algorithm):
         """
         Resolve the key for the given key_id and algorithm.
@@ -56,7 +57,8 @@ class SignRequests:
             bytes: The public key encoded in bytes.
         """
         return self.public_key.encode()
-    #TODO is method necessary?
+
+    # TODO is method necessary?
     def verify_signature(self, method, url, date, signature):
         """
         Verify the signature of the HTTP request.
