@@ -121,7 +121,7 @@ services:
     environment:
       - MYSQL_ROOT_PASSWORD=password
     logging:
-      driver: none
+      driver: json-file
     ports:
       - 3306:3306
 
