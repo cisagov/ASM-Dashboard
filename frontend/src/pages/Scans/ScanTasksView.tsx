@@ -439,8 +439,9 @@ export const ScanTasksView: React.FC = () => {
                   variant="text"
                   target="_blank"
                   rel="noopener noreferrer"
-                  href={`https://us-east-1.console.aws.amazon.com/cloudwatch/home?region=us-east-1#logsV2:log-groups/log-group/${process
-                    .env
+                  href={`${
+                    process.env.CLOUDWATCH_URL
+                  }#logsV2:log-groups/log-group/${process.env
                     .REACT_APP_FARGATE_LOG_GROUP!}/log-events/worker$252Fmain$252F${
                     (detailsParams?.row?.fargateTaskArn.match('.*/(.*)') || [
                       ''

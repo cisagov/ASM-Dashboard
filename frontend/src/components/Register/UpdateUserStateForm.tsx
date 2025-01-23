@@ -33,7 +33,7 @@ export const UpdateStateForm: React.FC<{
   const [values, setValues] = useState<UpdateStateFormValues>(defaultValues);
   const [errorRequestMessage, setErrorRequestMessage] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const { apiPut } = useAuthContext();
+  const { apiPut, user } = useAuthContext();
 
   const handleChange = (event: SelectChangeEvent) => {
     setValues((values: any) => ({
@@ -63,7 +63,16 @@ export const UpdateStateForm: React.FC<{
   };
 
   return (
-    <StyledDialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+    <StyledDialog
+      open={open}
+      onClose={(event, reason) => {
+        if (reason !== 'backdropClick' && reason !== 'escapeKeyDown') {
+          onClose();
+        }
+      }}
+      maxWidth="xs"
+      fullWidth
+    >
       <DialogTitle id="form-dialog-title">Update State Information</DialogTitle>
       <DialogContent>
         {errorRequestMessage && (
@@ -92,7 +101,11 @@ export const UpdateStateForm: React.FC<{
         </Select>
       </DialogContent>
       <DialogActions>
-        <Button variant="outlined" onClick={onClose}>
+        <Button
+          variant="outlined"
+          onClick={onClose}
+          disabled={user?.invitePending === true}
+        >
           Cancel
         </Button>
         <Button

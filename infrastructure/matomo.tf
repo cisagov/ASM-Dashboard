@@ -1,3 +1,4 @@
+
 resource "aws_ecs_cluster" "matomo" {
   name = var.matomo_ecs_cluster_name
 
@@ -9,6 +10,7 @@ resource "aws_ecs_cluster" "matomo" {
   tags = {
     Project = var.project
     Stage   = var.stage
+    Owner   = "Crossfeed managed resource"
   }
 }
 
@@ -38,6 +40,7 @@ resource "aws_iam_role" "matomo_task_execution_role" {
   tags = {
     Project = var.project
     Stage   = var.stage
+    Owner   = "Crossfeed managed resource"
   }
 }
 
@@ -52,6 +55,7 @@ resource "aws_iam_role_policy" "matomo_task_execution_role_policy" {
     {
       "Effect": "Allow",
       "Action": [
+        "ssm:GetParameters",
         "logs:CreateLogStream",
         "logs:PutLogEvents"
       ],
@@ -68,7 +72,7 @@ resource "aws_ecs_task_definition" "matomo" {
 [
   {
     "name": "main",
-    "image": "matomo:3.14.1",
+    "image": "matomo:5.2.1",
     "essential": true,
     "logConfiguration": {
       "logDriver": "awslogs",
@@ -127,21 +131,24 @@ resource "aws_ecs_task_definition" "matomo" {
   tags = {
     Project = var.project
     Stage   = var.stage
+    Owner   = "Crossfeed managed resource"
   }
 }
 
 resource "aws_service_discovery_private_dns_namespace" "default" {
+  count       = var.is_dmz ? 1 : 0
   name        = "crossfeed.local"
   description = "Crossfeed ${var.stage}"
-  vpc         = aws_vpc.crossfeed_vpc.id
+  vpc         = aws_vpc.crossfeed_vpc[0].id
 }
 
 resource "aws_service_discovery_service" "matomo" {
-  # ECS service can be accessed through http://matomo.crossfeed.local
-  name = "matomo"
+  # ECS service can be accessed through http://matomo.cfs.lz.us-cert.gov
+  count = var.is_dmz ? 1 : 0
+  name  = "matomo"
 
   dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.default.id
+    namespace_id = aws_service_discovery_private_dns_namespace.default[0].id
 
     dns_records {
       ttl  = 10
@@ -153,17 +160,18 @@ resource "aws_service_discovery_service" "matomo" {
 }
 
 resource "aws_ecs_service" "matomo" {
+  count           = var.is_dmz ? 1 : 0
   name            = "matomo"
   launch_type     = "FARGATE"
   cluster         = aws_ecs_cluster.matomo.id
   task_definition = aws_ecs_task_definition.matomo.arn
   desired_count   = 1
   network_configuration {
-    subnets         = [aws_subnet.matomo_1.id]
-    security_groups = [aws_security_group.allow_internal.id]
+    subnets         = [aws_subnet.matomo_1[0].id]
+    security_groups = [aws_security_group.allow_internal[0].id]
   }
   service_registries {
-    registry_arn = aws_service_discovery_service.matomo.arn
+    registry_arn = aws_service_discovery_service.matomo[0].arn
   }
 }
 
@@ -174,6 +182,7 @@ resource "aws_cloudwatch_log_group" "matomo" {
   tags = {
     Project = var.project
     Stage   = var.stage
+    Owner   = "Crossfeed managed resource"
   }
 }
 
@@ -189,14 +198,17 @@ resource "aws_db_instance" "matomo_db" {
   max_allocated_storage               = 1000
   storage_type                        = "gp2"
   engine                              = "mariadb"
-  engine_version                      = "10.6"
+  engine_version                      = "11.4"
   skip_final_snapshot                 = true
-  availability_zone                   = data.aws_availability_zones.available.names[0]
-  multi_az                            = false
+  availability_zone                   = var.matomo_availability_zone
+  multi_az                            = true
   backup_retention_period             = 35
   storage_encrypted                   = true
   iam_database_authentication_enabled = false
   allow_major_version_upgrade         = true
+  deletion_protection                 = true
+  enabled_cloudwatch_logs_exports     = ["audit", "error", "general", "slowquery"]
+
 
   // database information
   db_name  = "matomo"
@@ -205,11 +217,15 @@ resource "aws_db_instance" "matomo_db" {
 
   db_subnet_group_name = aws_db_subnet_group.default.name
 
-  vpc_security_group_ids = [aws_security_group.allow_internal.id]
+  vpc_security_group_ids = [var.is_dmz ? aws_security_group.allow_internal[0].id : aws_security_group.allow_internal_lz[0].id]
 
   tags = {
-    Project = var.project
-    Stage   = var.stage
+    Project  = var.project
+    Stage    = var.stage
+    Owner    = "Crossfeed managed resource"
+    ART      = "No Art"
+    POC      = "Lamar Steward   Craig Duhn"
+    PocEmail = "lamar.stewart@cisa.dhs.gov"
   }
 }
 
@@ -221,5 +237,6 @@ resource "aws_ssm_parameter" "matomo_db_password" {
 
   tags = {
     Project = var.project
+    Owner   = "Crossfeed managed resource"
   }
 }

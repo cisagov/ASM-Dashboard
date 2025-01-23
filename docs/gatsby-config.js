@@ -5,31 +5,35 @@ module.exports = {
     description: `Crossfeed is a tool that continuously enumerates and monitors an organization's public-facing attack surface in order to discover assets and flag potential security flaws.`,
     navigation: [
       {
-        items: [{ text: 'Home', link: '/' }],
+        items: [{ text: 'Home', link: '/docs/' }],
       },
       {
         items: [
           {
             text: 'User Guide',
-            link: '/user-guide/quickstart/',
+            link: '/docs/user-guide/quickstart/',
             // If rootLink is specified, this navigation item will be
             // highlighted as current when the user navigates to sub-pages whose
             // paths start with the given rootLink.
-            rootLink: '/user-guide/',
+            rootLink: '/docs/user-guide/',
           },
         ],
       },
       {
         items: [
-          { text: 'Development', link: '/dev/quickstart/', rootLink: '/dev/' },
+          {
+            text: 'Development',
+            link: '/docs/dev/quickstart/',
+            rootLink: '/docs/dev/',
+          },
         ],
       },
       {
-        items: [{ text: 'Scanning FAQ', link: '/scans/' }],
+        items: [{ text: 'Scanning FAQ', link: '/docs/scans/' }],
       },
       {
         title: '',
-        items: [{ text: 'API Reference', link: '/api-reference/' }],
+        items: [{ text: 'API Reference', link: '/docs/api-reference/' }],
       },
     ],
     secondaryLinks: [
@@ -104,7 +108,7 @@ module.exports = {
       // ua: 'your-ua',
     },
   },
-  pathPrefix: process.env.BASEURL || '/',
+  pathPrefix: '/docs',
   plugins: [
     `gatsby-plugin-sass`,
     `gatsby-plugin-sharp`,
@@ -151,7 +155,7 @@ module.exports = {
       options: {
         name: `Crossfeed Documentation`,
         short_name: `Crossfeed`,
-        start_url: `/`,
+        start_url: `/docs/`,
         background_color: `#663399`,
         theme_color: `#663399`,
         display: `minimal-ui`,

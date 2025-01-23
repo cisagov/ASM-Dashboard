@@ -181,7 +181,7 @@ export const UserForm: React.FC<UserFormProps> = ({
       regionId: values.regionId
     };
     try {
-      const user = await apiPost('/users/', {
+      const user = await apiPost('/users', {
         body
       });
       user.fullName = `${user.firstName} ${user.lastName}`;
