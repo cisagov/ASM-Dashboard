@@ -76,7 +76,7 @@ def pull_cities():
 
         links = countytable.select("a")
         for link in links:
-            if "County" or "Parish" not in link.get("title"):
+            if "County" not in link.get("title") and "Parish" not in link.get("title"):
                 try:
                     if "," in link.get("title"):
                         county_pieces = link.get("title").split(",")
