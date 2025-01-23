@@ -11,7 +11,7 @@ import typer
 
 app = typer.Typer()
 
-
+#TODO: Determine if the following
 @app.command()
 def process_cities():
     """

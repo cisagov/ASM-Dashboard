@@ -1,4 +1,3 @@
-import { describe } from 'node:test';
 
 const { test, expect, Page } = require('../../axe-test');
 
@@ -17,7 +16,6 @@ test.describe('home', () => {
   });
 
   test('Test homepage accessibility', async ({
-    page,
     makeAxeBuilder
   }, testInfo) => {
     const accessibilityScanResults = await makeAxeBuilder().analyze();
