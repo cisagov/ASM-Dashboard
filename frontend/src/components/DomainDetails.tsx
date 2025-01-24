@@ -353,7 +353,9 @@ export const DomainDetails: React.FC<Props> = (props) => {
     }
     if (
       !titleCaseSev ||
-      ['Null', 'N/a', 'undefined', ''].includes(titleCaseSev)
+      ['None', 'Null', 'N/a', 'Undefined', 'undefined', ''].includes(
+        titleCaseSev
+      )
     ) {
       return 'N/A';
     } else {
