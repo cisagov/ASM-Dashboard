@@ -183,14 +183,7 @@ export const DrawerInterior: React.FC<Props> = (props) => {
   const titleCaseSeverityFacet = facets['vulnerabilities.severity']
     ? facets['vulnerabilities.severity'][0].data.map(
         (d: { value: string; count: number }) => {
-          if (
-            d.value === null ||
-            d.value === 'null' ||
-            d.value === 'NULL' ||
-            d.value === undefined ||
-            d.value === '' ||
-            d.value === 'N/A'
-          ) {
+          if (d.value === null || undefined) {
             return { value: 'N/A', count: d.count };
           } else {
             return {
@@ -215,6 +208,12 @@ export const DrawerInterior: React.FC<Props> = (props) => {
       ];
       if (severityLevels.includes(d.value)) {
         return d;
+      }
+      if (
+        !d.value ||
+        ['None', 'Null', 'N/a', 'Undefined', 'undefined'].includes(d.value)
+      ) {
+        return { value: 'N/A', count: d.count };
       } else {
         return { value: 'Other', count: d.count };
       }
