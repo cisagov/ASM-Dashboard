@@ -1,14 +1,7 @@
 ---
-cloudwatchToS3:
-  handler: src/tasks/cloudwatchToS3.handler
-  timeout: 900
-  events:
-    - schedule: rate(4 hours)
-  reservedConcurrency: 1
-  memorySize: 4096
 
 scheduler:
-  handler: src/tasks/scheduler.handler
+  handler: src/xfd_django/xfd_api/tasks/scheduler.handler
   timeout: 900
   events:
     - schedule: rate(5 minutes)
@@ -17,36 +10,29 @@ scheduler:
 
 syncdb:
   timeout: 900
-  handler: src/tasks/syncdb.handler
-
-pesyncdb:
-  timeout: 900
-  handler: src/tasks/pesyncdb.handler
+  handler: src/xfd_django/xfd_api/tasks/run_syncdb.handler
 
 syncmdl:
   timeout: 900
-  handler: src/tasks/syncmdl.handler
+  handler: src/xfd_django/xfd_api/tasks/run_syncmdl.handler
 
 bastion:
   timeout: 900
-  handler: src/tasks/bastion.handler
-
-makeGlobalAdmin:
-  handler: src/tasks/makeGlobalAdmin.handler
+  handler: src/xfd_django/xfd_api/tasks/bastion.handler
 
 checkUserExpiration:
   timeout: 300
-  handler: src/tasks/checkUserExpiration.handler
+  handler: src/xfd_django/xfd_api/tasks/checkUserExpiration.handler
   events:
     - schedule: cron(0 0 * * ? *)  # Runs every day at midnight
 
 scanExecution:
   timeout: 900  # 15 minutes
-  handler: src/tasks/scanExecution.handler
+  handler: src/xfd_django/xfd_api/tasks/scanExecution.handler
   memorySize: 4096
 
 updateScanTaskStatus:
-  handler: src/tasks/updateScanTaskStatus.handler
+  handler: src/xfd_django/xfd_api/tasks/updateScanTaskStatus.handler
   events:
     - eventBridge:
         name: ${self:provider.stage}-updateScanTaskStatus
@@ -58,3 +44,45 @@ updateScanTaskStatus:
           detail:
             clusterArn:
               - ${file(env.yml):${self:provider.stage}-ecs-cluster, ''}
+
+serviceStatsCache:
+  handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_services_cache
+  events:
+    - schedule:
+        rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
+
+portStatsCache:
+  handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_ports_cache
+  events:
+    - schedule:
+        rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
+
+numVulnsCache:
+  handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_num_vulns_cache
+  events:
+    - schedule:
+        rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
+
+latestVulnsCache:
+  handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_latest_vulns_cache
+  events:
+    - schedule:
+        rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
+
+mostCommonVulnsCache:
+  handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_most_common_vulns_cache
+  events:
+    - schedule:
+        rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
+
+severityCache:
+  handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_severity_cache
+  events:
+    - schedule:
+        rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight
+
+byOrgCache:
+  handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_by_org_cache
+  events:
+    - schedule:
+        rate: cron(0 0 * * ? *)  # This triggers the function every day it midnight

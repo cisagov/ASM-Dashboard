@@ -25,7 +25,7 @@ export const OrganizationList: React.FC<{
     if (user?.userType === 'regionalAdmin') {
       return `/organizations/regionId/${regionId}`;
     } else {
-      return `/v2/organizations/`;
+      return `/v2/organizations`;
     }
   };
 
@@ -66,7 +66,7 @@ export const OrganizationList: React.FC<{
 
   const onSubmit = async (body: Object) => {
     try {
-      const org = await apiPost('/organizations/', {
+      const org = await apiPost('/organizations', {
         body
       });
       setOrganizations(organizations.concat(org));
