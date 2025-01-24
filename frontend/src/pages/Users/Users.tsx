@@ -75,7 +75,7 @@ export const Users: React.FC = () => {
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     try {
-      const rows = await apiGet<UserType[]>(`/users/`);
+      const rows = await apiGet<UserType[]>(`/users`);
       rows.forEach((row) => {
         row.lastLoggedInString = row.lastLoggedIn
           ? format(parseISO(row.lastLoggedIn), 'MM-dd-yyyy hh:mm a')

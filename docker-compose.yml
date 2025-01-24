@@ -29,9 +29,10 @@ services:
     tty: true
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: ./Dockerfile.python
     volumes:
-      - ./backend/src:/app/src
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - backend
@@ -90,7 +91,14 @@ services:
       - 9200:9200
       - 9300:9300
     logging:
-      driver: none
+      driver: json-file
+
+  redis:
+    image: redis:7.0
+    ports:
+      - "6379:6379"
+    networks:
+      - backend
 
   # kib:
   #   image: docker.elastic.co/kibana/kibana:7.9.0
@@ -104,7 +112,7 @@ services:
   #     LOGGING_QUIET: 'true'
 
   matomodb:
-    image: mariadb:10.6
+    image: mariadb:11.4
     command: --max-allowed-packet=64MB
     networks:
       - backend
@@ -114,9 +122,11 @@ services:
       - MYSQL_ROOT_PASSWORD=password
     logging:
       driver: none
+    ports:
+      - 3306:3306
 
   matomo:
-    image: matomo:3.14.1
+    image: matomo:5.2.1
     user: root
     networks:
       - backend
@@ -133,18 +143,21 @@ services:
       - MATOMO_GENERAL_ASSUME_SECURE_PROTOCOL=1
     logging:
       driver: none
-  rabbitmq:
-    image: 'rabbitmq:3.8-management'
     ports:
-      - '5672:5672'  # RabbitMQ default port
-      - '15672:15672'  # RabbitMQ management plugin
-    networks:
-      - backend
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
+      - "8080:80"
+
+  # rabbitmq:
+  #   image: 'rabbitmq:3.8-management'
+  #   ports:
+  #     - '5672:5672'  # RabbitMQ default port
+  #     - '15672:15672'  # RabbitMQ management plugin
+  #   networks:
+  #     - backend
+  #   environment:
+  #     RABBITMQ_DEFAULT_USER: guest
+  #     RABBITMQ_DEFAULT_PASS: guest
+  #   volumes:
+  #     - rabbitmq-data:/var/lib/rabbitmq
 
 volumes:
   postgres-data:

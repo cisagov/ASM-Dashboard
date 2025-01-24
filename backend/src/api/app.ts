@@ -444,17 +444,17 @@ app.use(
     // API Gateway isn't able to proxy fonts properly -- so we're using a CDN instead.
     if (req.path === '/plugins/Morpheus/fonts/matomo.woff2') {
       return res.redirect(
-        'https://cdn.jsdelivr.net/gh/matomo-org/matomo@3.14.1/plugins/Morpheus/fonts/matomo.woff2'
+        'https://cdn.jsdelivr.net/gh/matomo-org/matomo@5.2.1/plugins/Morpheus/fonts/matomo.woff2'
       );
     }
     if (req.path === '/plugins/Morpheus/fonts/matomo.woff') {
       return res.redirect(
-        'https://cdn.jsdelivr.net/gh/matomo-org/matomo@3.14.1/plugins/Morpheus/fonts/matomo.woff'
+        'https://cdn.jsdelivr.net/gh/matomo-org/matomo@5.2.1/plugins/Morpheus/fonts/matomo.woff'
       );
     }
     if (req.path === '/plugins/Morpheus/fonts/matomo.ttf') {
       return res.redirect(
-        'https://cdn.jsdelivr.net/gh/matomo-org/matomo@3.14.1/plugins/Morpheus/fonts/matomo.ttf'
+        'https://cdn.jsdelivr.net/gh/matomo-org/matomo@5.2.1/plugins/Morpheus/fonts/matomo.ttf'
       );
     }
     // Only allow global admins to access all other paths.
@@ -486,6 +486,19 @@ app.use(
   },
   peProxy
 );
+
+if (process.env.IS_LOCAL) {
+  app.use(
+    '/v3',
+    createProxyMiddleware({
+      target: 'http://python-backend:8000',
+      changeOrigin: true,
+      pathRewrite: {
+        '^/v3': ''
+      }
+    })
+  );
+}
 
 const checkGlobalAdminOrRegionAdmin = async (
   req: Request,

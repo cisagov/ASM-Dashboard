@@ -31,21 +31,21 @@ app.use(
       directives: {
         defaultSrc: [
           "'self'",
-          'https://cognito-idp.us-east-1.amazonaws.com',
-          'https://api.staging-cd.crossfeed.cyber.dhs.gov'
+          `${process.env.COGNITO_URL}`,
+          `${process.env.BACKEND_DOMAIN}`
         ],
         frameSrc: ["'self'", 'https://www.dhs.gov/ntas/'],
         imgSrc: [
           "'self'",
           'data:',
-          'https://staging-cd.crossfeed.cyber.dhs.gov',
+          `https://${process.env.DOMAIN}`,
           'https://www.ssa.gov',
           'https://www.dhs.gov'
         ],
         objectSrc: ["'none'"],
         scriptSrc: [
           "'self'",
-          'https://api.staging-cd.crossfeed.cyber.dhs.gov',
+          `${process.env.BACKEND_DOMAIN}`,
           'https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js',
           'https://www.ssa.gov/accessibility/andi/fandi.js',
           'https://www.ssa.gov/accessibility/andi/andi.js',
