@@ -37,7 +37,7 @@ export const useApi = (onError?: OnError) => {
   // const { trackEvent } = useMatomo();
 
   const apiMethod = useCallback(
-    (method: ApiMethod) =>
+    (method: ApiMethod, methodName: string) =>
       async <T extends object = any>(path: string, init: any = {}) => {
         const { showLoading = true, ...rest } = init;
         try {
