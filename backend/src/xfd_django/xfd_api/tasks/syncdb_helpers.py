@@ -198,6 +198,18 @@ def create_sample_services_and_vulnerabilities(domain):
                     "other",
                 ]
             ),
+            cve="CVE-"
+            + random.choice(
+                [
+                    "2024-47421",
+                    "2021-22501",
+                    "2024-53959",
+                    "2024-47422",
+                    "2024-47423",
+                    "2020-28163",
+                    "2020-29312",
+                ]
+            ),
             needsPopulation=True,
             state="open",
             substate="unconfirmed",
