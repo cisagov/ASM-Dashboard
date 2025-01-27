@@ -270,7 +270,10 @@ def delete_scan(scan_id: str, current_user):
 
         scan.delete()
 
-        return {"status": "success", "message": f"Scan {scan_id} deleted successfully."}
+        return {
+            "status": "success",
+            "message": "Scan {} deleted successfully.".format(scan_id),
+        }
 
     except HTTPException as http_exc:
         raise http_exc
@@ -297,7 +300,7 @@ def run_scan(scan_id: str, current_user):
         scan.save()
         return {
             "status": "success",
-            "message": f"Scan {scan_id} set to manualRunPending.",
+            "message": "Scan {} set to manualRunPending.".format(scan_id),
         }
 
     except HTTPException as http_exc:
@@ -320,7 +323,7 @@ async def invoke_scheduler(current_user):
         lambda_client = LambdaClient()
 
         # Form the lambda function name using environment variable
-        lambda_function_name = f"{os.getenv('SLS_LAMBDA_PREFIX')}-scheduler"
+        lambda_function_name = "{}-scheduler".format(os.getenv("SLS_LAMBDA_PREFIX"))
         print(lambda_function_name)
 
         # Run the Lambda command

@@ -39,17 +39,19 @@ def check_user_expiration():
     # Notify users of inactivity (30 days)
     for user in users_to_notify:
         subject = "Account Inactivity Notice"
-        body = f"""
-        Hello {user.firstName} {user.lastName},
+        body = """
+        Hello {firstName} {lastName},
 
         Your account has been inactive for over 30 days. If your account reaches 45 days of inactivity,
         your password will be reset, requiring action to reactivate your account.
 
         Thank you,
         The Crossfeed Team
-        """
+        """.format(
+            firstName=user.firstName, lastName=user.lastName
+        )
         send_email(user.email, subject, body)
-        print(f"30-day inactivity notice sent to {user.email}.")
+        print("30-day inactivity notice sent to {}.".format(user.email))
 
     # Users to deactivate (45 days of inactivity)
     users_to_deactivate = User.objects.filter(
@@ -58,8 +60,8 @@ def check_user_expiration():
 
     for user in users_to_deactivate:
         subject = "Account Deactivation Notice"
-        body = f"""
-        Hello {user.firstName} {user.lastName},
+        body = """
+        Hello {firstName} {lastName},
 
         Your account has been inactive for over 45 days. As a result, your password has been reset.
         You will need to set a new password the next time you log in. If your account reaches 90 days of inactivity,
@@ -67,7 +69,9 @@ def check_user_expiration():
 
         Thank you,
         The Crossfeed Team
-        """
+        """.format(
+            firstName=user.firstName, lastName=user.lastName
+        )
         # Send inactivity notification
         send_email(user.email, subject, body)
 
@@ -79,24 +83,30 @@ def check_user_expiration():
                 Password=os.getenv("REACT_APP_RANDOM_PASSWORD"),
                 Permanent=False,
             )
-            print(f"Password reset for user {user.email} due to 45 days of inactivity.")
+            print(
+                "Password reset for user {} due to 45 days of inactivity.".format(
+                    user.email
+                )
+            )
         except ClientError as e:
-            print(f"Error resetting password for {user.email}: {e}")
+            print("Error resetting password for {}: {}".format(user.email, e))
 
     # Users to remove (90 days of inactivity)
     users_to_remove = User.objects.filter(lastLoggedIn__lt=cutoff_90_days)
 
     for user in users_to_remove:
         subject = "Account Removal Notice"
-        body = f"""
-        Hello {user.firstName} {user.lastName},
+        body = """
+        Hello {firstName} {lastName},
 
         Your account has been inactive for over 90 days and has been removed.
         You will need to recreate your account if you wish to use our services again.
 
         Thank you,
         The Crossfeed Team
-        """
+        """.format(
+            firstName=user.firstName, lastName=user.lastName
+        )
         # Notify user of account removal
         send_email(user.email, subject, body)
 
@@ -107,15 +117,17 @@ def check_user_expiration():
                 UserPoolId=user_pool_id,
                 Username=user.cognitoId,
             )
-            print(f"Removed user {user.email} from Cognito.")
+            print("Removed user {} from Cognito.".format(user.email))
 
             # Remove from database
             user.delete()
             print(
-                f"Removed user {user.email} from the database due to 90 days of inactivity."
+                "Removed user {} from the database due to 90 days of inactivity.".format(
+                    user.email
+                )
             )
         except ClientError as e:
-            print(f"Error removing user {user.email}: {e}")
+            print("Error removing user {}: {}".format(user.email, e))
 
 
 def handler(event, context):
@@ -127,5 +139,5 @@ def handler(event, context):
             "body": "User expiration check completed successfully.",
         }
     except Exception as e:
-        print(f"Error during user expiration check: {e}")
+        print("Error during user expiration check: {}".format(e))
         return {"statusCode": 500, "body": str(e)}

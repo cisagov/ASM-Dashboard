@@ -55,6 +55,7 @@ resource "aws_iam_role_policy" "matomo_task_execution_role_policy" {
     {
       "Effect": "Allow",
       "Action": [
+        "ssm:GetParameters",
         "logs:CreateLogStream",
         "logs:PutLogEvents"
       ],
@@ -71,7 +72,7 @@ resource "aws_ecs_task_definition" "matomo" {
 [
   {
     "name": "main",
-    "image": "matomo:3.14.1",
+    "image": "matomo:5.2.1",
     "essential": true,
     "logConfiguration": {
       "logDriver": "awslogs",
@@ -197,13 +198,13 @@ resource "aws_db_instance" "matomo_db" {
   max_allocated_storage               = 1000
   storage_type                        = "gp2"
   engine                              = "mariadb"
-  engine_version                      = "10.6"
+  engine_version                      = "11.4"
   skip_final_snapshot                 = true
   availability_zone                   = var.matomo_availability_zone
   multi_az                            = true
   backup_retention_period             = 35
   storage_encrypted                   = true
-  iam_database_authentication_enabled = true
+  iam_database_authentication_enabled = false
   allow_major_version_upgrade         = true
   deletion_protection                 = true
   enabled_cloudwatch_logs_exports     = ["audit", "error", "general", "slowquery"]

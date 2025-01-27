@@ -34,7 +34,9 @@ def main():
         task_request = fetch_cve_data(page)
         if not task_request or task_request.get("status") != "Processing":
             raise Exception(
-                f"Error: {task_request.get('error')} - Status: {task_request.get('status')}"
+                "Error: {} - Status: {}".format(
+                    task_request.get("error"), task_request.get("status")
+                )
             )
 
         while task_request.get("status") == "Processing":
@@ -53,13 +55,15 @@ def main():
             page += 1
         else:
             raise Exception(
-                f"Task error: {task_request.get('error')} - Status: {task_request.get('status')}"
+                "Task error: {} - Status: {}".format(
+                    task_request.get("error"), task_request.get("status")
+                )
             )
 
 
 def fetch_cve_data(page):
     """Fetch CVE data for a specific page."""
-    print(f"Fetching CVE data for page {page}")
+    print("Fetching CVE data for page {}".format(page))
     headers = {
         "X-API-KEY": os.getenv("CF_API_KEY"),
         "access_token": os.getenv("PE_API_KEY"),
@@ -77,13 +81,15 @@ def fetch_cve_data(page):
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching CVE data: {e}")
+        print("Error fetching CVE data: {}".format(e))
         return None
 
 
 def fetch_cve_data_task(task_id):
     """Fetch task result for CVE data."""
-    url = f"https://api.staging-cd.crossfeed.cyber.dhs.gov/pe/apiv1/cves_by_modified_date/task/{task_id}"
+    url = "https://api.staging-cd.crossfeed.cyber.dhs.gov/pe/apiv1/cves_by_modified_date/task/{}".format(
+        task_id
+    )
     headers = {
         "X-API-KEY": os.getenv("CF_API_KEY"),
         "access_token": os.getenv("PE_API_KEY"),
@@ -95,7 +101,7 @@ def fetch_cve_data_task(task_id):
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching CVE task data: {e}")
+        print("Error fetching CVE task data: {}".format(e))
         return None
 
 
@@ -134,7 +140,7 @@ def save_cpes_to_db(cpes):
             )
             cpe_ids.append(cpe_obj.id)
         except Exception as e:
-            print(f"Error saving CPE: {e}")
+            print("Error saving CPE: {}".format(e))
     return cpe_ids
 
 
@@ -159,4 +165,4 @@ def save_cve_to_db(cve, cpe_ids):
         cve_obj.cpes.add(*cpe_ids)
         cve_obj.save()
     except Exception as e:
-        print(f"Error saving CVE: {e}")
+        print("Error saving CVE: {}".format(e))

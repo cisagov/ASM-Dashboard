@@ -23,7 +23,7 @@ async def check_ip_in_cidr(ip: str, acronym: str) -> bool:
             network__contains=ip, id__in=organization.cidrs.values_list("id", flat=True)
         ).exists()
     except Exception as e:
-        print(f"Error checking IP in CIDR: {e}")
+        print("Error checking IP in CIDR: {}".format(e))
         return False
 
 
@@ -52,7 +52,7 @@ async def check_org_is_fceb(acronym: str) -> bool:
         # Check if the organization or any of its parents belong to the EXECUTIVE sector
         return is_executive(organization)
     except Exception as e:
-        print(f"Error checking organization is FCEB: {e}")
+        print("Error checking organization is FCEB: {}".format(e))
         return False
 
 
@@ -61,7 +61,7 @@ async def handler(command_options):
     organization_id = command_options.get("organizationId")
     organization_name = command_options.get("organizationName")
 
-    print(f"Running flagFloatingIps for {organization_name}...")
+    print("Running flagFloatingIps for {}...".format(organization_name))
 
     try:
         # Fetch organization with related domains
@@ -74,7 +74,7 @@ async def handler(command_options):
         )
 
         for organization in organizations:
-            print(f"Processing organization: {organization_name}...")
+            print("Processing organization: {}...".format(organization_name))
 
             # Check if the organization is executive (isFceb)
             is_executive = await check_org_is_fceb(organization.acronym)
@@ -85,7 +85,9 @@ async def handler(command_options):
                 Domain.objects.filter(
                     id__in=[domain.id for domain in domains_to_update]
                 ).update(isFceb=True)
-                print(f"Marked all domains in {organization_name} as isFceb=True.")
+                print(
+                    "Marked all domains in {} as isFceb=True.".format(organization_name)
+                )
             else:
                 # Update domains' fromCidr status
                 for domain in organization.domains.all():
@@ -96,9 +98,13 @@ async def handler(command_options):
                         if domain.fromCidr != from_cidr:
                             domain.fromCidr = from_cidr
                             domain.save()  # Save domain only if `fromCidr` changes
-                            print(f"Updated domain {domain.name}: fromCidr={from_cidr}")
+                            print(
+                                "Updated domain {}: fromCidr={}".format(
+                                    domain.name, from_cidr
+                                )
+                            )
 
-        print(f"Completed processing for organization: {organization_name}.")
+        print("Completed processing for organization: {}.".format(organization_name))
 
     except Exception as e:
-        print(f"Error processing organization {organization_name}: {e}")
+        print("Error processing organization {}: {}".format(organization_name, e))

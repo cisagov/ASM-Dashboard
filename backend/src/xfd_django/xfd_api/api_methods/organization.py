@@ -253,7 +253,7 @@ def get_organization(organization_id, current_user):
         raise http_exc
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print("An error occurred: {}".format(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -718,7 +718,7 @@ def delete_organization(org_id: str, current_user):
         # Return success response
         return {
             "status": "success",
-            "message": f"Organization {org_id} has been deleted successfully.",
+            "message": "Organization {} has been deleted successfully.".format(org_id),
         }
 
     except HTTPException as http_exc:
@@ -1070,7 +1070,7 @@ def search_organizations_task(search_body, current_user: User):
         # Use match_all if searchTerm is empty
         if search_body.searchTerm.strip():
             query_body["query"]["bool"]["must"].append(
-                {"wildcard": {"name": f"*{search_body.searchTerm}*"}}
+                {"wildcard": {"name": "*{}*".format(search_body.searchTerm)}}
             )
         else:
             query_body["query"]["bool"]["must"].append({"match_all": {}})
@@ -1082,7 +1082,7 @@ def search_organizations_task(search_body, current_user: User):
             )
 
         # Log the query for debugging
-        print(f"Query body: {query_body}")
+        print("Query body: {}".format(query_body))
 
         # Execute the search
         search_results = client.search_organizations(query_body)

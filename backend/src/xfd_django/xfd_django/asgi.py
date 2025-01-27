@@ -38,7 +38,7 @@ def set_security_headers(response: Response):
     # Set Content Security Policy (CSP)
     csp_value = "; ".join(
         [
-            f"{key} {' '.join(map(str, value))}"
+            "{} {}".format(key, " ".join(map(str, value)))
             for key, value in settings.SECURE_CSP_POLICY.items()
             if isinstance(value, (list, tuple))
         ]
@@ -98,7 +98,7 @@ def get_application() -> FastAPI:
         """Start up Redis with ElastiCache."""
         # Initialize Redis with the ElastiCache endpoint
         app.state.redis = await aioredis.from_url(
-            f"redis://{settings.ELASTICACHE_ENDPOINT}",
+            "redis://{}".format(settings.ELASTICACHE_ENDPOINT),
             encoding="utf-8",
             decode_responses=True,
             max_connections=100,
@@ -139,7 +139,7 @@ async def run_scheduler():
             await scheduler_handler({}, {})
             await asyncio.sleep(120)  # Run every 120 seconds
     except Exception as e:
-        print(f"Error running local scheduler: {e}")
+        print("Error running local scheduler: {}".format(e))
 
 
 app = get_application()

@@ -19,7 +19,7 @@ def create_global_admin():
     global_admin_user = User.objects.create(
         firstName="",
         lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         userType=UserType.GLOBAL_ADMIN,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
@@ -34,7 +34,7 @@ def create_global_view():
     global_view_user = User.objects.create(
         firstName="",
         lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         userType=UserType.GLOBAL_VIEW,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
@@ -49,7 +49,7 @@ def create_standard_user():
     user = User.objects.create(
         firstName="",
         lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         userType=UserType.STANDARD,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
@@ -64,7 +64,7 @@ def create_secondary_standard_user():
     user = User.objects.create(
         firstName="",
         lastName="",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         userType=UserType.STANDARD,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
@@ -85,7 +85,7 @@ def test_create_saved_search_by_user(create_standard_user):
         The response data should include the correct name and createdById fields.
     """
     user = create_standard_user
-    name = f"test-{secrets.token_hex(4)}"
+    name = "test-{}".format(secrets.token_hex(4))
     response = client.post(
         "/saved-searches/",
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
@@ -121,7 +121,7 @@ def test_update_saved_search_by_global_admin_fails(
     global_admin_user = create_global_admin
     standard_user = create_standard_user
     body = {
-        "name": f"test-{secrets.token_hex(4)}",
+        "name": "test-{}".format(secrets.token_hex(4)),
         "count": 3,
         "sortDirection": "",
         "sortField": "",
@@ -131,12 +131,12 @@ def test_update_saved_search_by_global_admin_fails(
         "updatedAt": datetime.now(),  # Include updatedAt field
     }
     search = SavedSearch.objects.create(**body, createdById=standard_user)
-    body["name"] = f"test-{secrets.token_hex(4)}"
+    body["name"] = "test-{}".format(secrets.token_hex(4))
     body["searchTerm"] = "123"
     body["updatedAt"] = datetime.now().isoformat()  # Update the timestamp
 
     response = client.put(
-        f"/saved-searches/{search.id}",
+        "/saved-searches/{}".format(search.id),
         json=body,
         headers={"Authorization": "Bearer " + create_jwt_token(global_admin_user)},
     )
@@ -164,7 +164,7 @@ def test_update_saved_search_by_global_view_fails(
     global_view_user = create_global_view
     user = create_standard_user
     body = {
-        "name": f"test-{secrets.token_hex(4)}",
+        "name": "test-{}".format(secrets.token_hex(4)),
         "count": 3,
         "sortDirection": "",
         "sortField": "",
@@ -176,11 +176,11 @@ def test_update_saved_search_by_global_view_fails(
     saved_search = SavedSearch.objects.create(**body, createdById=user)
 
     # Attempt to update the saved search with the global view user
-    body["name"] = f"test-{secrets.token_hex(4)}"
+    body["name"] = "test-{}".format(secrets.token_hex(4))
     body["searchTerm"] = "123"
     body["updatedAt"] = datetime.now().isoformat()  # Update the timestamp
     response = client.put(
-        f"/saved-searches/{saved_search.id}",
+        "/saved-searches/{}".format(saved_search.id),
         json=body,
         headers={"Authorization": "Bearer " + create_jwt_token(global_view_user)},
     )
@@ -204,7 +204,7 @@ def test_update_saved_search_by_standard_user_with_access(create_standard_user):
     """
     user = create_standard_user
     body = {
-        "name": f"test-{secrets.token_hex(4)}",
+        "name": "test-{}".format(secrets.token_hex(4)),
         "count": 3,
         "sortDirection": "",
         "sortField": "",
@@ -214,12 +214,12 @@ def test_update_saved_search_by_standard_user_with_access(create_standard_user):
         "updatedAt": datetime.now(),  # Include updatedAt field
     }
     search = SavedSearch.objects.create(**body, createdById=user)
-    body["name"] = f"test-{secrets.token_hex(4)}"
+    body["name"] = "test-{}".format(secrets.token_hex(4))
     body["searchTerm"] = "123"
     body["updatedAt"] = datetime.now().isoformat()  # Update the timestamp
 
     response = client.put(
-        f"/saved-searches/{search.id}",
+        "/saved-searches/{}".format(search.id),
         json=body,
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
@@ -246,7 +246,7 @@ def test_update_saved_search_by_standard_user_without_access_fails(
     user_with_access = create_standard_user
     user_without_access = create_secondary_standard_user
     body = {
-        "name": f"test-{secrets.token_hex(4)}",
+        "name": "test-{}".format(secrets.token_hex(4)),
         "count": 3,
         "sortDirection": "",
         "sortField": "",
@@ -257,7 +257,7 @@ def test_update_saved_search_by_standard_user_without_access_fails(
     }
     search = SavedSearch.objects.create(**body, createdById=user_with_access)
     response = client.put(
-        f"/saved-searches/{search.id}",
+        "/saved-searches/{}".format(search.id),
         json=body,
         headers={"Authorization": "Bearer " + create_jwt_token(user_without_access)},
     )
@@ -282,7 +282,7 @@ def test_delete_saved_search_by_global_admin_fails(
     standard_user = create_standard_user
 
     search = SavedSearch.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
+        name="test-{}".format(secrets.token_hex(4)),
         count=3,
         sortDirection="",
         sortField="",
@@ -292,7 +292,7 @@ def test_delete_saved_search_by_global_admin_fails(
         createdById=standard_user,
     )
     response = client.delete(
-        f"/saved-searches/{search.id}",
+        "/saved-searches/{}".format(search.id),
         headers={"Authorization": "Bearer " + create_jwt_token(global_admin_user)},
     )
     assert response.status_code == 404
@@ -321,7 +321,7 @@ def test_delete_saved_search_by_global_view_fails(
     user = create_standard_user
 
     saved_search = SavedSearch.objects.create(
-        name=f"test-search-{secrets.token_hex(4)}",
+        name="test-search-{}".format(secrets.token_hex(4)),
         count=5,
         sortDirection="",
         sortField="",
@@ -333,7 +333,7 @@ def test_delete_saved_search_by_global_view_fails(
 
     # Attempt to delete the saved search with the global view user
     response = client.delete(
-        f"/saved-searches/{saved_search.id}",
+        "/saved-searches/{}".format(saved_search.id),
         headers={"Authorization": "Bearer " + create_jwt_token(global_view_user)},
     )
 
@@ -355,7 +355,7 @@ def test_delete_saved_search_by_user_with_access(create_standard_user):
     """
     user = create_standard_user
     search = SavedSearch.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
+        name="test-{}".format(secrets.token_hex(4)),
         count=3,
         sortDirection="",
         sortField="",
@@ -365,7 +365,7 @@ def test_delete_saved_search_by_user_with_access(create_standard_user):
         createdById=user,
     )
     response = client.delete(
-        f"/saved-searches/{search.id}",
+        "/saved-searches/{}".format(search.id),
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
@@ -390,7 +390,7 @@ def test_delete_saved_search_by_user_without_access_fails(
     user_with_access = create_standard_user
     user_without_access = create_secondary_standard_user
     search = SavedSearch.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
+        name="test-{}".format(secrets.token_hex(4)),
         count=3,
         sortDirection="",
         sortField="",
@@ -400,7 +400,7 @@ def test_delete_saved_search_by_user_without_access_fails(
         createdById=user_with_access,
     )
     response = client.delete(
-        f"/saved-searches/{search.id}",
+        "/saved-searches/{}".format(search.id),
         headers={"Authorization": "Bearer " + create_jwt_token(user_without_access)},
     )
     assert response.status_code == 404
@@ -422,7 +422,7 @@ def test_list_saved_searches_by_global_view_returns_none(create_global_view):
     """
     global_view_user = create_global_view
     search = SavedSearch.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
+        name="test-{}".format(secrets.token_hex(4)),
         count=3,
         sortDirection="",
         sortField="",
@@ -457,7 +457,7 @@ def test_list_saved_searches_by_user_only_gets_their_search(
     primary_user = create_standard_user
     secondary_user = create_secondary_standard_user
     search = SavedSearch.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
+        name="test-{}".format(secrets.token_hex(4)),
         count=3,
         sortDirection="",
         sortField="",
@@ -467,7 +467,7 @@ def test_list_saved_searches_by_user_only_gets_their_search(
         createdById=primary_user,
     )
     search2 = SavedSearch.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
+        name="test-{}".format(secrets.token_hex(4)),
         count=3,
         sortDirection="",
         sortField="",
@@ -502,7 +502,7 @@ def test_get_saved_search_by_global_view_fails(create_global_view):
     """
     global_view_user = create_global_view
     search = SavedSearch.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
+        name="test-{}".format(secrets.token_hex(4)),
         count=3,
         sortDirection="",
         sortField="",
@@ -511,7 +511,7 @@ def test_get_saved_search_by_global_view_fails(create_global_view):
         filters=[],
     )
     response = client.get(
-        f"/saved-searches/{search.id}",
+        "/saved-searches/{}".format(search.id),
         headers={"Authorization": "Bearer " + create_jwt_token(global_view_user)},
     )
     assert response.status_code == 404
@@ -532,7 +532,7 @@ def test_get_saved_search_by_user_passes(create_standard_user):
     """
     user = create_standard_user
     search = SavedSearch.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
+        name="test-{}".format(secrets.token_hex(4)),
         count=3,
         sortDirection="",
         sortField="",
@@ -542,7 +542,7 @@ def test_get_saved_search_by_user_passes(create_standard_user):
         createdById=user,
     )
     response = client.get(
-        f"/saved-searches/{search.id}",
+        "/saved-searches/{}".format(search.id),
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
     assert response.status_code == 200
@@ -566,7 +566,7 @@ def test_get_saved_search_by_different_user_fails(
     user_with_access = create_standard_user
     user_without_access = create_secondary_standard_user
     search = SavedSearch.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
+        name="test-{}".format(secrets.token_hex(4)),
         count=3,
         sortDirection="",
         sortField="",
@@ -576,7 +576,7 @@ def test_get_saved_search_by_different_user_fails(
         createdById=user_with_access,
     )
     response = client.get(
-        f"/saved-searches/{search.id}",
+        "/saved-searches/{}".format(search.id),
         headers={"Authorization": "Bearer " + create_jwt_token(user_without_access)},
     )
     assert response.status_code == 404

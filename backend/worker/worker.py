@@ -28,15 +28,15 @@ async def main():
 
     # Validate the scan name and dynamically load the appropriate handler
     try:
-        task_module = importlib.import_module(f"xfd_api.tasks.{scan_name}")
+        task_module = importlib.import_module("xfd_api.tasks.{}".format(scan_name))
         scan_fn = task_module.handler
     except ModuleNotFoundError:
-        raise ValueError(f"No task handler found for scan name: {scan_name}")
+        raise ValueError("No task handler found for scan name: {}".format(scan_name))
 
     # Fetch scan schema
     scan_schema = SCAN_SCHEMA.get(scan_name)
     if not scan_schema:
-        raise ValueError(f"No schema found for scan name: {scan_name}")
+        raise ValueError("No schema found for scan name: {}".format(scan_name))
 
     # Execute the task
     if getattr(scan_schema, "global_scan", False):
