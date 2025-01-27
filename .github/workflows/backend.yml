@@ -80,11 +80,8 @@ jobs:
           restore-keys: ${{ runner.os }}-node-
       - name: Install dependencies
         run: npm ci
-      - name: Make build-worker.sh executable
-        run: chmod +x ./tools/build-worker.sh
-        working-directory: ./backend
       - name: Build worker container
-        run: npm run ./tools/build-worker.sh
+        run: npm run build-worker.sh
         working-directory: ./backend
 
   deploy_staging:
