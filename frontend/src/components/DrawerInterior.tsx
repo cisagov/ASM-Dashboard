@@ -183,7 +183,7 @@ export const DrawerInterior: React.FC<Props> = (props) => {
   const titleCaseSeverityFacet = facets['vulnerabilities.severity']
     ? facets['vulnerabilities.severity'][0].data.map(
         (d: { value: string; count: number }) => {
-          if (d.value === null || undefined) {
+          if (d.value === null || d.value === undefined) {
             return { value: 'N/A', count: d.count };
           } else {
             return {
