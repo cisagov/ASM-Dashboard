@@ -1,7 +1,7 @@
 #!/bin/bash
 # Deploys worker to Terraform.
 # If the worker_ecs_repository_url output from Terraform changes, you should replace "XXX.dkr.ecr.us-east-1.amazonaws.com" in this file with that URL.
-# To deploy staging, run ./deploy-worker.sh.sh.
+# To deploy staging, run ./deploy-worker.sh.
 # To deploy prod, run ./deploy-worker.sh.sh crossfeed-prod-worker.
 
 set -e
