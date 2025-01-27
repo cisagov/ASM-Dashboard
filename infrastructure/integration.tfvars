@@ -57,6 +57,7 @@ ssm_sixgill_client_secret            = "/crossfeed/integration/SIXGILL_CLIENT_SE
 ssm_lg_api_key                       = "/crossfeed/integration/LG_API_KEY"
 ssm_lg_workspace_name                = "/crossfeed/integration/LG_WORKSPACE_NAME"
 ssm_pe_api_key                       = "/crossfeed/integration/PE_API_KEY"
+ssm_pe_api_url                       = "/crossfeed/integration/PE_API_URL"
 ssm_cf_api_key                       = "/crossfeed/integration/CF_API_KEY"
 db_group_name                        = "crossfeed-integration-db-group"
 worker_ecs_repository_name           = "crossfeed-integration-worker"
