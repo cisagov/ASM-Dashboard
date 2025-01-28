@@ -142,7 +142,7 @@ services:
       - MATOMO_GENERAL_PROXY_URI_HEADER=1
       - MATOMO_GENERAL_ASSUME_SECURE_PROTOCOL=1
     logging:
-      driver: none
+      driver: json-file
     ports:
       - "8080:80"
 
