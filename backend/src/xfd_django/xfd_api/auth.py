@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import hashlib
 from hashlib import sha256
 import os
+import re
 from typing import List, Optional
 from urllib.parse import urlencode
 import uuid
@@ -272,34 +273,38 @@ def get_current_active_user(
     if api_key:
         user = get_user_by_api_key(api_key)
     elif token:
-        try:
-            # Decode token in Authorization header to get user
-            payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-            user_id = payload.get("id")
+        # Check if token is an API key
+        if re.match(r"^[A-Fa-f0-9]{32}$", token):
+            user = get_user_by_api_key(token)
+        else:
+            try:
+                # Decode token in Authorization header to get user
+                payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+                user_id = payload.get("id")
 
-            if user_id is None:
-                print("No user ID found in token")
+                if user_id is None:
+                    print("No user ID found in token")
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Invalid token",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+                # Fetch the user by ID from the database
+                user = User.objects.get(id=user_id)
+            except jwt.ExpiredSignatureError:
+                print("Token has expired")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token has expired",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            except jwt.InvalidTokenError:
+                print("Invalid token")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid token",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
-            # Fetch the user by ID from the database
-            user = User.objects.get(id=user_id)
-        except jwt.ExpiredSignatureError:
-            print("Token has expired")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has expired",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        except jwt.InvalidTokenError:
-            print("Invalid token")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
     else:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
