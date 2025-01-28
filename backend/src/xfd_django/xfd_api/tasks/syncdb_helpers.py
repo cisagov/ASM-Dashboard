@@ -174,7 +174,30 @@ def create_sample_services_and_vulnerabilities(domain):
             domain=domain,
             service=None,
             description="Sample description",
-            severity=random.choice(["Low", "Medium", "High"]),
+            severity=random.choice(
+                [
+                    None,
+                    "N/A",
+                    "n/a",
+                    "Null",
+                    "null",
+                    "Undefined",
+                    "undefined",
+                    "",
+                    "Low",
+                    "Medium",
+                    "High",
+                    "Critical",
+                    "Other",
+                    "!@#$%^&*()",
+                    1234,
+                    "low",
+                    "medium",
+                    "high",
+                    "critical",
+                    "other",
+                ]
+            ),
             needsPopulation=True,
             state="open",
             substate="unconfirmed",
@@ -502,7 +525,7 @@ def create_scan_user():
 
     db_name = settings.DATABASES["default"]["NAME"]
 
-    with connection.cursor() as cursor:
+    with connections["default"].cursor() as cursor:
         try:
             # Check if the user already exists
             cursor.execute("SELECT 1 FROM pg_roles WHERE rolname = %s;", [user])
