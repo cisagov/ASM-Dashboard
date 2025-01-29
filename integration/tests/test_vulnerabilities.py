@@ -80,73 +80,79 @@ def test_search_vulnerabilities():
 
 
 @pytest.mark.integration
-def test_update_vulnerability_by_id():
-    """Test update vulnerability by ID."""
-    url = f"{BASE_URL}/vulnerabilities/{VULNERABILITIES_ID}"
-    json = {
-        "id": "00f2b72a-c42c-4950-b383-0c0a7078788f",
-        "createdAt": "2024-12-03T16:56:58.684835",
-        "updatedAt": "2025-01-24T19:05:00.000Z",  # Simulate an update
-        "lastSeen": None,
-        "title": "Updated CVE-2019-6109",
-        "cve": "CVE-2019-6109",
-        "cwe": "CWE-116",
-        "cpe": "cpe:/a:openbsd:openssh:7.4",
-        "description": "Updated description for this vulnerability.",
-        "references": [
-            {
-                "url": "https://updated-url.com",
-                "name": "Updated Reference",
-                "tags": ["Updated Tag"],
-                "source": "UPDATED_SOURCE",
-            }
-        ],
-        "cvss": 7.5,
-        "severity": "High",
-        "needsPopulation": False,
-        "state": "closed",
-        "substate": "confirmed",
-        "source": "updatedSource",
-        "notes": "Updated vulnerability notes.",
-        "actions": ["action2"],
-        "structuredData": {"newKey": "newValue"},
-        "isKev": True,
-        "domain_id": "0c4ee5b6-ff18-458c-adcc-dfe121fb54c5",
-        "service_id": "9ac326f0-29ad-4e2c-a6bf-e330c91aa872",
-    }
-    response = requests.put(
-        url, json=json, headers={"X-API-KEY": X_API_KEY}, timeout=10
-    )
+def test_get_update_and_revert_vulnerability_by_id():
+    """Test get vulnerability by ID, update fields, and revert back to original."""
 
+    # Step 1: Retrieve the original data using GET
+    url = f"{BASE_URL}/vulnerabilities/{VULNERABILITIES_ID}"
+    response = requests.get(url, headers={"X-API-KEY": X_API_KEY}, timeout=10)
     assert (
         response.status_code == 200
     ), f"Expected status 200, got {response.status_code}"
-    data = response.json()
+    original_data = response.json()
 
-    # Validate updated fields
-    assert data["title"] == "Updated CVE-2019-6109", "Title was not updated correctly"
+    assert original_data is not None, "Response is empty"
     assert (
-        data["description"] == "Updated description for this vulnerability."
+        original_data["id"] == VULNERABILITIES_ID
+    ), f"Expected ID {VULNERABILITIES_ID}, got {original_data['id']}"
+
+    # Extract domain_id and service_id from the nested objects
+    domain_id = original_data["domain"]["id"] if "domain" in original_data else None
+    service_id = original_data["service"]["id"] if "service" in original_data else None
+
+    # Remove nested fields that are not part of the PUT schema
+    original_data.pop("domain", None)
+    original_data.pop("service", None)
+    original_data["domain_id"] = domain_id
+    original_data["service_id"] = service_id
+
+    # Step 2: Update a few fields using PUT
+    updated_data = original_data.copy()  # Start with the original data
+    updated_data["title"] = "Updated Title for Testing"  # Modify the title
+    updated_data[
+        "description"
+    ] = "This is an updated description."  # Modify the description
+    updated_data["severity"] = "High"  # Change the severity
+
+    # Perform the update
+    update_response = requests.put(
+        url, json=updated_data, headers={"X-API-KEY": X_API_KEY}, timeout=10
+    )
+    assert (
+        update_response.status_code == 200
+    ), f"Expected status 200, got {update_response.status_code}"
+    updated_response_data = update_response.json()
+
+    # Validate the updated fields
+    assert (
+        updated_response_data["title"] == "Updated Title for Testing"
+    ), "Title was not updated correctly"
+    assert (
+        updated_response_data["description"] == "This is an updated description."
     ), "Description was not updated correctly"
-    assert data["severity"] == "High", "Severity was not updated correctly"
-    assert data["state"] == "closed", "State was not updated correctly"
+    assert (
+        updated_response_data["severity"] == "High"
+    ), "Severity was not updated correctly"
 
-    # Validate references
-    assert len(data["references"]) == 1, "References were not updated correctly"
+    # Step 3: Revert to the original data using PUT
+    revert_response = requests.put(
+        url, json=original_data, headers={"X-API-KEY": X_API_KEY}, timeout=10
+    )
     assert (
-        data["references"][0]["url"] == "https://updated-url.com"
-    ), "Reference URL was not updated correctly"
-    assert (
-        data["references"][0]["source"] == "UPDATED_SOURCE"
-    ), "Reference source was not updated correctly"
+        revert_response.status_code == 200
+    ), f"Expected status 200, got {revert_response.status_code}"
+    reverted_data = revert_response.json()
 
+    # Validate that the original data was restored
     assert (
-        data.get("domain_id") == "0c4ee5b6-ff18-458c-adcc-dfe121fb54c5"
-    ), "Domain ID mismatch"
-    # Validate service_id
+        reverted_data["title"] == original_data["title"]
+    ), "Title was not reverted correctly"
     assert (
-        data["service_id"] == "9ac326f0-29ad-4e2c-a6bf-e330c91aa872"
-    ), "Service ID mismatch"
+        reverted_data["description"] == original_data["description"]
+    ), "Description was not reverted correctly"
+    assert (
+        reverted_data["severity"] == original_data["severity"]
+    ), "Severity was not reverted correctly"
 
 
 @pytest.mark.integration
