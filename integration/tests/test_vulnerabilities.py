@@ -56,7 +56,7 @@ def test_search_vulnerabilities():
     json = {
         "page": 1,
         "filters": {
-            "severity": "high",  # Example filter, modify based on actual API
+            "severity": "high",
         },
         "pageSize": 10,
     }
@@ -82,7 +82,6 @@ def test_search_vulnerabilities():
 @pytest.mark.integration
 def test_get_update_and_revert_vulnerability_by_id():
     """Test get vulnerability by ID, update fields, and revert back to original."""
-
     # Step 1: Retrieve the original data using GET
     url = f"{BASE_URL}/vulnerabilities/{VULNERABILITIES_ID}"
     response = requests.get(url, headers={"X-API-KEY": X_API_KEY}, timeout=10)
@@ -231,9 +230,6 @@ def test_update_vulnerability_by_id_fails_422():
         response.status_code == 422
     ), f"Expected status 422, got {response.status_code}"
     data = response.json()
-
-    # Debugging: Print the response
-    print(data)  # Inspect the response to debug validation errors
 
     # Validate that the response contains a list of validation errors
     assert isinstance(
