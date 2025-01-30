@@ -110,3 +110,5 @@ ssm_redshift_database                = "/crossfeed/staging/REDSHIFT_DATABASE"
 ssm_redshift_user                    = "/crossfeed/staging/REDSHIFT_USER"
 ssm_redshift_password                = "/crossfeed/staging/REDSHIFT_PASSWORD"
 create_elasticache_cluster           = true
+create_email_sender_instance         = true
+email_sender_instance_type           = "t3.small"
