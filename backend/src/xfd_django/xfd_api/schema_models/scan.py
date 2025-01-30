@@ -259,6 +259,14 @@ SCAN_SCHEMA = {
         memory="8192",
         description="Fetch passive port, banner, and vulnerability data from shodan",
     ),
+    "shodan_sync": ScanSchema(
+        type="fargate",
+        isPassive=True,
+        global_scan=True,
+        cpu="1024",
+        memory="8192",
+        description="Pull in Shodan asset and vulnerability data from commercial mdl",
+    ),
     "sslyze": ScanSchema(
         type="fargate",
         isPassive=True,
@@ -308,5 +316,13 @@ SCAN_SCHEMA = {
         cpu="2048",
         memory="16384",
         description="Loops through all domains and determines if their associated IP can be found in a report Cidr block.",
+    ),
+    "xpanse_sync": ScanSchema(
+        type="fargate",
+        isPassive=True,
+        global_scan=True,
+        cpu="1024",
+        memory="8192",
+        description="Pull in Xpanse alert data from commercial mdl",
     ),
 }
