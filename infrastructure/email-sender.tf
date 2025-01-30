@@ -70,7 +70,7 @@ resource "aws_instance" "email_sender" {
   }
 
   vpc_security_group_ids = [var.is_dmz ? aws_security_group.allow_internal[0].id : aws_security_group.allow_internal_lz[0].id]
-  subnet_id              = var.is_dmz ? aws_subnet.backend[0].id : data.aws_ssm_parameter.subnet_db_1_id.value
+  subnet_id              = var.is_dmz ? aws_subnet.backend[0].id : data.aws_ssm_parameter.subnet_db_1_id[0].value
 
   iam_instance_profile = aws_iam_instance_profile.ses_sender.name
   user_data            = file("./email-sender-install.sh")
