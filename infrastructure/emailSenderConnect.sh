@@ -41,14 +41,12 @@ function start_instance() {
 # Inject SSH Public Key using EC2 Instance Connect
 function send_ssh_public_key() {
   log_info "Sending SSH public key..."
-  aws ec2-instance-connect send-ssh-public-key \
+  if ! aws ec2-instance-connect send-ssh-public-key \
     --instance-id "$INSTANCE_ID" \
     --availability-zone "$AVAILABILITY_ZONE" \
     --instance-os-user "$SSH_USER" \
     --ssh-public-key "file://$SSH_KEY_PATH" \
-    --profile "$AWS_PROFILE"
-
-  if [[ $? -ne 0 ]]; then
+    --profile "$AWS_PROFILE"; then
     log_error "Failed to send SSH public key."
     exit 1
   fi
