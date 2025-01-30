@@ -20,7 +20,7 @@ function get_instance_status() {
     --instance-ids "$INSTANCE_ID" \
     --profile "$AWS_PROFILE" \
     --query 'InstanceStatuses[0].InstanceState.Name' \
-    --output text 2>/dev/null)
+    --output text 2> /dev/null)
 
   echo "$STATUS"
 }
