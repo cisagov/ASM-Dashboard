@@ -192,7 +192,7 @@ resource "aws_iam_role_policy" "sqs_send_message_policy" {
 
 resource "aws_instance" "db_accessor" {
   count                       = var.create_db_accessor_instance ? 1 : 0
-  ami                         = var.is_dmz ? data.aws_ami.ubuntu.id : var.ami_id
+  ami                         = var.is_dmz ? data.aws_ami.ubuntu[0].id : var.ami_id
   instance_type               = var.db_accessor_instance_class
   associate_public_ip_address = false
 
