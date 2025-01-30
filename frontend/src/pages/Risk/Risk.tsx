@@ -95,8 +95,6 @@ const Risk: React.FC<ContextType & {}> = ({
     };
   }, [filters]);
 
-  console.log('filters', filters);
-  console.log('riskFilters', riskFilters);
   const { pathname } = useLocation();
   const filtersToDisplay = useMemo(() => {
     if (searchTerm !== '') {
