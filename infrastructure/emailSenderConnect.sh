@@ -1,9 +1,13 @@
 #!/bin/bash
 
 # Configuration
-AWS_PROFILE=${AWS_PROFILE:-"default"}
-INSTANCE_ID=${INSTANCE_ID:-"your-instance-id"}
-REGION="us-east-1"
+AWS_PROFILE=${EMAIL_AWS_PROFILE:-"default"}
+INSTANCE_ID=${EMAIL_SENDER_INSTANCE_ID:-"your-instance-id"}
+AVAILABILITY_ZONE="us-east-1b"
+LOCAL_PORT=9995
+REMOTE_PORT=22
+SSH_USER="ubuntu"
+SSH_KEY_PATH=${EMAIL_SSH_KEY_PATH:-""}
 
 function log_info() {
   echo "$(date '+%Y-%m-%d %H:%M:%S') INFO: $1"
@@ -15,14 +19,11 @@ function log_error() {
 
 # Check if the instance is running
 function get_instance_status() {
-  log_info "Checking instance status..."
-  STATUS=$(aws ec2 describe-instance-status \
+  aws ec2 describe-instance-status \
     --instance-ids "$INSTANCE_ID" \
     --profile "$AWS_PROFILE" \
     --query 'InstanceStatuses[0].InstanceState.Name' \
-    --output text 2> /dev/null)
-
-  echo "$STATUS"
+    --output text 2> /dev/null
 }
 
 # Start the instance if it's not running
@@ -37,11 +38,29 @@ function start_instance() {
   sleep 120
 }
 
-# Connect to the instance using SSM
-function connect_to_instance() {
-  log_info "Connecting to instance $INSTANCE_ID via SSM..."
+# Inject SSH Public Key using EC2 Instance Connect
+function send_ssh_public_key() {
+  log_info "Sending SSH public key..."
+  aws ec2-instance-connect send-ssh-public-key \
+    --instance-id "$INSTANCE_ID" \
+    --availability-zone "$AVAILABILITY_ZONE" \
+    --instance-os-user "$SSH_USER" \
+    --ssh-public-key "file://$SSH_KEY_PATH" \
+    --profile "$AWS_PROFILE"
+
+  if [[ $? -ne 0 ]]; then
+    log_error "Failed to send SSH public key."
+    exit 1
+  fi
+}
+
+# Start port forwarding with AWS SSM
+function start_port_forwarding() {
+  log_info "Starting port forwarding via SSM..."
   aws ssm start-session \
     --target "$INSTANCE_ID" \
+    --document-name AWS-StartPortForwardingSession \
+    --parameters "{\"portNumber\":[\"$REMOTE_PORT\"], \"localPortNumber\":[\"$LOCAL_PORT\"]}" \
     --profile "$AWS_PROFILE"
 }
 
@@ -52,7 +71,9 @@ if [ -z "$INSTANCE_ID" ]; then
   exit 1
 fi
 
-STATUS=$(get_instance_status)
+STATUS=$(get_instance_status | tr -d '\r')
+
+log_info "Current instance status: $STATUS"
 
 if [[ "$STATUS" == "running" ]]; then
   log_info "Instance is already running."
@@ -63,4 +84,5 @@ else
   exit 1
 fi
 
-connect_to_instance
+send_ssh_public_key
+start_port_forwarding
