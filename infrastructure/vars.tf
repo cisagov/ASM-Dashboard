@@ -545,6 +545,18 @@ variable "create_db_accessor_instance" {
   default     = false
 }
 
+variable "create_email_sender_instance" {
+  description = "Whether to create a email sending EC2 instance. This instance can be used to access AWS SES and is spun up in a private subnet. It can be accessed using AWS Systems Manager Session Manager."
+  type        = bool
+  default     = false
+}
+
+variable "email_sender_instance_type" {
+  description = "Instance type of the email sender instance."
+  type        = string
+  default     = false
+}
+
 variable "db_accessor_instance_class" {
   description = "db_accessor_instance_class"
   type        = string

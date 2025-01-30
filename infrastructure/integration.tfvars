@@ -107,3 +107,5 @@ ssm_redshift_user                    = "/crossfeed/integration/REDSHIFT_USER"
 ssm_redshift_password                = "/crossfeed/integration/REDSHIFT_PASSWORD"
 create_elasticache_cluster           = true
 matomo_availability_zone             = "us-east-1a"
+create_email_sender_instance         = false
+email_sender_instance_type           = "t3.small"
