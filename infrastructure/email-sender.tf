@@ -40,7 +40,7 @@ resource "aws_iam_policy_attachment" "email_sender_ec2_policy_1" {
 }
 
 resource "aws_iam_policy_attachment" "email_sender_ec2_policy_2" {
-  count      = var.create_db_accessor_instance ? 1 : 0
+  count      = var.create_email_sender_instance ? 1 : 0
   name       = "crossfeed-email-sender-${var.stage}"
   roles      = [aws_iam_role.email_sender[0].id]
   policy_arn = "arn:${var.aws_partition}:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
