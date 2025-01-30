@@ -40,10 +40,6 @@ jobs:
                 touch .env
                 echo "X_API_KEY=${{ secrets['${{ matrix.environment | upper }}\
                 _X_API_KEY'] }}" >> .env
-                echo "DOMAIN_UID=${{ secrets['${{ matrix.environment | upper }}\
-                _DOMAIN_UID'] }}" >> .env
-                echo "SEARCH_IP=${{ secrets['${{ matrix.environment | upper }}\
-                _SEARCH_IP'] }}" >> .env
 
             - name: Run integration tests
               run: |
