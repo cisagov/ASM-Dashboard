@@ -376,6 +376,13 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
       headerName: 'Vulnerability',
       minWidth: 100,
       flex: 1.2,
+      sortComparator: (v1, v2, cellParams1, cellParams2) => {
+        const collator = new Intl.Collator(undefined, {
+          numeric: true,
+          sensitivity: 'base'
+        });
+        return collator.compare(cellParams1.value, cellParams2.value);
+      },
       renderCell: (cellValues: GridRenderCellParams) => {
         if (cellValues.row.title.startsWith('CVE')) {
           return (
