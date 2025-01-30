@@ -54,7 +54,10 @@ resource "aws_instance" "email_sender" {
   associate_public_ip_address = false
 
   depends_on = [
+    aws_iam_role.email_sender,
     aws_iam_instance_profile.email_sender,
+    aws_iam_policy_attachment.email_sender_ec2_policy_1,
+    aws_iam_policy_attachment.email_sender_ec2_policy_2,
     aws_security_group.allow_internal,
     aws_subnet.backend
   ]
@@ -65,6 +68,7 @@ resource "aws_instance" "email_sender" {
     Name    = "email_sender"
     Owner   = "Crossfeed managed resource"
   }
+
   root_block_device {
     volume_size = 50
   }
@@ -72,11 +76,10 @@ resource "aws_instance" "email_sender" {
   vpc_security_group_ids = [var.is_dmz ? aws_security_group.allow_internal[0].id : aws_security_group.allow_internal_lz[0].id]
   subnet_id              = var.is_dmz ? aws_subnet.backend[0].id : data.aws_ssm_parameter.subnet_db_1_id[0].value
 
-  iam_instance_profile = aws_iam_instance_profile.email_sender[0].id
+  iam_instance_profile = var.create_email_sender_instance ? aws_iam_instance_profile.email_sender[0].id : null
   user_data            = file("./email-sender-install.sh")
 
   lifecycle {
     ignore_changes = [ami]
   }
-
 }
