@@ -49,7 +49,7 @@ resource "aws_iam_policy_attachment" "email_sender_ec2_policy_2" {
 # EC2 Instance for SES
 resource "aws_instance" "email_sender" {
   count                       = var.create_email_sender_instance ? 1 : 0
-  ami                         = var.ami_id
+  ami                         = var.is_dmz ? data.aws_ami.ubuntu.id : var.ami_id
   instance_type               = var.email_sender_instance_type
   associate_public_ip_address = false
 
