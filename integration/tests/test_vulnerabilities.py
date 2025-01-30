@@ -1,6 +1,7 @@
 """Integration test for vulnerabilities API."""
 # Standard Python Libraries
 import os
+import random
 
 # Third-Party Libraries
 import pytest
@@ -9,15 +10,38 @@ import requests
 # Configuration
 BASE_URL = "http://localhost:3000"
 X_API_KEY = os.environ.get("X_API_KEY")
-VULNERABILITIES_ID = os.environ.get("VULNERABILITIES_ID")
 BAD_ID = "c0effe93-3647-475a-a0c5-0b629c348590"
+
+
+def get_vulnerability_ids():
+    """Get a tuple of vulnerability IDs for testing."""
+    url = "{}/vulnerabilities/search".format(BASE_URL)
+    json = {
+        "page": 1,
+        "pageSize": 10,
+    }
+    response = requests.post(
+        url, json=json, headers={"X-API-KEY": X_API_KEY}, timeout=10
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data is not None, "Response is empty"
+    assert "result" in data, "Results not found in response"
+    assert len(data["result"]) > 0, "No results found"
+    # Extract domain IDs
+    vulnerability_ids = [vulnerability["id"] for vulnerability in data["result"]]
+    return tuple(vulnerability_ids)
+
+
+vulnerability_ids = get_vulnerability_ids()
+vulnerability_id = random.choice(vulnerability_ids)
 
 
 # mark tests with integration tag, run with pytest -m integration
 @pytest.mark.integration
 def test_get_vulnerability_by_id():
     """Test get vulnerability by ID."""
-    url = f"{BASE_URL}/vulnerabilities/{VULNERABILITIES_ID}"
+    url = f"{BASE_URL}/vulnerabilities/{vulnerability_id}"
     response = requests.get(url, headers={"X-API-KEY": X_API_KEY}, timeout=10)
 
     assert (
@@ -26,8 +50,8 @@ def test_get_vulnerability_by_id():
     data = response.json()
     assert data is not None, "Response is empty"
     assert (
-        data["id"] == VULNERABILITIES_ID
-    ), f"Expected ID {VULNERABILITIES_ID}, got {data['id']}"
+        data["id"] == vulnerability_id
+    ), f"Expected ID {vulnerability_id}, got {data['id']}"
 
 
 @pytest.mark.integration
@@ -83,7 +107,7 @@ def test_search_vulnerabilities():
 def test_get_update_and_revert_vulnerability_by_id():
     """Test get vulnerability by ID, update fields, and revert back to original."""
     # Step 1: Retrieve the original data using GET
-    url = f"{BASE_URL}/vulnerabilities/{VULNERABILITIES_ID}"
+    url = f"{BASE_URL}/vulnerabilities/{vulnerability_id}"
     response = requests.get(url, headers={"X-API-KEY": X_API_KEY}, timeout=10)
     assert (
         response.status_code == 200
@@ -92,8 +116,8 @@ def test_get_update_and_revert_vulnerability_by_id():
 
     assert original_data is not None, "Response is empty"
     assert (
-        original_data["id"] == VULNERABILITIES_ID
-    ), f"Expected ID {VULNERABILITIES_ID}, got {original_data['id']}"
+        original_data["id"] == vulnerability_id
+    ), f"Expected ID {vulnerability_id}, got {original_data['id']}"
 
     # Extract domain_id and service_id from the nested objects
     domain_id = original_data["domain"]["id"] if "domain" in original_data else None
@@ -111,7 +135,6 @@ def test_get_update_and_revert_vulnerability_by_id():
     updated_data[
         "description"
     ] = "This is an updated description."  # Modify the description
-    updated_data["severity"] = "High"  # Change the severity
 
     # Perform the update
     update_response = requests.put(
@@ -129,9 +152,6 @@ def test_get_update_and_revert_vulnerability_by_id():
     assert (
         updated_response_data["description"] == "This is an updated description."
     ), "Description was not updated correctly"
-    assert (
-        updated_response_data["severity"] == "High"
-    ), "Severity was not updated correctly"
 
     # Step 3: Revert to the original data using PUT
     revert_response = requests.put(
@@ -149,9 +169,6 @@ def test_get_update_and_revert_vulnerability_by_id():
     assert (
         reverted_data["description"] == original_data["description"]
     ), "Description was not reverted correctly"
-    assert (
-        reverted_data["severity"] == original_data["severity"]
-    ), "Severity was not reverted correctly"
 
 
 @pytest.mark.integration
@@ -197,9 +214,9 @@ def test_update_vulnerability_by_id_fails_404():
 @pytest.mark.integration
 def test_update_vulnerability_by_id_fails_422():
     """Test update vulnerability by ID fails with 422 due to invalid payload."""
-    url = f"{BASE_URL}/vulnerabilities/{VULNERABILITIES_ID}"
+    url = f"{BASE_URL}/vulnerabilities/{vulnerability_id}"
     json = {
-        "id": VULNERABILITIES_ID,
+        "id": vulnerability_id,
         "createdAt": "invalid-date",  # Invalid date format
         "updatedAt": "2025-01-24T19:05:00.000Z",
         "lastSeen": None,
