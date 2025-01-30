@@ -553,7 +553,7 @@ variable "create_email_sender_instance" {
 
 variable "email_sender_instance_type" {
   description = "Instance type of the email sender instance."
-  type        = bool
+  type        = string
   default     = false
 }
 
