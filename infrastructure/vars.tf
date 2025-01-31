@@ -723,6 +723,12 @@ variable "ssm_pe_api_key" {
   default     = "/crossfeed/staging/PE_API_KEY"
 }
 
+variable "ssm_pe_api_url" {
+  description = "ssm_pe_api_url"
+  type        = string
+  default     = "/crossfeed/staging/PE_API_URL"
+}
+
 variable "ssm_cf_api_key" {
   description = "ssm_cf_api_key"
   type        = string
