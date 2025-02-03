@@ -26,6 +26,4 @@ def get_vulnerability_ids():
     assert "result" in data, "Results not found in response"
     assert len(data["result"]) > 0, "No results found"
 
-    # Extract domain IDs
-    vulnerability_ids = [vulnerability["id"] for vulnerability in data["result"]]
-    return tuple(vulnerability_ids)
+    return data["result"]
