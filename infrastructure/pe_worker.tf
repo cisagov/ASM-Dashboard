@@ -143,6 +143,10 @@ resource "aws_ecs_task_definition" "pe_worker" {
         "valueFrom": "${data.aws_ssm_parameter.pe_api_key.arn}"
       },
       {
+        "name": "PE_API_URL",
+        "valueFrom": "${data.aws_ssm_parameter.pe_api_url.arn}"
+      },
+      {
         "name": "CF_API_KEY",
         "valueFrom": "${data.aws_ssm_parameter.cf_api_key.arn}"
       },
