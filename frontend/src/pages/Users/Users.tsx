@@ -26,7 +26,7 @@ import {
   UserFormValues
 } from 'types';
 import { useAuthContext } from 'context';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import UserForm from './UserForm';
 
 type ApiErrorStates = {
@@ -81,7 +81,7 @@ export const Users: React.FC = () => {
           ? format(new Date(row.lastLoggedIn), 'MM-dd-yyyy hh:mm a')
           : 'None';
         row.dateToUSigned = row.dateAcceptedTerms
-          ? format(new Date(row.dateAcceptedTerms), 'MM-dd-yyyy hh:mm a')
+          ? format(parseISO(row.dateAcceptedTerms), 'MM-dd-yyyy hh:mm a')
           : 'None';
         row.orgs = row.roles
           ? row.roles
@@ -92,6 +92,7 @@ export const Users: React.FC = () => {
         row.fullName = `${row.firstName} ${row.lastName}`;
       });
       setUsers(rows);
+      console.log('rows', rows);
       setApiErrorStates((prev) => ({ ...prev, getUsersError: '' }));
     } catch (e: any) {
       setLoadingError(true);
@@ -117,7 +118,7 @@ export const Users: React.FC = () => {
     },
     { field: 'userType', headerName: 'User Type', minWidth: 100, flex: 0.75 },
     {
-      field: 'dateToUSigned',
+      field: 'dateAcceptedTerms',
       headerName: 'Date ToU Signed',
       minWidth: 100,
       flex: 1
