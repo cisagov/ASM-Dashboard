@@ -7,12 +7,12 @@ import random
 import pytest
 import requests
 
-BASE_URL = "http://localhost:3000"
+BASE_URL = os.environ.get("BACKEND_DOMAIN")
 X_API_KEY = os.environ.get("X_API_KEY")
 BAD_ID = "01234567-0123-4567-8901-12345"
 
 
-def get_domain_ids():
+def get_domains():
     """Get a tuple of domain IDs for testing."""
     url = "{}/domain/search".format(BASE_URL)
     json = {
@@ -29,17 +29,18 @@ def get_domain_ids():
     assert "result" in data, "Results not found in response"
     assert len(data["result"]) > 0, "No results found"
 
-    # Extract domain IDs
-    domain_ids = [domain["id"] for domain in data["result"]]
-    return tuple(domain_ids)
+    return data["result"]
+
+
+domains = get_domains()
 
 
 # mark tests with integration tag, run with pytest -m integration
 @pytest.mark.integration
 def test_get_domain_by_id():
     """Test get domain by id."""
-    domain_ids = get_domain_ids()
-    domain_id = random.choice(domain_ids)
+    selected_domain = random.choice(domains)
+    domain_id = selected_domain["id"]
 
     url = "{}/domain/{}".format(BASE_URL, domain_id)
     print(url)
@@ -67,11 +68,14 @@ def test_get_domain_by_id_fails_404():
 @pytest.mark.integration
 def test_search_domain_by_ip():
     """Test search domain by IP."""
+    selected_domain = random.choice(domains)
+    domain_ip = selected_domain["ip"]
+
     url = "{}/domain/search".format(BASE_URL)
     json = {
         "page": 1,
         "filters": {
-            "ip": os.environ.get("SEARCH_IP"),
+            "ip": domain_ip,
         },
         "pageSize": 10,
     }
@@ -86,4 +90,4 @@ def test_search_domain_by_ip():
 
     # Validate result contain the correct IP
     for domain in data["result"]:
-        assert domain["ip"] == "127.39.232.192", "IP does not match"
+        assert domain["ip"] == domain_ip, "IP does not match"

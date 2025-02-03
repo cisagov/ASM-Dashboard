@@ -13,7 +13,7 @@ X_API_KEY = os.environ.get("X_API_KEY")
 BAD_ID = "c0effe93-3647-475a-a0c5-0b629c348590"
 
 
-def get_vulnerability_ids():
+def get_vulnerabilities():
     """Get a tuple of vulnerability IDs for testing."""
     url = "{}/vulnerabilities/search".format(BASE_URL)
     json = {
@@ -28,19 +28,17 @@ def get_vulnerability_ids():
     assert data is not None, "Response is empty"
     assert "result" in data, "Results not found in response"
     assert len(data["result"]) > 0, "No results found"
-    # Extract domain IDs
-    vulnerability_ids = [vulnerability["id"] for vulnerability in data["result"]]
-    return tuple(vulnerability_ids)
 
-
-vulnerability_ids = get_vulnerability_ids()
-vulnerability_id = random.choice(vulnerability_ids)
+    return data["result"]
 
 
 # mark tests with integration tag, run with pytest -m integration
 @pytest.mark.integration
 def test_get_vulnerability_by_id():
     """Test get vulnerability by ID."""
+    vulnerabilities = get_vulnerabilities()
+    select_vulnerability = random.choice(vulnerabilities)
+    vulnerability_id = select_vulnerability["id"]
     url = f"{BASE_URL}/vulnerabilities/{vulnerability_id}"
     response = requests.get(url, headers={"X-API-KEY": X_API_KEY}, timeout=10)
 
@@ -51,7 +49,7 @@ def test_get_vulnerability_by_id():
     assert data is not None, "Response is empty"
     assert (
         data["id"] == vulnerability_id
-    ), f"Expected ID {vulnerability_id}, got {data['id']}"
+    ), f"Expected ID {select_vulnerability}, got {data['id']}"
 
 
 @pytest.mark.integration
@@ -107,6 +105,9 @@ def test_search_vulnerabilities():
 def test_get_update_and_revert_vulnerability_by_id():
     """Test get vulnerability by ID, update fields, and revert back to original."""
     # Step 1: Retrieve the original data using GET
+    vulnerabilities = get_vulnerabilities()
+    select_vulnerability = random.choice(vulnerabilities)
+    vulnerability_id = select_vulnerability["id"]
     url = f"{BASE_URL}/vulnerabilities/{vulnerability_id}"
     response = requests.get(url, headers={"X-API-KEY": X_API_KEY}, timeout=10)
     assert (
@@ -214,6 +215,9 @@ def test_update_vulnerability_by_id_fails_404():
 @pytest.mark.integration
 def test_update_vulnerability_by_id_fails_422():
     """Test update vulnerability by ID fails with 422 due to invalid payload."""
+    vulnerabilities = get_vulnerabilities()
+    select_vulnerability = random.choice(vulnerabilities)
+    vulnerability_id = select_vulnerability["id"]
     url = f"{BASE_URL}/vulnerabilities/{vulnerability_id}"
     json = {
         "id": vulnerability_id,
