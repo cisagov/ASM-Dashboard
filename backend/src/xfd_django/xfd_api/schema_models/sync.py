@@ -1,3 +1,6 @@
+# Standard Python Libraries
+from typing import Any
+
 # Third-Party Libraries
 from pydantic import BaseModel
 
@@ -7,4 +10,4 @@ class SyncResponse(BaseModel):
 
 
 class SyncBody(BaseModel):
-    data: str
+    data: Any

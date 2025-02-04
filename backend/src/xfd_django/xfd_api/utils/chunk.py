@@ -1,25 +1,35 @@
+"""Split a list into chunks based on a byte size limit.
+
+Each chunk will have a total byte size that does not exceed the specified
+maximum. Chunks are stored as dictionaries containing the chunked items
+and their bounds.
+"""
+
 # Standard Python Libraries
 import json
-import sys
-from typing import List
+from typing import Any, Dict, List
 
 
-def chunk_list_by_bytes(input_list: List, max_bytes: int) -> List[List]:
-    """
-    Splits a list into chunks where the total byte size of each chunk is less than or equal to max_bytes.
+def chunk_list_by_bytes(input_list: List[Any], max_bytes: int) -> List[Dict[str, Any]]:
+    """Split a list into chunks where each chunk's byte size is within max_bytes.
+
+    Each chunk is represented as a dictionary containing the chunked items and
+    their bounds.
 
     Args:
-        input_list (list): The list to be chunked.
+        input_list (List[Any]): The list to be chunked.
         max_bytes (int): Maximum bytes allowed per chunk.
 
     Returns:
-        list: A list of chunks, where each chunk is a sublist.
+        List[Dict[str, Any]]: A list of dictionaries, where each dictionary contains
+        a chunk and its bounds.
     """
-    chunks = []
-    current_chunk = []
-    current_size = 0
+    chunks: List[Dict[str, Any]] = []
+    current_chunk: List[Any] = []
+    current_size: int = 0
+    start_index: int = 0
 
-    for item in input_list:
+    for idx, item in enumerate(input_list):
         # Serialize item to calculate its actual size
         try:
             item_size = len(json.dumps(item).encode("utf-8"))
@@ -27,8 +37,19 @@ def chunk_list_by_bytes(input_list: List, max_bytes: int) -> List[List]:
             item_size = len(json.dumps(str(item)).encode("utf-8"))
 
         if current_size + item_size > max_bytes:
+            # Add the current chunk with its bounds to the result
+            chunks.append(
+                {
+                    "chunk": current_chunk,
+                    "bounds": {
+                        "start": start_index,
+                        "end": start_index + len(current_chunk) - 1,
+                    },
+                }
+            )
+            # Update the start index based on the length of the processed chunk
+            start_index += len(current_chunk)
             # Start a new chunk
-            chunks.append(current_chunk)
             current_chunk = []
             current_size = 0
 
@@ -37,6 +58,14 @@ def chunk_list_by_bytes(input_list: List, max_bytes: int) -> List[List]:
 
     # Add the last chunk if it's not empty
     if current_chunk:
-        chunks.append(current_chunk)
+        chunks.append(
+            {
+                "chunk": current_chunk,
+                "bounds": {
+                    "start": start_index,
+                    "end": start_index + len(current_chunk) - 1,
+                },
+            }
+        )
 
     return chunks

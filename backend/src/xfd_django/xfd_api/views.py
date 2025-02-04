@@ -35,6 +35,7 @@ from .api_methods.stats import (
     stats_latest_vulns,
     stats_most_common_vulns,
 )
+from .api_methods.sync import sync_post
 from .api_methods.user import (
     accept_terms,
     delete_user,
@@ -866,9 +867,13 @@ async def sync(
     request: Request,
     current_user: User = Depends(get_current_active_user),
 ):
-    print(request)
-    print(sync_body)
-    return 200
+    """Post organizations for datalake sync."""
+    try:
+        return await sync_post(sync_body, request)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @api_router.post(

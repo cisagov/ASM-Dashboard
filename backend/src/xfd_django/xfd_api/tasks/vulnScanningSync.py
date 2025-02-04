@@ -1,3 +1,9 @@
+"""Task for synchronizing vulnerability scanning data.
+
+This module handles fetching, processing, and saving vulnerability scans,
+port scans, hosts, and tickets from Redshift into the Django models.
+"""
+
 # Standard Python Libraries
 import os
 
@@ -17,22 +23,40 @@ django.setup()
 import datetime
 from ipaddress import IPv4Network, IPv6Network
 import json
-from typing import List, Optional, TypedDict
-from uuid import uuid4
+from typing import List
 
 # Third-Party Libraries
-from django.db.models import Prefetch
-import psycopg2
-from psycopg2.extensions import connection, cursor
+from django.conf import settings
+import requests
 from xfd_api.utils.chunk import chunk_list_by_bytes
-from xfd_api.utils.csv_utils import convert_to_csv, write_csv_to_file
-from xfd_mini_dl.models import Cidr, Location, Organization, Sector
-
-#  Look into Error creating location 'NoneType' object is not subscriptable
-
+from xfd_api.utils.csv_utils import convert_to_csv, create_checksum
+from xfd_api.utils.hash import hash_ip
+from xfd_api.utils.scan_utils.vuln_scanning_sync_utils import (
+    fetch_orgs_and_relations,
+    save_cve_to_datalake,
+    save_host,
+    save_ip_to_datalake,
+    save_organization_to_mdl,
+    save_port_scan_to_datalake,
+    save_ticket_to_datalake,
+    save_vuln_scan,
+)
+from xfd_mini_dl.models import Cidr, Organization, Sector
 
 
 async def handler(event):
+    """Handle execution of the vulnerability scanning sync task.
+
+    This function serves as the entry point for triggering the synchronization
+    process. It calls the `main` function and returns the appropriate response
+    based on the execution outcome.
+
+    Args:
+        event (dict): The event data that triggers the function.
+
+    Returns:
+        dict: Response containing the status code and message.
+    """
     try:
         main()
         return {"statusCode": 200, "body": "VS Sync completed successfully"}
@@ -40,14 +64,50 @@ async def handler(event):
         return {"statusCode": 500, "body": str(e)}
 
 
-def load_test_data():
-    file_path = os.path.expanduser("~/Downloads/requests_full_redshift.json")
-    with open(file_path) as file:
-        data = json.load(file)
-    return data
+# Used for loading test data from file for vuln_scans, port_scans, hosts, tickets
+def load_test_data(data_set: str) -> list:
+    """Load test data from local files for scanning simulations.
+
+    Args:
+        data_set (str): The type of data set to load (e.g., "requests", "vuln_scan").
+
+    Returns:
+        list: The parsed JSON data from the file.
+
+    Raises:
+        ValueError: If an unknown data_set is provided.
+        FileNotFoundError: If the specified file does not exist.
+    """
+    file_paths = {
+        "requests": "~/Downloads/requests_full_redshift.json",
+        "vuln_scan": "~/Downloads/vuln_scan_sample.json",
+        "port_scans": "~/Downloads/port_scans_sample.json",
+        "hosts": "~/Downloads/hosts_sample.json",
+        "tickets": "~/Downloads/tickets_sample.json",
+    }
+
+    file_path = file_paths.get(data_set)
+
+    if file_path is None:
+        raise ValueError(f"Unknown data set: {data_set}")
+
+    expanded_path = os.path.expanduser(file_path)
+
+    if not os.path.exists(expanded_path):
+        raise FileNotFoundError(f"Test data file not found: {expanded_path}")
+
+    with open(expanded_path, encoding="utf-8") as file:
+        return json.load(file)
 
 
 def main():
+    """Execute the vulnerability scanning synchronization task.
+
+    This function fetches data from Redshift, processes the data, and updates
+    relevant Django models.
+    """
+    settings.DATABASES["mini_data_lake_integration"]["HOST"] = "127.0.0.1"
+    settings.DATABASES["mini_data_lake"]["HOST"] = "127.0.0.1"
     print("Starting VS Sync scan")
     request_list = []
     # Need to connect to redshift
@@ -61,18 +121,8 @@ def main():
     print(
         f"[Redshift] [{duration_ms}ms] [{duration_seconds}s] [{len(result)} records] {query}"
     )
-    # request_list = result.row
-    request_list = load_test_data()
-
-    mdl_connection = psycopg2.connect(
-        user="dmz_mdl",
-        password="mini_data_lake",
-        host="127.0.0.1",
-        port="5432",
-        database="mini_data_lake_local",
-    )
-
-    mdl_cursor = mdl_connection.cursor()
+    # request_list = load_test_data("requests")[:100]
+    request_list = load_test_data("requests")
 
     org_id_dict = {}
     parent_child_dict = {}
@@ -93,9 +143,11 @@ def main():
             request["report_types"] = json.loads(request["report_types"])
             request["scan_types"] = json.loads(request["scan_types"])
             request["children"] = (
-                json.loads(request["children"]) if request["children"] != None else []
+                json.loads(request["children"])
+                if request["children"] is not None
+                else []
             )
-            if not "type" in request["agency"]:
+            if "type" not in request["agency"]:
                 if request["_id"] in non_sector_list:
                     # Go to the next request record
                     print("Record missing ID, skipping to next")
@@ -124,12 +176,6 @@ def main():
                         sector_child_dict[sector_obj.id] = request["children"]
                     except Exception as e:
                         print("Error occured creating sector", e)
-                    try:
-                        # TO-DO - Save Sectors to the Data Lake
-                        # TO-DO - Add sector and orgs to the sector_child_dict so we can link them after creating orgs
-                        print("Result", result)
-                    except Exception as e:
-                        print("Error connecting to MDL", e)
 
                 continue
             if (
@@ -206,7 +252,7 @@ def main():
                         Organization.objects.filter(id=id).update(parent=org.id)
                         print("Succesfully linked child to parent")
                     except Exception as e:
-                        print("Error occured linking child to parent")
+                        print("Error occured linking child to parent", e)
         # Working on sectors
         for key in sector_child_dict.keys():
             item = sector_child_dict[key]
@@ -218,224 +264,384 @@ def main():
                         if org_id_dict[acronym]:
                             organization_ids.append(org_id_dict[acronym])
                     except KeyError:
-                        print("Org id dict @ acronym did not exist")
+                        pass
             organizations = Organization.objects.filter(id__in=organization_ids)
             if len(organization_ids) > 0:
-                print("Adding orgs to sector")
-                print(sector.id)
-                print(organization_ids)
                 sector.organizations.add(*organizations)
                 print("Succesfully added organizations to sector")
 
     shaped_orgs = None
     try:
-        shaped_orgs = fetch_orgs_and_relations(mdl_connection)
+        shaped_orgs = fetch_orgs_and_relations()
     except Exception as e:
         print("Error occurred sending Data to /sync", e)
 
     if shaped_orgs:
-        # Convert to CSV and save a local copy?
-        # Do we need to chunk?
-        print("Shaped orgs exist, chunk them and slam")
-        chunks: List[List] = chunk_list_by_bytes(shaped_orgs, 4194304)
-        for idx, chunk in enumerate(chunks):
+        # Convert to CSV and save a local copy
+        print("Shaped orgs exist, chunk them and process")
+
+        # Updated to work with the new output format of chunk_list_by_bytes
+        chunks = chunk_list_by_bytes(shaped_orgs, 4194304)
+
+        for idx, chunk_info in enumerate(chunks):
+            chunk = chunk_info["chunk"]
+            bounds = chunk_info["bounds"]
             csv_data = convert_to_csv(chunk)
-            now = datetime.datetime.now()
-            write_csv_to_file(
-                csv_data,
-                f"csv-output_{idx}_{now.day}-{now.month}-{now.year}",
-            )
-            print("Succesfully chunked organization CSV data.")
-    # To - Do
-    # Perform a checksum on each chunk
-    # Send the data and checksum to /sync
-
-
-# Helper and utility functions
-def fetch_orgs_and_relations(connection: connection):
-    # Prefetch related ManyToMany fields (sectors, cidrs) and reverse ForeignKey (children)
-    sectors_prefetch = Prefetch("sectors")
-    cidrs_prefetch = Prefetch("cidrs")
-    children_prefetch = Prefetch(
-        "organization_set"
-    )  # Default reverse name for self-referential ForeignKey
-
-    # Fetch organizations with all the necessary relations
-    organizations = Organization.objects.select_related(
-        "location",  # ForeignKey
-        "parent",  # Self-referential ForeignKey for parent organization
-        "org_type",  # ForeignKey for organization type
-    ).prefetch_related(
-        sectors_prefetch,  # ManyToManyField for sectors
-        cidrs_prefetch,  # ManyToManyField for CIDRs
-        children_prefetch,  # Reverse ForeignKey for children organizations
-    )
-
-    # Iterate through results and access related fields
-    shaped_orgs = []
-    for org in organizations:
-        shaped_orgs.append(organization_to_dict(org))
-    return shaped_orgs
-
-
-def organization_to_dict(org):
-    """Converts an Organization instance and its relations to a nested dictionary."""
-    return {
-        "id": str(org.id),
-        "name": org.name,
-        "acronym": org.acronym,
-        "retired": org.retired,
-        "created_at": org.created_at,
-        "updated_at": org.updated_at,
-        "location": {
-            "id": str(org.location.id) if org.location else None,
-            "name": org.location.name if org.location else None,
-        }
-        if org.location
-        else None,
-        "parent": {
-            "id": str(org.parent.id) if org.parent else None,
-            "name": org.parent.name if org.parent else None,
-        }
-        if org.parent
-        else None,
-        "children": [
-            {"id": str(child.id), "name": child.name}
-            for child in org.organization_set.all()
-        ],
-        "sectors": [
-            {"id": str(sector.id), "name": sector.name} for sector in org.sectors.all()
-        ],
-        "cidrs": [
-            {
-                "id": str(cidr.id),
-                "network": str(cidr.network),
-                "start_ip": str(cidr.start_ip),
-                "end_ip": str(cidr.end_ip),
+            # filename = f"csv-output_{idx}_bounds_{bounds['start']}-{bounds['end']}_{now.day}-{now.month}-{now.year}.csv"
+            # write_csv_to_file(csv_data, filename)
+            body = {"data": csv_data}
+            try:
+                checksum = create_checksum(csv_data)
+            except Exception as e:
+                print("Error creating checksum for csv data", e)
+            start = bounds["start"]
+            end = bounds["end"]
+            headers = {
+                "x-checksum": checksum,
+                "x-cursor": f"{start}-{end}",
+                "Content-Type": "application/json",
+                "Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImExN2Y3Yzc1LTFhMzMtNGIyOS05Mzg5LTRlOTEzNTg3NjBiNCIsImVtYWlsIjoiSkFOU09OLkJVTkNFQGFzc29jaWF0ZXMuY2lzYS5kaHMuZ292IiwiZXhwIjoxNzM4NjExMTk0fQ.mIhCoZnNJOIIG0luehzwL4I1-DS5bG5pSX1MVvwM6Ok",
             }
-            for cidr in org.cidrs.all()
-        ],
-    }
-
-
-# Fetch organizations with their relations
-organizations = Organization.objects.select_related(
-    "location", "parent", "org_type"
-).prefetch_related(Prefetch("sectors"), Prefetch("cidrs"), Prefetch("organization_set"))
-
-# Convert organizations to a nested dictionary
-org_dicts = [organization_to_dict(org) for org in organizations]
-
-# Print or return the resulting list of dictionaries
-print(org_dicts)
-
-
-def save_organization_to_mdl(org_dict, network_list, location):
-    # Creates organization in database
-    # Creates location for organization
-    # Creates cidrs and links cidrs to organization
-    location_obj = None
-    try:
-        location_obj, created = Location.objects.update_or_create(
-            gnis_id=location["gnis_id"],  # Lookup field
-            defaults={  # Fields to update or set if creating
-                "name": location.get("name", None),
-                "country_abrv": location.get("country_abrv", None),
-                "country": location.get("country", None),
-                "county": location.get("county", None),
-                "county_fips": location.get("county_fips", None),
-                "state_abrv": location.get("state_abrv", None),
-                "state": location.get("state", None),
-            },
-        )
-    except Exception as e:
-        print("Error creating location", e)
-    org_obj = None
-    try:
-        organization_obj = Organization.objects.get(acronym=org_dict["acronym"])
-        organization_obj.name = org_dict["name"]
-        organization_obj.retired = org_dict["retired"]
-        organization_obj.type = org_dict["type"]
-        organization_obj.stakeholder = org_dict["stakeholder"]
-        organization_obj.enrolled_in_vs_timestamp = org_dict["enrolled_in_vs_timestamp"]
-        organization_obj.period_start_vs_timestamp = org_dict[
-            "period_start_vs_timestamp"
-        ]
-        organization_obj.report_types = org_dict["report_types"]
-        organization_obj.scan_types = org_dict["scan_types"]
-        organization_obj.location = location_obj
-        organization_obj.save()
-        org_obj = organization_obj
-    except Organization.DoesNotExist:
-        organization_obj = Organization.objects.create(
-            id=str(uuid4()),
-            name=org_dict["name"],
-            acronym=org_dict["acronym"],
-            retired=org_dict["retired"],
-            type=org_dict["type"],
-            stakeholder=org_dict["stakeholder"],
-            enrolled_in_vs_timestamp=org_dict["enrolled_in_vs_timestamp"],
-            period_start_vs_timestamp=org_dict["period_start_vs_timestamp"],
-            report_types=org_dict["report_types"],
-            scan_types=org_dict["scan_types"],
-            location=location_obj,
-            is_passive=False,
-        )
-        org_obj = organization_obj
-    except Exception as e:
-        print("Error occured creating org", type(e))
-
-    if org_obj:
-        # Create cidrs and link them
-        for cidr in network_list:
-            save_cidr_to_mdl(cidr, org_obj)
-    return org_obj
-
-
-def save_cidr_to_mdl(cidr_dict: dict, org: Organization):
-    # print('Creating or updating CIDR for', org)
-    try:
-        # Look for an existing object by the unique constraints
-        cidr_obj = Cidr.objects.filter(
-            network=cidr_dict["network"], start_ip=cidr_dict["start_ip"]
-        ).first()
-
-        if cidr_obj:
-            # Update the existing object
-            cidr_obj.end_ip = cidr_dict["end_ip"]
-            cidr_obj.save()
-            created = False
-        else:
-            # Create a new object
-            cidr_obj = Cidr.objects.create(
-                id=str(uuid4()),
-                network=cidr_dict["network"],
-                start_ip=cidr_dict["start_ip"],
-                end_ip=cidr_dict["end_ip"],
+            print("Sending chunk to /sync")
+            response = requests.post(
+                "http://localhost:3000/sync", json=body, headers=headers
             )
-            created = True
+            # print(response)
+            if response.status_code == 200:
+                print("CSV Succesfully sent to /sync")
+    settings.DATABASES["mini_data_lake_integration"]["HOST"] = "DB"
+    settings.DATABASES["mini_data_lake"]["HOST"] = "DB"
 
-        # Link the organization to the ManyToManyField
-        cidr_obj.organizations.set([org])
+    # Connect to Redshift and select vuln_scans table
+    vuln_scans = []
+    try:
+        query = "SELECT * FROM vmtableau.vulns_scans WHERE time >= DATE_SUB(NOW(), INTERVAL 2 DAY);"
+        start_time = datetime.datetime.now()
+        vuln_scan_rows = load_test_data("vuln_scan")
+        end_time = datetime.datetime.now()
+        duration_ms = start_time - end_time
+        duration_seconds = duration_ms.total_seconds()
+        print(
+            f"[Redshift] [{duration_seconds}ms] [{duration_ms}ms]  [{len(vuln_scans)} records] {query}"
+        )
+        vuln_scans = vuln_scan_rows
+        settings.DATABASES["mini_data_lake_integration"]["HOST"] = "127.0.0.1"
+        settings.DATABASES["mini_data_lake"]["HOST"] = "127.0.0.1"
+    except Exception as e:
+        print("Error while fetching vuln scans", e)
+    try:
+        if vuln_scans and isinstance(vuln_scans, list):
+            for vuln in vuln_scans:
+                owner = vuln.get("owner", None)
+                owner_id = org_id_dict.get(owner, None)
+                cve_id = None
+                ip_id = None
+                if vuln.get("ip", None) and isinstance(vuln, dict):
+                    print("Attempting to save Ip to DB")
+                    ip_id = save_ip_to_datalake(
+                        {
+                            "ip": vuln["ip"],
+                            "ip_hash": hash_ip(vuln["ip"]),
+                            "organization": {"id": owner_id},
+                        }
+                    )
+                if vuln.get("cve", None) and isinstance(vuln, dict):
+                    print("Attempting to save Cve to DB")
+                    cve_id = save_cve_to_datalake({"name": vuln.get("cve")})
+                vuln_scan_dict = {
+                    "id": vuln.get("_id"),
+                    "asset_inventory": (
+                        True
+                        if vuln.get("asset_inventory") == "true"
+                        else False
+                        if vuln.get("asset_inventory") == "false"
+                        else vuln.get("asset_inventory")
+                    ),
+                    "bid": vuln.get("bid"),
+                    "cert_id": vuln.get("cert"),
+                    "cisa_known_exploited": vuln.get("cisa-known-exploited"),
+                    "cisco_bug_id": vuln.get("cisco-bug-id"),
+                    "cisco_sa": vuln.get("cisco-sa"),
+                    "cpe": vuln.get("cpe"),
+                    "cve_id": cve_id if cve_id else None,
+                    "cve_string": vuln.get("cve"),
+                    "cvss3_base_score": vuln.get("cvss3_base_score"),
+                    "cvss3_temporal_score": vuln.get("cvss3_temporal_score"),
+                    "cvss3_temporal_vector": vuln.get("cvss3_temporal_vector"),
+                    "cvss3_vector": vuln.get("cvss3_vector"),
+                    "cvss_base_score": vuln.get("cvss_base_score"),
+                    "cvss_score_rationale": vuln.get("cvss_score_rationale"),
+                    "cvss_score_source": vuln.get("cvss_score_source"),
+                    "cvss_temporal_score": vuln.get("cvss_temporal_score"),
+                    "cvss_temporal_vector": vuln.get("cvss_temporal_vector"),
+                    "cvss_vector": vuln.get("cvss_vector"),
+                    "cwe": vuln.get("cwe"),
+                    "description": vuln.get("description")
+                    if len(vuln.get("description")) < 255
+                    else "",
+                    "exploit_available": vuln.get("exploit_available"),
+                    "exploitability_ease": vuln.get("exploit_ease"),
+                    "exploited_by_malware": (
+                        True
+                        if vuln.get("exploited_by_malware") == "true"
+                        else False
+                        if vuln.get("exploited_by_malware") == "false"
+                        else vuln.get("exploited_by_malware")
+                    ),
+                    "f_name": vuln.get("fname"),
+                    "ip_id": ip_id.ip_hash if ip_id else None,
+                    "ip_string": vuln.get("ip"),
+                    "latest": (
+                        True
+                        if vuln.get("latests") == "true"
+                        else False
+                        if vuln.get("latest") == "false"
+                        else vuln.get("latest")
+                    ),
+                    "organization_id": org_id_dict.get(
+                        vuln.get("owner"), None
+                    ),  # Link to organization
+                    "owner": vuln.get("owner"),
+                    "osvdb_Id": vuln.get("osvdb"),
+                    "patch_publication_timestamp": vuln.get("patch_publication_date"),
+                    "plugin_family": vuln.get("plugin_family"),
+                    "plugin_id": vuln.get("plugin_id"),
+                    "plugin_modification_date": vuln.get("plugin_modification_date"),
+                    "plugin_name": vuln.get("plugin_name"),
+                    "plugin_output": vuln.get("plugin_output"),
+                    "plugin_publication_date": vuln.get("plugin_publication_date"),
+                    "plugin_type": vuln.get("plugin_type"),
+                    "port": vuln.get("port"),
+                    "port_protocol": vuln.get("protocol"),
+                    "risk_factor": vuln.get("risk_factor"),
+                    "script_version": vuln.get("script_version"),
+                    "see_also": vuln.get("see_also"),
+                    "service": vuln.get("service"),
+                    "severity": vuln.get("severity"),
+                    "solution": vuln.get("solution"),
+                    "source": vuln.get("source"),
+                    "synopsis": vuln.get("synopsis"),
+                    "thorough_tests": (
+                        True
+                        if vuln.get("thorough_tests") == "true"
+                        else False
+                        if vuln.get("thorough_tests") == "false"
+                        else vuln.get("thorough_tests")
+                    ),
+                    "vuln_detection_timestamp": vuln.get("time"),
+                    "vuln_publication_timestamp": vuln.get("vuln_publication_date"),
+                    "xref": vuln.get("xref"),
+                    "other_findings": vuln,  # Remaining keys in vuln
+                }
+                print("Attempting to save vuln_scan to the DB")
+                try:
+                    vuln_scan_id = save_vuln_scan(vuln_scan_dict)
+                    print("Succesfully created vuln scan:", vuln_scan_id)
+                except Exception as e:
+                    print("Error while creating vuln scan", e)
+    except Exception as e:
+        print("Error while processing vuln scans", e)
 
-        # if created:
-        #     print('Created new CIDR and linked:', cidr_obj.id)
-        # else:
-        #     print('Updated existing CIDR and linked:', cidr_obj.id)
+    host_scans = []
+    try:
+        query = "SELECT * FROM vmtableau.hosts WHERE last_change >= DATE_SUB(NOW(), INTERVAL 2 DAY);"
+        start_time = datetime.datetime.now()
+        host_scan_rows = load_test_data("vuln_scan")
+        end_time = datetime.datetime.now()
+        duration_ms = start_time - end_time
+        duration_seconds = duration_ms.total_seconds()
+        print(
+            f"[Redshift] [{duration_seconds}ms] [{duration_ms}ms]  [{len(vuln_scans)} records] {query}"
+        )
+        host_scans = host_scan_rows
+    except Exception as e:
+        print("Error while fetching host scan data", e)
+    try:
+        # print(host_scans)
+        # settings.DATABASES["mini_data_lake_integration"]["HOST"] = "127.0.0.1"
+        settings.DATABASES["mini_data_lake"]["HOST"] = "127.0.0.1"
+        if host_scans and isinstance(host_scans, list):
+            for host in host_scans:
+                print(host)
+                owner = host.get("owner", None)
+                owner_id = org_id_dict.get(owner, None)
+                ip_id = None
+                if host.get("ip", None) and isinstance(host, dict):
+                    ip_record = save_ip_to_datalake(
+                        {
+                            "ip": host["ip"],
+                            "ip_hash": hash_ip(host["ip"]),
+                            "organization": {"id": owner_id},
+                        }
+                    )
+                    ip_id = ip_record.ip_hash
+                host_dict = {
+                    "id": host.get("_id", None),
+                    "ip_string": host.get("ip", None),
+                    "ip_id": ip_id if ip_id is not None else None,
+                    "updated_timestamp": host.get("last_change", None),
+                    "latest_netscan1_timestamp": host.get("latest_scan", {}).get(
+                        "NETSCAN1"
+                    ),
+                    "latest_netscan2_timestamp": host.get("latest_scan", {}).get(
+                        "NETSCAN2"
+                    ),
+                    "latest_vulnscan_timestamp": host.get("latest_scan", {}).get(
+                        "VULNSCAN"
+                    ),
+                    "latest_portscan_timestamp": host.get("latest_scan", {}).get(
+                        "PORTSCAN"
+                    ),
+                    "latest_scan_completion_timestamp": host.get("latest_scan", {}).get(
+                        "DONE"
+                    ),
+                    "location_longitude": host.get("loc", [None, None])[1],
+                    "location_latitude": host.get("loc", [None, None])[0],
+                    "priority": host.get("priority", 0),
+                    "next_scan_timestamp": host.get("next_scan"),
+                    "rand": host.get("r"),
+                    "curr_stage": host.get("stage"),
+                    "host_live": host.get("state", {}).get("up", None),
+                    "host_live_reason": host.get("state", {}).get("reason", None),
+                    "status": host.get("status", None),
+                    "organization_id": org_id_dict.get(host.get("owner"), None),
+                }
+                save_host(host_dict)
+            print("Finished processing hsot scan data")
+    except Exception as e:
+        print("Error while processing host scan data", e)
+
+    tickets = []
+    try:
+        query = " SELET * FROM vmtablea.tickets WHERE last_change >= DATE_SB(NOW(), INTERVAL 2 DAY);"
+        start_time = datetime.datetime.now()
+        tickets_rows = load_test_data("tickets")
+        end_time = datetime.datetime.now()
+        duration_ms = start_time - end_time
+        duration_seconds = duration_ms.total_seconds()
+        print(
+            f"[Redshift] [{duration_seconds}ms] [{duration_ms}ms]  [{len(tickets)} records] {query}"
+        )
+        tickets = tickets_rows
+    except Exception as e:
+        print("Error while fetching ticket data", e)
+
+    try:
+        for ticket in tickets:
+            details = json.loads(ticket.get("details", ""))
+            # events = json.loads(ticket.get("events", ""))
+            loc = json.loads(ticket.get("loc", ""))
+            ip_id = None
+            cve_id = None
+            if ticket.get("ip"):
+                owner = ticket.get("owner", None)
+                ip_record = save_ip_to_datalake(
+                    {
+                        "ip": ticket["ip"],
+                        "ip_hash": hash_ip(ticket["ip"]),
+                        "organization": {"id": org_id_dict.get(ticket["owner"])},
+                    }
+                )
+                ip_id = ip_record.ip_hash
+                print("Saved IP to datalake during ticket processing")
+                print(details)
+            if details.get("cve", None):
+                cve_id = save_cve_to_datalake({"name": details["cve"]})
+                print("Saved CVE to datalake during ticket processings")
+            ticket_dict = {
+                "id": ticket["_id"].replace("ObjectId('", "").replace("')", ""),
+                "cve_string": details["cve"],
+                "cve": cve_id,
+                "cvss_base_score": details["cvss_base_score"],
+                "cvss_version": None,
+                "kev": None,
+                "vuln_name": details["name"],
+                "cvss_score_source": details["score_source"],
+                "cvss_severity": details["severity"],
+                "vpr_score": None,
+                "false_positive": ticket["false_positive"],
+                "ip_string": ticket["ip"],
+                "ip": ip_id,
+                "updated_timestamp": ticket["last_change"],
+                "location_longitude": loc[1],
+                "location_latitude": loc[0],
+                "found_in_latest_host_scan": ticket["open"],
+                "organization": org_id_dict[ticket["owner"]],
+                "vuln_port": ticket["port"],
+                "port_protocol": ticket["protocol"],
+                "snapshots_bool": False
+                if ticket.get("snapshots", None) is None
+                or ticket.get("snapshots", None)
+                else True,
+                "vuln_source": ticket["source"],
+                "vuln_source_id": ticket["source_id"],
+                "closed_timestamp": ticket["time_closed"],
+                "opened_timestamp": ticket["time_opened"],
+            }
+            save_ticket_to_datalake(ticket_dict)
 
     except Exception as e:
-        print("Error occurred while creating or updating CIDR:", e)
+        print("error processing ticket data", e)
 
+    port_scans = []
+    try:
+        query = "SELECT * FROM vmtableau.port_scans WHERE time >= DATE_SUB(NOW(), INTERVAL 2 DAY);"
+        start_time = datetime.datetime.now()
+        port_scan_rows = load_test_data("port_scans")
+        end_time = datetime.datetime.now()
+        duration_ms = start_time - end_time
+        duration_seconds = duration_ms.total_seconds()
+        print(
+            f"[Redshift] [{duration_seconds}ms] [{duration_ms}ms]  [{len(port_scan_rows)} records] {query}"
+        )
+        port_scans = port_scan_rows
+    except Exception as e:
+        print("Error occured while fetching port_scans", e)
 
-# def fetch_org_and_children(org_id: str, cursor: cursor):
-#     cursor.execute("SELECT * FROM organization WHERE id == %s", [org_id])
+    try:
+        for port_scan in port_scans:
+            ip_id = None
+            owner_acronymn = port_scan.get("Owner", None)
+            owner_id = org_id_dict.get(owner, None)
+            if not owner_id:
+                print(
+                    f"{owner_acronymn} is not a recognized organization, skipping host"
+                )
+                continue
+            if port_scan.get("ip", None):
+                ip_record = save_ip_to_datalake(
+                    {
+                        "ip": port_scan.get("ip"),
+                        "ip_hash": hash_ip(port_scan.get("ip")),
+                        "organization": {"id": owner_id},
+                    }
+                )
+                ip_id = ip_record.ip_hash
+            port_scan_service = (
+                json.loads(port_scan["service"])
+                if port_scan.get("service", None)
+                else {}
+            )
+            port_scan_dict = {
+                "id": port_scan["_id"].replace("ObjectId('", "").replace("')", ""),
+                "ip_string": port_scan.get("ip"),
+                "ip": ip_id if ip_id is not None else None,
+                "organization_id": owner_id,
+                "latest": port_scan.get("latest", None),
+                "port": port_scan.get("port", None),
+                "protocol": port_scan.get("protocol", None),
+                "reason": port_scan.get("reason", None),
+                "service": port_scan_service,
+                "service_name": port_scan_service.get("name"),
+                "service_confidence": port_scan_service.get("conf"),
+                "service_method": port_scan_service.get("method"),
+                "source": port_scan.get("source", None),
+                "state": port_scan.get("state", None),
+                "time_scanned": port_scan.get("time"),
+            }
+            print("Attempting to save port scan to DB")
+            port_scan_id = save_port_scan_to_datalake(port_scan_dict)
+            print("Succesfully saved port scan to db:", port_scan_id)
 
-# Standard Python Libraries
-import time
-
-start_time = time.time()
-main()
-end_time = time.time()
-
-runtime = end_time - start_time
-print(f"Function runtime: {runtime} seconds")
+    except Exception as e:
+        print("Error occured while processing port_scan data", e)
