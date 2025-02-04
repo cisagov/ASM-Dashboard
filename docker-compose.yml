@@ -30,18 +30,18 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: ./Dockerfile.python
+      context: ./backend  # Path to the directory containing the Dockerfile
+      dockerfile: Dockerfile.python  # Specify the Dockerfile
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - backend
+      - ./backend/src/xfd_django:/app  # Bind-mount your local app directory to the container
     ports:
-      - '3000:3000'
+      - "3000:3000"  # Expose the FastAPI application
     env_file:
-      - ./.env
+      - ./.env  # Load environment variables from a .env file
+    networks:
+      - backend  # Connect to the backend network
     depends_on:
-      - db
+      - db  # Ensure the database container starts first
 
   minio:
     image: bitnami/minio:2020.9.26

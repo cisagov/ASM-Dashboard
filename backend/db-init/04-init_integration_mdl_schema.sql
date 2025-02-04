@@ -1,4 +1,4 @@
-\connect mini_data_lake_local
+\connect mini_data_lake_integration_local
 
 --
 -- PostgreSQL database dump

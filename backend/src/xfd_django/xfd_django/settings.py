@@ -97,7 +97,18 @@ DATABASES = {
         "NAME": "mini_data_lake_local",
         "USER": "dmz_mdl",
         "PASSWORD": "mini_data_lake",
-        "HOST": "127.0.0.1",
+        "HOST": "DB",
+        "PORT": "5432",
+        "TEST": {
+            "NAME": "mini_data_lake_test",  # Test database for mini_data_lake
+        },
+    },
+    "mini_data_lake_integration": {
+        "ENGINE": "django.db.backends.postgresql_psycopg2",  # Replace with your database engine
+        "NAME": "mini_data_lake_integration_local",
+        "USER": "dmz_mdl",
+        "PASSWORD": "mini_data_lake",
+        "HOST": "DB",
         "PORT": "5432",
         "TEST": {
             "NAME": "mini_data_lake_test",  # Test database for mini_data_lake
@@ -194,3 +205,5 @@ SECURE_CSP_POLICY = {
     "frame-ancestors": ["'none'"],
 }
 SECURE_ACCESS_CONTROL_ALLOW_CREDENTIALS = True
+
+IS_DJANGO_ENV = True
