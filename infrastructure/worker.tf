@@ -107,7 +107,9 @@ resource "aws_iam_role_policy" "worker_task_execution_role_policy" {
           "${data.aws_ssm_parameter.ssm_redshift_host.arn}",
           "${data.aws_ssm_parameter.ssm_redshift_database.arn}",
           "${data.aws_ssm_parameter.ssm_redshift_user.arn}",
-          "${data.aws_ssm_parameter.ssm_redshift_password.arn}"
+          "${data.aws_ssm_parameter.ssm_redshift_password.arn}",
+          "${data.aws_ssm_parameter.ssm_dmz_api_key}",
+          "${data.aws_ssm_parameter.ssm_dmz_sync_endpoint}",
         ]
     },
     {
@@ -363,7 +365,15 @@ resource "aws_ecs_task_definition" "worker" {
       {
         "name": "REDSHIFT_PASSWORD",
         "valueFrom": "${data.aws_ssm_parameter.ssm_redshift_password.arn}"
-      }
+      },
+      {
+        "name": "DMZ_API_KEY",
+        "valueFrom": "${data.aws_ssm_parameter.ssm_dmz_api_key.arn}"
+      },
+      {
+        "name": "DMZ_SYNC_ENDPOINT",
+        "valueFrom": "${data.aws_ssm_parameter.ssm_dmz_sync_endpoint.arn}"
+      },
     ]
   }
 ]

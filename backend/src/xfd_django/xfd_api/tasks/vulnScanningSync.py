@@ -5,28 +5,15 @@ port scans, hosts, and tickets from Redshift into the Django models.
 """
 
 # Standard Python Libraries
-import os
-
-# Uncomment the below to run the script standalone
-import sys
-
-# Third-Party Libraries
-import django
-
-# Dynamically add the project root to sys.path
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-sys.path.append(PROJECT_ROOT)
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
-django.setup()
-# Standard Python Libraries
 # Uncomment the above to run the script standalone
 import datetime
 from ipaddress import IPv4Network, IPv6Network
 import json
+import os
 from typing import List
 
 # Third-Party Libraries
-from django.conf import settings
+import psycopg2
 import requests
 from xfd_api.utils.chunk import chunk_list_by_bytes
 from xfd_api.utils.csv_utils import convert_to_csv, create_checksum
@@ -100,21 +87,40 @@ def load_test_data(data_set: str) -> list:
         return json.load(file)
 
 
+def query_redshift(query, params=None):
+    """Execute a query on Redshift and return results as a list of dictionaries."""
+    conn = psycopg2.connect(
+        dbname=os.environ.get("REDSHIFT_DATABASE"),
+        user=os.environ.get("REDSHIFT_USER"),
+        password=os.environ.get("REDSHIFT_PASSWORD"),
+        host=os.environ.get("REDSHIFT_HOST"),
+        poert=5439,
+    )
+
+    try:
+        cursor = conn.cursor(
+            cursor_factory=psycopg2.extras.DictCursor
+        )  # Use DictCursor for row dicts
+        cursor.execute(query, params or ())
+        results = cursor.fetchall()
+        return [dict(row) for row in results]  # Convert to list of dicts
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def main():
     """Execute the vulnerability scanning synchronization task.
 
     This function fetches data from Redshift, processes the data, and updates
     relevant Django models.
     """
-    settings.DATABASES["mini_data_lake_integration"]["HOST"] = "127.0.0.1"
-    settings.DATABASES["mini_data_lake"]["HOST"] = "127.0.0.1"
     print("Starting VS Sync scan")
     request_list = []
     # Need to connect to redshift
     start_time = datetime.datetime.now()
     query = "SELECT * FROM vmtableau.requests;"
-    # result = client.query()
-    result = []
+    result = query_redshift(query)
     end_time = datetime.datetime.now()
     duration_ms = start_time - end_time
     duration_seconds = duration_ms.total_seconds()
@@ -277,7 +283,7 @@ def main():
         print("Error occurred sending Data to /sync", e)
 
     if shaped_orgs:
-        # Convert to CSV and save a local copy
+        # Convert to CSV
         print("Shaped orgs exist, chunk them and process")
 
         # Updated to work with the new output format of chunk_list_by_bytes
@@ -287,8 +293,6 @@ def main():
             chunk = chunk_info["chunk"]
             bounds = chunk_info["bounds"]
             csv_data = convert_to_csv(chunk)
-            # filename = f"csv-output_{idx}_bounds_{bounds['start']}-{bounds['end']}_{now.day}-{now.month}-{now.year}.csv"
-            # write_csv_to_file(csv_data, filename)
             body = {"data": csv_data}
             try:
                 checksum = create_checksum(csv_data)
@@ -300,33 +304,27 @@ def main():
                 "x-checksum": checksum,
                 "x-cursor": f"{start}-{end}",
                 "Content-Type": "application/json",
-                "Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImExN2Y3Yzc1LTFhMzMtNGIyOS05Mzg5LTRlOTEzNTg3NjBiNCIsImVtYWlsIjoiSkFOU09OLkJVTkNFQGFzc29jaWF0ZXMuY2lzYS5kaHMuZ292IiwiZXhwIjoxNzM4NjExMTk0fQ.mIhCoZnNJOIIG0luehzwL4I1-DS5bG5pSX1MVvwM6Ok",
+                "Authorization": os.environ.get("DMZ_API_KEY"),
             }
-            print("Sending chunk to /sync")
             response = requests.post(
-                "http://localhost:3000/sync", json=body, headers=headers
+                os.environ.get("DMZ_SYNC_ENDPOINT"), json=body, headers=headers
             )
-            # print(response)
             if response.status_code == 200:
                 print("CSV Succesfully sent to /sync")
-    settings.DATABASES["mini_data_lake_integration"]["HOST"] = "DB"
-    settings.DATABASES["mini_data_lake"]["HOST"] = "DB"
 
     # Connect to Redshift and select vuln_scans table
     vuln_scans = []
     try:
         query = "SELECT * FROM vmtableau.vulns_scans WHERE time >= DATE_SUB(NOW(), INTERVAL 2 DAY);"
         start_time = datetime.datetime.now()
-        vuln_scan_rows = load_test_data("vuln_scan")
+        result = query_redshift(query)
         end_time = datetime.datetime.now()
         duration_ms = start_time - end_time
         duration_seconds = duration_ms.total_seconds()
         print(
             f"[Redshift] [{duration_seconds}ms] [{duration_ms}ms]  [{len(vuln_scans)} records] {query}"
         )
-        vuln_scans = vuln_scan_rows
-        settings.DATABASES["mini_data_lake_integration"]["HOST"] = "127.0.0.1"
-        settings.DATABASES["mini_data_lake"]["HOST"] = "127.0.0.1"
+        vuln_scans = result
     except Exception as e:
         print("Error while fetching vuln scans", e)
     try:
@@ -337,7 +335,6 @@ def main():
                 cve_id = None
                 ip_id = None
                 if vuln.get("ip", None) and isinstance(vuln, dict):
-                    print("Attempting to save Ip to DB")
                     ip_id = save_ip_to_datalake(
                         {
                             "ip": vuln["ip"],
@@ -346,7 +343,6 @@ def main():
                         }
                     )
                 if vuln.get("cve", None) and isinstance(vuln, dict):
-                    print("Attempting to save Cve to DB")
                     cve_id = save_cve_to_datalake({"name": vuln.get("cve")})
                 vuln_scan_dict = {
                     "id": vuln.get("_id"),
@@ -433,10 +429,8 @@ def main():
                     "xref": vuln.get("xref"),
                     "other_findings": vuln,  # Remaining keys in vuln
                 }
-                print("Attempting to save vuln_scan to the DB")
                 try:
-                    vuln_scan_id = save_vuln_scan(vuln_scan_dict)
-                    print("Succesfully created vuln scan:", vuln_scan_id)
+                    save_vuln_scan(vuln_scan_dict)
                 except Exception as e:
                     print("Error while creating vuln scan", e)
     except Exception as e:
@@ -446,7 +440,7 @@ def main():
     try:
         query = "SELECT * FROM vmtableau.hosts WHERE last_change >= DATE_SUB(NOW(), INTERVAL 2 DAY);"
         start_time = datetime.datetime.now()
-        host_scan_rows = load_test_data("vuln_scan")
+        host_scan_rows = query_redshift(query)
         end_time = datetime.datetime.now()
         duration_ms = start_time - end_time
         duration_seconds = duration_ms.total_seconds()
@@ -457,12 +451,8 @@ def main():
     except Exception as e:
         print("Error while fetching host scan data", e)
     try:
-        # print(host_scans)
-        # settings.DATABASES["mini_data_lake_integration"]["HOST"] = "127.0.0.1"
-        settings.DATABASES["mini_data_lake"]["HOST"] = "127.0.0.1"
         if host_scans and isinstance(host_scans, list):
             for host in host_scans:
-                print(host)
                 owner = host.get("owner", None)
                 owner_id = org_id_dict.get(owner, None)
                 ip_id = None
@@ -507,7 +497,6 @@ def main():
                     "organization_id": org_id_dict.get(host.get("owner"), None),
                 }
                 save_host(host_dict)
-            print("Finished processing hsot scan data")
     except Exception as e:
         print("Error while processing host scan data", e)
 
@@ -515,21 +504,20 @@ def main():
     try:
         query = " SELET * FROM vmtablea.tickets WHERE last_change >= DATE_SB(NOW(), INTERVAL 2 DAY);"
         start_time = datetime.datetime.now()
-        tickets_rows = load_test_data("tickets")
+        ticket_rows = query_redshift(query)
         end_time = datetime.datetime.now()
         duration_ms = start_time - end_time
         duration_seconds = duration_ms.total_seconds()
         print(
             f"[Redshift] [{duration_seconds}ms] [{duration_ms}ms]  [{len(tickets)} records] {query}"
         )
-        tickets = tickets_rows
+        tickets = ticket_rows
     except Exception as e:
         print("Error while fetching ticket data", e)
 
     try:
         for ticket in tickets:
             details = json.loads(ticket.get("details", ""))
-            # events = json.loads(ticket.get("events", ""))
             loc = json.loads(ticket.get("loc", ""))
             ip_id = None
             cve_id = None
@@ -543,11 +531,8 @@ def main():
                     }
                 )
                 ip_id = ip_record.ip_hash
-                print("Saved IP to datalake during ticket processing")
-                print(details)
             if details.get("cve", None):
                 cve_id = save_cve_to_datalake({"name": details["cve"]})
-                print("Saved CVE to datalake during ticket processings")
             ticket_dict = {
                 "id": ticket["_id"].replace("ObjectId('", "").replace("')", ""),
                 "cve_string": details["cve"],
@@ -587,7 +572,7 @@ def main():
     try:
         query = "SELECT * FROM vmtableau.port_scans WHERE time >= DATE_SUB(NOW(), INTERVAL 2 DAY);"
         start_time = datetime.datetime.now()
-        port_scan_rows = load_test_data("port_scans")
+        port_scan_rows = query_redshift(query)
         end_time = datetime.datetime.now()
         duration_ms = start_time - end_time
         duration_seconds = duration_ms.total_seconds()
@@ -639,9 +624,7 @@ def main():
                 "state": port_scan.get("state", None),
                 "time_scanned": port_scan.get("time"),
             }
-            print("Attempting to save port scan to DB")
-            port_scan_id = save_port_scan_to_datalake(port_scan_dict)
-            print("Succesfully saved port scan to db:", port_scan_id)
+            save_port_scan_to_datalake(port_scan_dict)
 
     except Exception as e:
         print("Error occured while processing port_scan data", e)
