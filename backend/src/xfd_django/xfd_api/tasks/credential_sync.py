@@ -193,7 +193,7 @@ def save_findings_to_db(cred_exposures_array, cred_breaches_array, org):
                     breach.get("data_source_name", "unknown"), None
                 ):
                     continue
-                
+
                 (
                     data_source_dict[breach.get("data_source_name", "unknown")],
                     created,
@@ -209,7 +209,7 @@ def save_findings_to_db(cred_exposures_array, cred_breaches_array, org):
 
                 if breach_dict.get(breach.get("breach_name"), None):
                     continue
-                
+
                 (
                     breach_dict[breach.get("breach_name")],
                     created,
@@ -263,8 +263,8 @@ def save_findings_to_db(cred_exposures_array, cred_breaches_array, org):
                         "organization": org,
                         "credential_breaches": breach_dict[exposure.get("breach_name")],
                         "data_source": data_source_dict[
-                            breach.get("data_source_name", "unknown")
-                        ],
+                            exposure.get("data_source_name", "unknown")
+                        ]
                     },
                 )
             except Exception as e:
