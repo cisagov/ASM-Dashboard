@@ -119,3 +119,5 @@ ssm_redshift_password             = "/crossfeed/staging/REDSHIFT_PASSWORD"
 ssm_pe_api_key                    = "/crossfeed/staging/PE_API_KEY"
 ssm_cf_api_key                    = "/crossfeed/staging/CF_API_KEY"
 create_elasticache_cluster        = true
+ssm_dmz_api_key                   = "/crossfeed/staging/DMZ_API_KEY"
+ssm_mdl_sync_endpoint             = "/crossfeed/staging/MDL_SYNC_ENDPOINT"

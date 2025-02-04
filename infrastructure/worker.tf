@@ -464,6 +464,10 @@ data "aws_ssm_parameter" "ssm_redshift_user" { name = var.ssm_redshift_user }
 
 data "aws_ssm_parameter" "ssm_redshift_password" { name = var.ssm_redshift_password }
 
+data "aws_ssm_parameter" "ssm_dmz_api_key" { name = var.ssm_dmz_api_key }
+
+data "aws_ssm_parameter" "ssm_dmz_sync_endpoint" { name = var.ssm_dmz_sync_endpoint }
+
 
 resource "aws_s3_bucket" "export_bucket" {
   bucket = var.export_bucket_name

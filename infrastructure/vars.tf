@@ -807,8 +807,26 @@ variable "ssm_redshift_password" {
   default     = "/crossfeed/staging/REDSHIFT_PASSWORD"
 }
 
+variable "ssm_dmz_api_key" {
+  description = "ssm_dmz_api_key"
+  type        = string
+  default     = "/crossfeed/staging/DMZ_API_KEY"
+}
+
+variable "ssm_dmz_sync_endpoint" {
+  description = "ssm_dmz_api_key"
+  type        = string
+  default     = "/crossfeed/staging/DMZ_SYNC_ENDPOINT"
+}
+
 variable "create_elasticache_cluster" {
   description = "Whether to create a elasticache cluster."
   type        = bool
   default     = false
+}
+
+variable "crossfeed-lz-sync_name" {
+  type        = string
+  description = "The name of the S3 bucket for Crossfeed LZ sync"
+  default     = "crossfeed-lz-sync"
 }
