@@ -36,7 +36,9 @@ def handler(event, context):
         scan_task = retry_find_scan_task(task_arn)
 
         if not scan_task:
-            raise ValueError(f"Couldn't find scan task with taskArn: {task_arn}")
+            raise ValueError(
+                "Couldn't find scan task with taskArn: {}".format(task_arn)
+            )
 
         old_status = scan_task.status
 
@@ -47,20 +49,22 @@ def handler(event, context):
                 scan_task.status = "finished"
             else:
                 scan_task.status = "failed"
-            scan_task.output = f"{stop_code}: {stopped_reason}"
+            scan_task.output = "{}: {}".format(stop_code, stopped_reason)
             scan_task.finishedAt = now()
         else:
             # No update needed for other statuses
             return {"statusCode": 204, "body": "No status change required."}
 
         print(
-            f"Updating status of ScanTask {scan_task.id} from {old_status} to {scan_task.status}."
+            "Updating status of ScanTask {} from {} to {}.".format(
+                scan_task.id, old_status, scan_task.status
+            )
         )
         scan_task.save()
 
         return {
             "statusCode": 200,
-            "body": f"ScanTask {scan_task.id} updated successfully.",
+            "body": "ScanTask {} updated successfully.".format(scan_task.id),
         }
 
     except Exception as e:
@@ -75,9 +79,9 @@ def retry_find_scan_task(task_arn, retries=3):
             if scan_task:
                 return scan_task
         except OperationalError as e:
-            print(f"Database error on attempt {attempt + 1}: {e}")
+            print("Database error on attempt {}: {}".format(attempt + 1, e))
         except Exception as e:
-            print(f"Unexpected error on attempt {attempt + 1}: {e}")
+            print("Unexpected error on attempt {}: {}".format(attempt + 1, e))
         if attempt < retries - 1:
             continue
     return None

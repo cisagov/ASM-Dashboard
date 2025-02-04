@@ -14,7 +14,7 @@ key1=${PE_SHODAN_API_KEYS}
 
 [pe_api]
 pe_api_key=${PE_API_KEY}
-pe_api_url=https://api.staging-cd.crossfeed.cyber.dhs.gov/pe/apiv1/
+pe_api_url=${PE_API_URL}
 cf_api_key=${CF_API_KEY}
 
 [staging]
