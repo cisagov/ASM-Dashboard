@@ -1,10 +1,4 @@
-"""Split a list into chunks based on a byte size limit.
-
-Each chunk will have a total byte size that does not exceed the specified
-maximum. Chunks are stored as dictionaries containing the chunked items
-and their bounds.
-"""
-
+"""Split a list into chunks based on a byte size limit."""
 # Standard Python Libraries
 
 # Standard Python Libraries
