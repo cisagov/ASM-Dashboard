@@ -194,50 +194,51 @@ def save_findings_to_db(cred_exposures_array, cred_breaches_array, org):
                     breach.get("data_source_name", "unknown"), None
                 ):
                     continue
-                else:
-                    (
-                        data_source_dict[breach.get("data_source_name", "unknown")],
-                        created,
-                    ) = DataSource.objects.get_or_create(
-                        name=breach.get("data_source_name", "unknown"),
-                        defaults={
-                            "description": "Credentials and Breaches identified by {source}".format(
-                                source=breach.get("data_source_name", "unknown")
-                            ),
-                            "last_run": timezone.now().date(),
-                        },
-                    )
+                
+                (
+                    data_source_dict[breach.get("data_source_name", "unknown")],
+                    created,
+                ) = DataSource.objects.get_or_create(
+                    name=breach.get("data_source_name", "unknown"),
+                    defaults={
+                        "description": "Credentials and Breaches identified by {source}".format(
+                            source=breach.get("data_source_name", "unknown")
+                        ),
+                        "last_run": timezone.now().date(),
+                    },
+                )
+
                 if breach_dict.get(breach.get("breach_name"), None):
                     continue
-                else:
-                    (
-                        breach_dict[breach.get("breach_name")],
-                        created,
-                    ) = CredentialBreaches.objects.get_or_create(
-                        breach_name=breach.get("breach_name"),
-                        defaults={
-                            "credential_breaches_uid": breach.get(
-                                "credential_breaches_uid"
-                            ),
-                            "description": breach.get("description"),
-                            "exposed_cred_count": breach.get("exposed_cred_count"),
-                            "breach_date": datetime.fromisoformat(
-                                breach.get("breach_date")
-                            ).date(),
-                            "added_date": breach.get("added_date"),
-                            "modified_date": breach.get("modified_date"),
-                            "data_classes": breach.get("data_classes"),
-                            "password_included": breach.get("password_included"),
-                            "is_verified": breach.get("is_verified"),
-                            "is_fabricated": breach.get("is_fabricated"),
-                            "is_sensitive": breach.get("is_sensitive"),
-                            "is_retired": breach.get("is_retired"),
-                            "is_spam_list": breach.get("is_spam_list"),
-                            "data_source": data_source_dict[
-                                breach.get("data_source_name", "unknown")
-                            ],
-                        },
-                    )
+                
+                (
+                    breach_dict[breach.get("breach_name")],
+                    created,
+                ) = CredentialBreaches.objects.get_or_create(
+                    breach_name=breach.get("breach_name"),
+                    defaults={
+                        "credential_breaches_uid": breach.get(
+                            "credential_breaches_uid"
+                        ),
+                        "description": breach.get("description"),
+                        "exposed_cred_count": breach.get("exposed_cred_count"),
+                        "breach_date": datetime.fromisoformat(
+                            breach.get("breach_date")
+                        ).date(),
+                        "added_date": breach.get("added_date"),
+                        "modified_date": breach.get("modified_date"),
+                        "data_classes": breach.get("data_classes"),
+                        "password_included": breach.get("password_included"),
+                        "is_verified": breach.get("is_verified"),
+                        "is_fabricated": breach.get("is_fabricated"),
+                        "is_sensitive": breach.get("is_sensitive"),
+                        "is_retired": breach.get("is_retired"),
+                        "is_spam_list": breach.get("is_spam_list"),
+                        "data_source": data_source_dict[
+                            breach.get("data_source_name", "unknown")
+                        ],
+                    },
+                )
             except Exception as e:
                 print("Error saving Cred Breaches: {error}".format(error=e))
 
