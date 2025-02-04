@@ -1,27 +1,24 @@
 """XpanseSync scan."""
 # Standard Python Libraries
-import os
-import time
 from datetime import datetime, timedelta
-import pytz
+import os
 import random
+import time
 
 # Third-Party Libraries
 import django
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils import timezone
-import dns.resolver
+import pytz
 import requests
 from xfd_mini_dl.models import (
-    Organization, 
-    XpanseAlerts, 
-    XpanseBusinessUnits, 
-    XpanseServicesMdl, 
-    XpanseCveServiceMdl, 
-    XpanseAssetsMdl, 
-    XpanseCvesMdl, 
-    DataSource
+    Organization,
+    XpanseAlerts,
+    XpanseBusinessUnits,
+    XpanseCveServiceMdl,
+    XpanseCvesMdl,
+    XpanseServicesMdl,
 )
+
 # Django setup
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
@@ -29,6 +26,7 @@ django.setup()
 
 # Constants
 MAX_RETRIES = 3  # Max retries for failed tasks
+
 
 def handler(event):
     """Retrieve and save Xpanse alerts from the DMZ."""
@@ -40,10 +38,10 @@ def handler(event):
         }
     except Exception as e:
         return {"statusCode": 500, "body": str(e)}
-    
+
+
 def main():
     """Fetch and save DMZ Xpanse alerts."""
-
     # Step 1: Get the current date and time in UTC
     current_time = datetime.now(pytz.UTC)
     # Step 2: Subtract 8 days from the current date
@@ -57,8 +55,8 @@ def main():
 
     random.shuffle(business_units)
 
-    # business_units = XpanseBusinessUnits.objects.filter(cyhy_db_name_id__in=['SEMTECH']) 
-    # print(business_units) 
+    # business_units = XpanseBusinessUnits.objects.filter(cyhy_db_name_id__in=['SEMTECH'])
+    # print(business_units)
 
     for business_unit in business_units:
         done = False
@@ -68,52 +66,64 @@ def main():
         retry_count = 0
 
         while not done:
-            data = fetch_dmz_xpanse_alert_task(business_unit.cyhy_db_name.acronym, page, per_page, modified_timestamp_str)
+            data = fetch_dmz_xpanse_alert_task(
+                business_unit.cyhy_db_name.acronym,
+                page,
+                per_page,
+                modified_timestamp_str,
+            )
             if not data or data.get("status") != "Processing":
-                
                 retry_count += 1
 
                 if retry_count >= MAX_RETRIES:
-                    print("Max retries reached for org: {acronym}. Moving to next organization.".format(acronym=business_unit.cyhy_db_name.acronym))
+                    print(
+                        "Max retries reached for org: {acronym}. Moving to next organization.".format(
+                            acronym=business_unit.cyhy_db_name.acronym
+                        )
+                    )
                     break  # Skip to next organization
 
                 time.sleep(5)
                 continue
-            response = fetch_dmz_xpanse_data(data.get('task_id'))
+            response = fetch_dmz_xpanse_data(data.get("task_id"))
 
             while response and response.get("status") == "Pending":
                 time.sleep(1)
-                response = fetch_dmz_xpanse_data(data.get('task_id', None))
+                response = fetch_dmz_xpanse_data(data.get("task_id", None))
             if response and response.get("status") == "Completed":
                 xpanse_alerts = response.get("result", {}).get("data", {})
                 total_pages = response.get("result", {}).get("total_pages", 1)
                 current_page = response.get("result", {}).get("current_page", 1)
-                save_alerts_to_db( xpanse_alerts)
+                save_alerts_to_db(xpanse_alerts)
                 # print(xpanse_alerts)
                 print(len(xpanse_alerts))
                 if current_page >= total_pages:
                     done = True
                 page += 1
-            else: 
+            else:
                 raise Exception(
-                    "Task error: {error} - Status: {status}".format(error=response.get('error'), status=response.get('status'))
+                    "Task error: {error} - Status: {status}".format(
+                        error=response.get("error"), status=response.get("status")
+                    )
                 )
-            
+
+
 def is_bu_pull_day():
+    """Check if today is a day to repull all business units."""
     today = datetime.today()
     day_of_month = today.day
     return day_of_month == 17 or day_of_month == 2
 
-def pull_and_save_business_units():
-    """Pull xpanse business units and save to db"""
 
+def pull_and_save_business_units():
+    """Pull xpanse business units and save to db."""
     print("Fetching Xpanse Business Units")
     headers = {
         "X-API-KEY": os.getenv("CF_API_KEY"),
         "access_token": os.getenv("PE_API_KEY"),
         "Content-Type": "",
     }
-    
+
     try:
         response = requests.get(
             "https://api.staging-cd.crossfeed.cyber.dhs.gov/pe/apiv1/linked_mdl_xpanse_business_units",
@@ -121,7 +131,6 @@ def pull_and_save_business_units():
             timeout=20,  # Timeout in seconds
         )
         response.raise_for_status()
-        
 
     except requests.exceptions.RequestException as e:
         print("Error fetching DMZ Business Unit pull: {error}".format(error=e))
@@ -131,31 +140,32 @@ def pull_and_save_business_units():
         business_unit_list = response.json()
 
         for business_unit in business_unit_list:
-            if business_unit.get('cyhy_db_name_id'):
+            if business_unit.get("cyhy_db_name_id"):
                 try:
-                    organization = Organization.objects.get(acronym=business_unit.get('cyhy_db_name_id'))
+                    organization = Organization.objects.get(
+                        acronym=business_unit.get("cyhy_db_name_id")
+                    )
                 except ObjectDoesNotExist:
                     organization = None
 
-                mdl_defaults={
-                    "state": business_unit.get('state'),
-                    "county": business_unit.get('county'),
-                    "city": business_unit.get('city'),
-                    "sector": business_unit.get('sector'),
-                    "entity_type": business_unit.get('entity_type'),
-                    "region": business_unit.get('region'),
-                    "rating": business_unit.get('rating'),
-                    "cyhy_db_name": organization
+                mdl_defaults = {
+                    "state": business_unit.get("state"),
+                    "county": business_unit.get("county"),
+                    "city": business_unit.get("city"),
+                    "sector": business_unit.get("sector"),
+                    "entity_type": business_unit.get("entity_type"),
+                    "region": business_unit.get("region"),
+                    "rating": business_unit.get("rating"),
+                    "cyhy_db_name": organization,
                 }
                 # if mapped_org is not None:
                 #     defaults["cyhy_db_name"] = mapped_org
-                
+
                 (
                     mdl_business_unit_object,
                     mdl_created,
                 ) = XpanseBusinessUnits.objects.update_or_create(
-                    entity_name=business_unit.get('entity_name'),
-                    defaults=mdl_defaults
+                    entity_name=business_unit.get("entity_name"), defaults=mdl_defaults
                 )
                 bu_list.append(mdl_business_unit_object)
                 break
@@ -166,14 +176,23 @@ def pull_and_save_business_units():
 
 def fetch_dmz_xpanse_alert_task(org_acronym, page, per_page, modified_datetime):
     """Fetch xpanse alert task id."""
-    print("Fetching xpanse alert task for organization: {acronym}".format(acronym=org_acronym))
+    print(
+        "Fetching xpanse alert task for organization: {acronym}".format(
+            acronym=org_acronym
+        )
+    )
     headers = {
         "X-API-KEY": os.getenv("CF_API_KEY"),
         "access_token": os.getenv("PE_API_KEY"),
         "Content-Type": "",
     }
-    
-    data = {"org_acronym": org_acronym, "page":page, "per_page":per_page, "modified_datetime":modified_datetime}
+
+    data = {
+        "org_acronym": org_acronym,
+        "page": page,
+        "per_page": per_page,
+        "modified_datetime": modified_datetime,
+    }
 
     try:
         response = requests.post(
@@ -188,10 +207,12 @@ def fetch_dmz_xpanse_alert_task(org_acronym, page, per_page, modified_datetime):
         print("Error fetching DMZ task: {error}".format(error=e))
         return None
 
-def fetch_dmz_xpanse_data(task_id):
 
+def fetch_dmz_xpanse_data(task_id):
     """Fetch DMZ Shodan vulnerability and asset data for a task."""
-    url = "https://api.staging-cd.crossfeed.cyber.dhs.gov/pe/apiv1/mdl_xpanse_alerts_task_status/task/{task_id}".format(task_id=task_id)
+    url = "https://api.staging-cd.crossfeed.cyber.dhs.gov/pe/apiv1/mdl_xpanse_alerts_task_status/task/{task_id}".format(
+        task_id=task_id
+    )
     headers = {
         "X-API-KEY": os.getenv("CF_API_KEY"),
         "access_token": os.getenv("PE_API_KEY"),
@@ -205,15 +226,14 @@ def fetch_dmz_xpanse_data(task_id):
     except requests.exceptions.RequestException as e:
         print("Error fetching DMZ Shodan data: {error}".format(error=e))
         return None
-    
+
 
 def save_alerts_to_db(alert_list):
     """Save a list of Xpanse alerts to the MDL."""
-
     for alert in alert_list:
         try:
             defaults = {
-                "xpanse_alert_uid":alert.get('xpanse_alert_uid', None),
+                "xpanse_alert_uid": alert.get("xpanse_alert_uid", None),
                 "time_pulled_from_xpanse": alert.get("time_pulled_from_xpanse", None),
                 "detection_timestamp": alert.get("detection_timestamp", None),
                 "alert_name": alert.get("alert_name", None),
@@ -253,7 +273,7 @@ def save_alerts_to_db(alert_list):
             }
 
             alert_object, created = XpanseAlerts.objects.update_or_create(
-                alert_id=alert.get('alert_id'),
+                alert_id=alert.get("alert_id"),
                 defaults=defaults,
             )
 
@@ -262,68 +282,77 @@ def save_alerts_to_db(alert_list):
             for tag in tags[0]:
                 if tag.startswith("BU:"):
                     business_unit_list.append(tag[3:].strip())
-            
+
             business_unit_objects = []
             for b_u in business_unit_list:
                 try:
                     business_unit_objects.append(
                         XpanseBusinessUnits.objects.get(entity_name=b_u)
                     )
-                except:
+                except Exception as e:
+                    print(
+                        "Failed to get business unit {business}: {error}".format(
+                            business=b_u, error=e
+                        )
+                    )
                     continue
 
             alert_object.business_units.set(business_unit_objects)
 
             service_objects = []
-            for service in alert.get('services',[]):
+            for service in alert.get("services", []):
                 service_defaults = {
-                    "xpanse_service_uid": service.get('xpanse_service_uid'),
-                    "service_name":service.get('service_name'),
-                    "service_type":service.get('service_type'),
-                    "ip_address":service.get('ip_address'),
-                    "domain":service.get('domain'),
-                    "externally_detected_providers":service.get('externally_detected_providers'),
-                    "is_active":service.get('is_active'),
-                    "first_observed":service.get('first_observed'),
-                    "last_observed":service.get('last_observed'),
-                    "port":service.get('port'),
-                    "protocol":service.get('protocol'),
-                    "active_classifications":service.get('active_classifications'),
-                    "inactive_classifications":service.get('inactive_classifications'),
-                    "discovery_type":service.get('discovery_type'),
-                    "externally_inferred_vulnerability_score":service.get('externally_inferred_vulnerability_score'),
-                    "externally_inferred_cves":service.get('externally_inferred_cves'),
-                    "service_key":service.get('service_key'),
-                    "service_key_type":service.get('service_key_type'),
+                    "xpanse_service_uid": service.get("xpanse_service_uid"),
+                    "service_name": service.get("service_name"),
+                    "service_type": service.get("service_type"),
+                    "ip_address": service.get("ip_address"),
+                    "domain": service.get("domain"),
+                    "externally_detected_providers": service.get(
+                        "externally_detected_providers"
+                    ),
+                    "is_active": service.get("is_active"),
+                    "first_observed": service.get("first_observed"),
+                    "last_observed": service.get("last_observed"),
+                    "port": service.get("port"),
+                    "protocol": service.get("protocol"),
+                    "active_classifications": service.get("active_classifications"),
+                    "inactive_classifications": service.get("inactive_classifications"),
+                    "discovery_type": service.get("discovery_type"),
+                    "externally_inferred_vulnerability_score": service.get(
+                        "externally_inferred_vulnerability_score"
+                    ),
+                    "externally_inferred_cves": service.get("externally_inferred_cves"),
+                    "service_key": service.get("service_key"),
+                    "service_key_type": service.get("service_key_type"),
                 }
 
                 service_object, created = XpanseServicesMdl.objects.update_or_create(
-                        service_id=service.get('service_id'),
-                        defaults=service_defaults,
-                    )
-                
+                    service_id=service.get("service_id"),
+                    defaults=service_defaults,
+                )
+
                 for cve in service.get("cves", []):
                     cve_defaults = {
-                        "xpanse_cve_uid": cve.get('xpanse_cve_uid'),
-                        "cvss_score_v2": cve.get('cvss_score_v2'),
-                        "cve_severity_v2": cve.get('cve_severity_v2'),
-                        "cvss_score_v3": cve.get('cvss_score_v3'),
-                        "cve_severity_v3": cve.get('cve_severity_v3'),
+                        "xpanse_cve_uid": cve.get("xpanse_cve_uid"),
+                        "cvss_score_v2": cve.get("cvss_score_v2"),
+                        "cve_severity_v2": cve.get("cve_severity_v2"),
+                        "cvss_score_v3": cve.get("cvss_score_v3"),
+                        "cve_severity_v3": cve.get("cve_severity_v3"),
                     }
                     cve_object, created = XpanseCvesMdl.objects.get_or_create(
-                        cve_id=cve.get('cve_id'),
+                        cve_id=cve.get("cve_id"),
                         defaults=cve_defaults,
                     )
 
                     cve_service_default = {
-                        "inferred_cve_match_type": cve.get('inferred_cve_match_type'),
-                        "product": cve.get('product'),
-                        "confidence": cve.get('confidence'),
-                        "vendor": cve.get('vendor'),
-                        "version_number": cve.get('version_number'),
-                        "activity_status": cve.get('activity_status'),
-                        "first_observed": cve.get('first_observed'),
-                        "last_observed": cve.get('last_observed'),
+                        "inferred_cve_match_type": cve.get("inferred_cve_match_type"),
+                        "product": cve.get("product"),
+                        "confidence": cve.get("confidence"),
+                        "vendor": cve.get("vendor"),
+                        "version_number": cve.get("version_number"),
+                        "activity_status": cve.get("activity_status"),
+                        "first_observed": cve.get("first_observed"),
+                        "last_observed": cve.get("last_observed"),
                     }
 
                     (
@@ -340,6 +369,5 @@ def save_alerts_to_db(alert_list):
             alert_object.save()
 
         except Exception as e:
-            print('Failed to save alert: %s, moving on to the next alert.' % (e))
+            print("Failed to save alert: %s, moving on to the next alert." % (e))
             continue
-            
