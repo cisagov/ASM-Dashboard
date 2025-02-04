@@ -111,7 +111,7 @@ def is_bu_pull_day():
     """Check if today is a day to repull all business units."""
     today = datetime.today()
     day_of_month = today.day
-    return day_of_month == 17 or day_of_month == 2
+    return day_of_month in (17, 2)
 
 
 def pull_and_save_business_units():
@@ -171,6 +171,7 @@ def pull_and_save_business_units():
         return bu_list
     except Exception as e:
         print("Error fetching DMZ Business Unit pull: {error}".format(error=e))
+        return None
 
 
 def fetch_dmz_xpanse_alert_task(org_acronym, page, per_page, modified_datetime):
