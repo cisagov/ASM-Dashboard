@@ -8,7 +8,6 @@ import time
 # Third-Party Libraries
 import django
 from django.core.exceptions import ObjectDoesNotExist
-import pytz
 import requests
 from xfd_mini_dl.models import (
     Organization,
@@ -43,7 +42,7 @@ def handler(event):
 def main():
     """Fetch and save DMZ Xpanse alerts."""
     # Step 1: Get the current date and time in UTC
-    current_time = datetime.now(pytz.UTC)
+    current_time = datetime.now(datetime.timezone.utc)
     # Step 2: Subtract 8 days from the current date
     eight_days_ago = current_time - timedelta(days=15)
     # Step 3: Convert to an ISO 8601 string with timezone (e.g., UTC)
