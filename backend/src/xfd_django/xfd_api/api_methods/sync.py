@@ -29,16 +29,15 @@ async def sync_post(sync_body, request: Request):
 
     try:
         if not request_checksum:
-            print("Missing checksum in headers")
+            # Checksum missing in request headers, return 500
             return {"status": 500}
 
         generated_checksum = create_checksum(sync_body.data)
         if request_checksum != generated_checksum:
-            print("Checksums don't match")
+            # Checksums don't match, return 500
             return {"status": 500}
 
         # Use MinIO client to save CSV data to S3
-        print("Checksums match, uploading to S3")
         s3_client = S3Client()
         cursor_header = headers.get("x-cursor")
         start_bound, end_bound = -1, -2
@@ -52,8 +51,8 @@ async def sync_post(sync_body, request: Request):
         file_name = f"lz_org_sync/{now.month}-{now.day}-{now.year}/{start_bound}-{end_bound}.csv"
 
         if not sync_body.data:
-            print("Sync body missing")
-            return {"status": 200}
+            # Sync body missing
+            return {"status": 500}
 
         s3_url = s3_client.save_csv(sync_body.data, file_name)
         if not s3_url:

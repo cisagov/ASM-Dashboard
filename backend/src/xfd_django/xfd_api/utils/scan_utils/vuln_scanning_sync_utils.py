@@ -36,9 +36,9 @@ def save_port_scan_to_datalake(port_scan_obj):
     Returns:
         str or None: The ID of the inserted/updated record.
     """
-    print(
-        f"Starting to save port scan {port_scan_obj.get('ipString')} {port_scan_obj.get('port')} to datalake"
-    )
+    # print(
+    #     f"Starting to save port scan {port_scan_obj.get('ipString')} {port_scan_obj.get('port')} to datalake"
+    # )
 
     # Map fields to match Django model expectations
     field_mapping = {"organization": "organization_id", "ip": "ip_id"}
@@ -85,7 +85,7 @@ def save_ticket_to_datalake(ticket_obj):
     Returns:
         str or None: The ID of the inserted/updated record.
     """
-    print("Starting to save Ticket to datalake")
+    # print("Starting to save Ticket to datalake")
 
     # Map fields to match Django model expectations
     field_mapping = {"organization": "organization_id", "ip": "ip_id", "cve": "cve_id"}
