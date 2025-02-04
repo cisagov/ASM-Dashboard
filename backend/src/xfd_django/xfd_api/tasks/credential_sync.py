@@ -264,7 +264,7 @@ def save_findings_to_db(cred_exposures_array, cred_breaches_array, org):
                         "credential_breaches": breach_dict[exposure.get("breach_name")],
                         "data_source": data_source_dict[
                             exposure.get("data_source_name", "unknown")
-                        ]
+                        ],
                     },
                 )
             except Exception as e:
