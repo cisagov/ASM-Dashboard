@@ -7,7 +7,7 @@ import random
 import pytest
 import requests
 
-BASE_URL = "http://localhost:3000"
+BASE_URL = os.environ.get("BACKEND_DOMAIN")
 X_API_KEY = os.environ.get("X_API_KEY")
 BAD_ID = "01234567-0123-4567-8901-12345"
 
@@ -32,11 +32,13 @@ def get_domains():
     return data["result"]
 
 
+domains = get_domains()
+
+
 # mark tests with integration tag, run with pytest -m integration
 @pytest.mark.integration
 def test_get_domain_by_id():
     """Test get domain by id."""
-    domains = get_domains()
     selected_domain = random.choice(domains)
     domain_id = selected_domain["id"]
 
@@ -66,7 +68,6 @@ def test_get_domain_by_id_fails_404():
 @pytest.mark.integration
 def test_search_domain_by_ip():
     """Test search domain by IP."""
-    domains = get_domains()
     selected_domain = random.choice(domains)
     domain_ip = selected_domain["ip"]
 
