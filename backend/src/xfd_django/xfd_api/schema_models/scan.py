@@ -167,6 +167,14 @@ SCAN_SCHEMA = {
         memory="8192",
         description="Matches detected software versions to CVEs from NIST NVD and CISA's Known Exploited Vulnerabilities Catalog.",
     ),
+    "credential_sync": ScanSchema(
+        type="fargate",
+        isPassive=True,
+        global_scan=True,
+        cpu="1024",
+        memory="8192",
+        description="Pull in Credential breach and exposure data from commercial mdl",
+    ),
     "vulnScanningSync": ScanSchema(
         type="fargate",
         isPassive=True,

@@ -7,9 +7,7 @@ import pytz
 
 # Third-Party Libraries
 import django
-from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
-import dns.resolver
 import requests
 from xfd_mini_dl.models import Organization, ShodanAssets, ShodanVulns, DataSource
 
@@ -43,16 +41,16 @@ def main():
         name="Shodan", 
         defaults={
             "description": "Scans the internet for publicly accessible devices, concentrating on SCADA (supervisory control and data acquisition) systems.",  # You can customize this text
-            "last_run": timezone.now()  # Sets the current date and time
+            "last_run": timezone.now().date()  # Sets the current date and time
         }
     )
  
     # Step 1: Get the current date and time in UTC
     current_time = datetime.now(pytz.UTC)
-    # Step 2: Subtract 8 days from the current date
-    eight_days_ago = current_time - timedelta(days=15)
+    # Step 2: Subtract days from the current date
+    days_ago = current_time - timedelta(days=15)
     # Step 3: Convert to an ISO 8601 string with timezone (e.g., UTC)
-    since_timestamp_str = eight_days_ago.isoformat()
+    since_timestamp_str = days_ago.isoformat()
 
     for org in all_orgs:
         print("Processing organization: {acronym}, {name}".format(acronym=org.acronym, name=org.name))
@@ -61,7 +59,6 @@ def main():
         total_pages = 2
         per_page = 200
         retry_count = 0
-        consecutive_none_count = 0
         
         while not done:
             data = fetch_dmz_shodan_task(org.acronym, page, per_page, since_timestamp_str)
