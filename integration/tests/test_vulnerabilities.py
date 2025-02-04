@@ -8,7 +8,7 @@ import pytest
 import requests
 
 # Configuration
-BASE_URL = "http://localhost:3000"
+BASE_URL = os.environ.get("BACKEND_DOMAIN")
 X_API_KEY = os.environ.get("X_API_KEY")
 BAD_ID = "c0effe93-3647-475a-a0c5-0b629c348590"
 
@@ -32,11 +32,13 @@ def get_vulnerabilities():
     return data["result"]
 
 
+vulnerabilities = get_vulnerabilities()
+
+
 # mark tests with integration tag, run with pytest -m integration
 @pytest.mark.integration
 def test_get_vulnerability_by_id():
     """Test get vulnerability by ID."""
-    vulnerabilities = get_vulnerabilities()
     select_vulnerability = random.choice(vulnerabilities)
     vulnerability_id = select_vulnerability["id"]
     url = f"{BASE_URL}/vulnerabilities/{vulnerability_id}"
@@ -105,7 +107,6 @@ def test_search_vulnerabilities():
 def test_get_update_and_revert_vulnerability_by_id():
     """Test get vulnerability by ID, update fields, and revert back to original."""
     # Step 1: Retrieve the original data using GET
-    vulnerabilities = get_vulnerabilities()
     select_vulnerability = random.choice(vulnerabilities)
     vulnerability_id = select_vulnerability["id"]
     url = f"{BASE_URL}/vulnerabilities/{vulnerability_id}"
@@ -215,7 +216,6 @@ def test_update_vulnerability_by_id_fails_404():
 @pytest.mark.integration
 def test_update_vulnerability_by_id_fails_422():
     """Test update vulnerability by ID fails with 422 due to invalid payload."""
-    vulnerabilities = get_vulnerabilities()
     select_vulnerability = random.choice(vulnerabilities)
     vulnerability_id = select_vulnerability["id"]
     url = f"{BASE_URL}/vulnerabilities/{vulnerability_id}"
