@@ -12,8 +12,6 @@ jobs:
     test:
         timeout-minutes: 60
         runs-on: ubuntu-latest
-        container:
-            image: python:3.9
 
         strategy:
             matrix:
