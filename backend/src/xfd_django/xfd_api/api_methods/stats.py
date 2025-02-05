@@ -1,6 +1,8 @@
 """Stats methods."""
 # Standard Python Libraries
+from collections import defaultdict
 import json
+from typing import Dict, List, Tuple, Union
 
 # Third-Party Libraries
 from fastapi import HTTPException, Request
@@ -321,7 +323,7 @@ async def stats_most_common_vulns(
     request: Request,
     max_results=10,
     filtered_org_ids=None,
-):
+) -> List[Dict[str, Union[str, int]]]:
     """Retrieve the most common vulnerabilities from Elasticache filtered by user."""
     try:
         if not filtered_org_ids:
@@ -348,14 +350,28 @@ async def stats_most_common_vulns(
         vulnerabilities = []
 
         # Process the results, skip None values
+        vulnerability_map: defaultdict[
+            Tuple[str, str], Dict[str, Union[str, int]]
+        ] = defaultdict(
+            lambda: {"title": "", "description": "", "severity": "", "count": 0}
+        )
+
         for data in results:
             if data:
-                vulnerabilities.extend(json.loads(data))
+                for vuln in json.loads(data):
+                    key = vuln["title"], vuln["description"]
+                    if key in vulnerability_map:
+                        vulnerability_map[key]["count"] += vuln["count"]
+                    else:
+                        vulnerability_map[key] = vuln
+        # for data in results:
+        #     if data:
+        #         vulnerabilities.extend(json.loads(data))
 
         # Limit the results to the maximum specified
-        vulnerabilities = sorted(vulnerabilities, key=lambda x: x["count"])[
-            :max_results
-        ]
+        vulnerabilities = sorted(
+            vulnerability_map.values(), key=lambda x: x["count"], reverse=True
+        )[:max_results]
 
         return vulnerabilities
 
