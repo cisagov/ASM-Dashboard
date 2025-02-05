@@ -1,4 +1,4 @@
-"""ShodanSync scan."""
+"""CredentialSync scan."""
 # Standard Python Libraries
 from datetime import datetime, timedelta
 import os
@@ -40,15 +40,8 @@ def handler(event):
 def main():
     """Fetch and save DMZ credential breaches and exposures."""
     all_orgs = Organization.objects.all()
+    # For testing
     # all_orgs = Organization.objects.filter(acronym__in=['USAGM', 'DHS'])
-    #    change this
-    # shodan_datasource, created = DataSource.objects.get_or_create(
-    #     name="Shodan",
-    #     defaults={
-    #         "description": "Scans the internet for publicly accessible devices, concentrating on SCADA (supervisory control and data acquisition) systems.",  # You can customize this text
-    #         "last_run": timezone.now()  # Sets the current date and time
-    #     }
-    # )
 
     # Step 1: Get the current date and time in UTC
     current_time = datetime.now(datetime.timezone.utc)
@@ -71,10 +64,9 @@ def main():
 
         while not done:
             data = fetch_dmz_cred_task(org.acronym, page, per_page, since_timestamp_str)
-            print(data)
             if not data or data.get("status") != "Processing":
                 print(
-                    "Failed to start Shodan Sync task for org: {acronym}, {name}".format(
+                    "Failed to start Credential Sync task for org: {acronym}, {name}".format(
                         acronym=org.acronym, name=org.name
                     )
                 )
@@ -111,9 +103,9 @@ def main():
                 )
                 total_pages = response.get("result", {}).get("total_pages", 1)
                 current_page = response.get("result", {}).get("current_page", 1)
-                print("breaches")
+                print("Returned breaches")
                 print(cred_breaches_array)
-                print("exposures")
+                print("Returned exposures")
                 print(cred_exposures_array)
                 save_findings_to_db(cred_exposures_array, cred_breaches_array, org)
 
@@ -178,7 +170,7 @@ def fetch_dmz_cred_data(task_id):
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        print("Error fetching DMZ Shodan data: {error}".format(error=e))
+        print("Error fetching DMZ Credential data: {error}".format(error=e))
         return None
 
 

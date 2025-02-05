@@ -43,19 +43,16 @@ def main():
     """Fetch and save DMZ Xpanse alerts."""
     # Step 1: Get the current date and time in UTC
     current_time = datetime.now(datetime.timezone.utc)
-    # Step 2: Subtract 8 days from the current date
-    eight_days_ago = current_time - timedelta(days=15)
+    # Step 2: Subtract days from the current date
+    days_ago = current_time - timedelta(days=15)
     # Step 3: Convert to an ISO 8601 string with timezone (e.g., UTC)
-    modified_timestamp_str = eight_days_ago.isoformat()
+    modified_timestamp_str = days_ago.isoformat()
     if is_bu_pull_day():
         business_units = pull_and_save_business_units()
     else:
         business_units = list(XpanseBusinessUnits.objects.all())
 
     random.shuffle(business_units)
-
-    # business_units = XpanseBusinessUnits.objects.filter(cyhy_db_name_id__in=['SEMTECH'])
-    # print(business_units)
 
     for business_unit in business_units:
         done = False
@@ -94,7 +91,6 @@ def main():
                 total_pages = response.get("result", {}).get("total_pages", 1)
                 current_page = response.get("result", {}).get("current_page", 1)
                 save_alerts_to_db(xpanse_alerts)
-                # print(xpanse_alerts)
                 print(len(xpanse_alerts))
                 if current_page >= total_pages:
                     done = True
@@ -157,8 +153,6 @@ def pull_and_save_business_units():
                     "rating": business_unit.get("rating"),
                     "cyhy_db_name": organization,
                 }
-                # if mapped_org is not None:
-                #     defaults["cyhy_db_name"] = mapped_org
 
                 (
                     mdl_business_unit_object,
@@ -209,7 +203,7 @@ def fetch_dmz_xpanse_alert_task(org_acronym, page, per_page, modified_datetime):
 
 
 def fetch_dmz_xpanse_data(task_id):
-    """Fetch DMZ Shodan vulnerability and asset data for a task."""
+    """Fetch DMZ xpanse alert data for a task."""
     url = "https://api.staging-cd.crossfeed.cyber.dhs.gov/pe/apiv1/mdl_xpanse_alerts_task_status/task/{task_id}".format(
         task_id=task_id
     )
@@ -224,7 +218,7 @@ def fetch_dmz_xpanse_data(task_id):
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        print("Error fetching DMZ Shodan data: {error}".format(error=e))
+        print("Error fetching DMZ Xpanse data: {error}".format(error=e))
         return None
 
 

@@ -40,7 +40,7 @@ def main():
     shodan_datasource, created = DataSource.objects.get_or_create(
         name="Shodan",
         defaults={
-            "description": "Scans the internet for publicly accessible devices, concentrating on SCADA (supervisory control and data acquisition) systems.",  # You can customize this text
+            "description": "Scans the internet for publicly accessible devices, concentrating on SCADA (supervisory control and data acquisition) systems.",
             "last_run": timezone.now().date(),  # Sets the current date and time
         },
     )
