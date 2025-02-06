@@ -2,7 +2,6 @@
 name: Integration Testing
 
 on:
-    deployment_status:
     push:
         branches:
             - JD_integration_tests
