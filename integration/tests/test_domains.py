@@ -14,13 +14,14 @@ BAD_ID = "01234567-0123-4567-8901-12345"
 
 def get_domains():
     """Get a tuple of domain IDs for testing."""
-    url = "{}/domain/search".format(BASE_URL)
-    json = {
-        "page": 1,
-        "pageSize": 10,
-    }
     response = requests.post(
-        url, json=json, headers={"X-API-KEY": X_API_KEY}, timeout=10
+        "{}/domain/search".format(BASE_URL),
+        json={
+            "page": 1,
+            "pageSize": 10,
+        },
+        headers={"X-API-KEY": X_API_KEY},
+        timeout=10,
     )
 
     assert response.status_code == 200
@@ -42,9 +43,11 @@ def test_get_domain_by_id():
     selected_domain = random.choice(domains)
     domain_id = selected_domain["id"]
 
-    url = "{}/domain/{}".format(BASE_URL, domain_id)
-    print(url)
-    response = requests.get(url, headers={"X-API-KEY": X_API_KEY}, timeout=10)
+    response = requests.get(
+        "{}/domain/{}".format(BASE_URL, domain_id),
+        headers={"X-API-KEY": X_API_KEY},
+        timeout=10,
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -55,9 +58,11 @@ def test_get_domain_by_id():
 @pytest.mark.integration
 def test_get_domain_by_id_fails_404():
     """Test get domain by id fails with 404."""
-    url = "{}/domain/{}".format(BASE_URL, BAD_ID)
-    # Get domain by Id.
-    response = requests.get(url, headers={"X-API-KEY": X_API_KEY}, timeout=10)
+    response = requests.get(
+        "{}/domain/{}".format(BASE_URL, BAD_ID),
+        headers={"X-API-KEY": X_API_KEY},
+        timeout=10,
+    )
 
     assert response.status_code == 404
     data = response.json()
