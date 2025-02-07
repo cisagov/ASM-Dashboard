@@ -6,7 +6,7 @@ import os
 # Third-Party Libraries
 from django.conf import settings
 from django.db import connections
-import pymysql
+import pymysql  # type: ignore
 
 
 def create_scan_user():
