@@ -1,7 +1,5 @@
-import { test as base, defineConfig } from '@playwright/test';
+import { test as base } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { describe } from 'node:test';
-import { configure } from 'axe-core';
 
 type AxeFixture = {
   makeAxeBuilder: () => AxeBuilder;
@@ -12,7 +10,7 @@ type AxeFixture = {
 // This new "test" can be used in multiple test files, and each of them will get
 // a consistently configured AxeBuilder instance.
 export const test = base.extend<AxeFixture>({
-  makeAxeBuilder: async ({ page }, use, testInfo) => {
+  makeAxeBuilder: async (use) => {
     const makeAxeBuilder = () =>
       new AxeBuilder({ page }).withTags([
         'wcag2a',

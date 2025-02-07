@@ -42,7 +42,6 @@ SAMPLE_DATA_DIR = os.path.join(settings.BASE_DIR, "xfd_api", "tasks", "sample_da
 services = json.load(open(os.path.join(SAMPLE_DATA_DIR, "services.json")))
 cpes = json.load(open(os.path.join(SAMPLE_DATA_DIR, "cpes.json")))
 vulnerabilities = json.load(open(os.path.join(SAMPLE_DATA_DIR, "vulnerabilities.json")))
-cves = json.load(open(os.path.join(SAMPLE_DATA_DIR, "cves.json")))
 nouns = json.load(open(os.path.join(SAMPLE_DATA_DIR, "nouns.json")))
 adjectives = json.load(open(os.path.join(SAMPLE_DATA_DIR, "adjectives.json")))
 
