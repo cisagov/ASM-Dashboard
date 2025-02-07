@@ -55,7 +55,7 @@ client = TestClient(app)
 
 #     # Send the DELETE request
 #     response = client.delete(
-#         f"/notifications/{notification.id}",
+#         "/notifications/{}".format(notification.id),
 #         headers={
 #             "Authorization": create_jwt_token({"id": user.id, "userType": "STANDARD"})
 #         },
@@ -123,7 +123,7 @@ client = TestClient(app)
 
 #     # Send the GET request
 #     response = client.get(
-#         f"/notifications/{notification.id}",
+#         "/notifications/{}".format(notification.id),
 #         headers={
 #             "Authorization": create_jwt_token({"id": user.id, "userType": "STANDARD"})
 #         },

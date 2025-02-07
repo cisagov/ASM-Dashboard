@@ -32,60 +32,38 @@ django.setup()
 # Ensure apps are populated
 apps.populate(settings.INSTALLED_APPS)
 
-# Define the CSP policy
-CSP_POLICY = {
-    "default-src": ["'self'"],
-    "connect-src": [
-        "'self'",
-        os.getenv("COGNITO_URL"),
-        os.getenv("BACKEND_DOMAIN"),
-        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js",
-    ],
-    "frame-src": ["'self'", "https://www.dhs.gov/ntas/"],
-    "img-src": [
-        "'self'",
-        "data:",
-        os.getenv("FRONTEND_DOMAIN"),
-        "https://www.ssa.gov",
-        "https://www.dhs.gov",
-        "https://fastapi.tiangolo.com/img/favicon.png",
-    ],
-    "object-src": ["'none'"],
-    "script-src": [
-        "'self'",
-        os.getenv("BACKEND_DOMAIN"),
-        "https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js",
-        "https://www.ssa.gov/accessibility/andi/fandi.js",
-        "https://www.ssa.gov/accessibility/andi/andi.js",
-        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js",
-        "'sha256-QOOQu4W1oxGqd2nbXbxiA1Di6OHQOLQD+o+G9oWL8YY='",
-        "https://www.dhs.gov",
-    ],
-    "style-src": [
-        "'self'",
-        "'unsafe-inline'",
-        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui.css",
-    ],
-    "frame-ancestors": ["'none'"],
-}
-
 
 def set_security_headers(response: Response):
     """Apply security headers to the HTTP response."""
-    # Set Content Security Policy
+    # Set Content Security Policy (CSP)
     csp_value = "; ".join(
         [
-            f"{key} {' '.join(map(str, value))}"
-            for key, value in CSP_POLICY.items()
+            "{} {}".format(key, " ".join(map(str, value)))
+            for key, value in settings.SECURE_CSP_POLICY.items()
             if isinstance(value, (list, tuple))
         ]
     )
     response.headers["Content-Security-Policy"] = csp_value
-    response.headers["Strict-Transport-Security"] = "max-age=31536000"
-    response.headers["X-XSS-Protection"] = "0"
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
+
+    # Set Strict-Transport-Security (HSTS)
+    hsts_value = f"max-age={settings.SECURE_HSTS_SECONDS}"
+    if settings.SECURE_HSTS_PRELOAD:
+        hsts_value += "; preload"
+    if settings.SECURE_HSTS_INCLUDE_SUBDOMAINS:
+        hsts_value += "; includeSubDomains"
+    response.headers["Strict-Transport-Security"] = hsts_value
+
+    # Additional security headers
+    response.headers["X-XSS-Protection"] = (
+        "1; mode=block" if settings.SECURE_BROWSER_XSS_FILTER else "0"
+    )
+    response.headers["X-Content-Type-Options"] = (
+        "nosniff" if settings.SECURE_CONTENT_TYPE_NOSNIFF else ""
+    )
+    response.headers["Cache-Control"] = settings.SECURE_CACHE_CONTROL
+    response.headers["Access-Control-Allow-Credentials"] = (
+        "true" if settings.SECURE_ACCESS_CONTROL_ALLOW_CREDENTIALS else "false"
+    )
 
     return response
 
@@ -120,7 +98,7 @@ def get_application() -> FastAPI:
         """Start up Redis with ElastiCache."""
         # Initialize Redis with the ElastiCache endpoint
         app.state.redis = await aioredis.from_url(
-            f"redis://{settings.ELASTICACHE_ENDPOINT}",
+            "redis://{}".format(settings.ELASTICACHE_ENDPOINT),
             encoding="utf-8",
             decode_responses=True,
             max_connections=100,
@@ -161,7 +139,7 @@ async def run_scheduler():
             await scheduler_handler({}, {})
             await asyncio.sleep(120)  # Run every 120 seconds
     except Exception as e:
-        print(f"Error running local scheduler: {e}")
+        print("Error running local scheduler: {}".format(e))
 
 
 app = get_application()

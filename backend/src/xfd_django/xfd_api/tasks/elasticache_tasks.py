@@ -114,7 +114,7 @@ def populate_latest_vulns_cache(event, context):
 
         # Store each organization's vulnerabilities in Redis
         for org_id, data in vulnerabilities_by_org.items():
-            redis_key = f"latest_vulnerabilities:{org_id}"
+            redis_key = "latest_vulnerabilities:{}".format(org_id)
             redis_client.set(redis_key, json.dumps(data))
 
         return {
@@ -125,7 +125,9 @@ def populate_latest_vulns_cache(event, context):
     except Exception as e:
         return {
             "status": "error",
-            "message": f"An unexpected error occurred while populating the cache: {e}",
+            "message": "An unexpected error occurred while populating the cache: {}".format(
+                e
+            ),
         }
 
 
@@ -171,7 +173,7 @@ def populate_most_common_vulns_cache(event, context):
 
         # Store each organization's vulnerabilities in Redis
         for org_id, data in vulnerabilities_by_org.items():
-            redis_key = f"most_common_vulnerabilities:{org_id}"
+            redis_key = "most_common_vulnerabilities:{}".format(org_id)
             redis_client.set(redis_key, json.dumps(data))
 
         return {
@@ -182,7 +184,9 @@ def populate_most_common_vulns_cache(event, context):
     except Exception as e:
         return {
             "status": "error",
-            "message": f"An unexpected error occurred while populating the cache: {e}",
+            "message": "An unexpected error occurred while populating the cache: {}".format(
+                e
+            ),
         }
 
 
@@ -235,7 +239,7 @@ def populate_by_org_cache(event, context):
         for vuln in vulnerabilities:
             org_id = str(vuln["domain__organization__id"])
             org_name = vuln["domain__organization__name"]
-            redis_key = f"by_org_stats:{org_id}"
+            redis_key = "by_org_stats:{}".format(org_id)
             data = {
                 "id": org_name,  # Organization name as "id"
                 "orgId": org_id,  # Organization ID
@@ -252,5 +256,7 @@ def populate_by_org_cache(event, context):
     except Exception as e:
         return {
             "status": "error",
-            "message": f"An unexpected error occurred while populating the cache: {e}",
+            "message": "An unexpected error occurred while populating the cache: {}".format(
+                e
+            ),
         }

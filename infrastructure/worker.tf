@@ -100,6 +100,7 @@ resource "aws_iam_role_policy" "worker_task_execution_role_policy" {
           "${data.aws_ssm_parameter.https_proxy.arn}",
           "${aws_ssm_parameter.es_endpoint.arn}",
           "${data.aws_ssm_parameter.pe_api_key.arn}",
+          "${data.aws_ssm_parameter.pe_api_url.arn}",
           "${data.aws_ssm_parameter.cf_api_key.arn}",
           "${data.aws_ssm_parameter.ssm_mdl_name.arn}",
           "${data.aws_ssm_parameter.ssm_mdl_username.arn}",
@@ -333,6 +334,10 @@ resource "aws_ecs_task_definition" "worker" {
         "valueFrom": "${data.aws_ssm_parameter.pe_api_key.arn}"
       },
       {
+        "name": "PE_API_URL",
+        "valueFrom": "${data.aws_ssm_parameter.pe_api_url.arn}"
+      },
+      {
         "name": "CF_API_KEY",
         "valueFrom": "${data.aws_ssm_parameter.cf_api_key.arn}"
       },
@@ -437,6 +442,8 @@ data "aws_ssm_parameter" "worker_signature_private_key" { name = var.ssm_worker_
 data "aws_ssm_parameter" "https_proxy" { name = var.ssm_https_proxy }
 
 data "aws_ssm_parameter" "pe_api_key" { name = var.ssm_pe_api_key }
+
+data "aws_ssm_parameter" "pe_api_url" { name = var.ssm_pe_api_url }
 
 data "aws_ssm_parameter" "cf_api_key" { name = var.ssm_cf_api_key }
 

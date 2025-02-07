@@ -235,7 +235,7 @@ def delete_saved_search(saved_search_id, user):
         return JsonResponse(
             {
                 "status": "success",
-                "message": f"Saved search id:{saved_search_id} deleted.",
+                "message": "Saved search id:{} deleted.".format(saved_search_id),
             }
         )
     except User.DoesNotExist:

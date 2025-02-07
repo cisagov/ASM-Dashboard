@@ -13,7 +13,7 @@ client = TestClient(app)
 #     user = User.objects.create(
 #         firstName="Test",
 #         lastName="User",
-#         email=f"{secrets.token_hex(4)}@example.com",
+#         email="{}@example.com".format(secrets.token_hex(4)),
 #         userType="STANDARD",
 #         createdAt=datetime.now(),
 #         updatedAt=datetime.now(),
@@ -45,7 +45,7 @@ client = TestClient(app)
 #     user = User.objects.create(
 #         firstName="Test",
 #         lastName="User",
-#         email=f"{secrets.token_hex(4)}@example.com",
+#         email="{}@example.com".format(secrets.token_hex(4)),
 #         userType="STANDARD",
 #         createdAt=datetime.now(),
 #         updatedAt=datetime.now(),
@@ -56,7 +56,7 @@ client = TestClient(app)
 #         user=user,
 #     )
 #     response = client.delete(
-#         f"/api-keys/{api_key.id}",
+#         "/api-keys/{}".format(api_key.id),
 #         headers={
 #             "Authorization": create_jwt_token({"id": user.id, "userType": "STANDARD"})
 #         },
@@ -78,7 +78,7 @@ client = TestClient(app)
 #     user1 = User.objects.create(
 #         firstName="Test1",
 #         lastName="User1",
-#         email=f"{secrets.token_hex(4)}@example.com",
+#         email="{}@example.com".format(secrets.token_hex(4)),
 #         userType="STANDARD",
 #         createdAt=datetime.now(),
 #         updatedAt=datetime.now(),
@@ -86,7 +86,7 @@ client = TestClient(app)
 #     user2 = User.objects.create(
 #         firstName="Test2",
 #         lastName="User2",
-#         email=f"{secrets.token_hex(4)}@example.com",
+#         email="{}@example.com".format(secrets.token_hex(4)),
 #         userType="GLOBAL_ADMIN",
 #         createdAt=datetime.now(),
 #         updatedAt=datetime.now(),
@@ -99,7 +99,7 @@ client = TestClient(app)
 
 #     # Try to delete user1's API key as user2
 #     response = client.delete(
-#         f"/api-keys/{api_key.id}",
+#         "/api-keys/{}".format(api_key.id),
 #         headers={
 #             "Authorization": create_jwt_token(
 #                 {"id": user2.id, "userType": "GLOBAL_ADMIN"}
@@ -124,7 +124,7 @@ client = TestClient(app)
 #     user = User.objects.create(
 #         firstName="Test",
 #         lastName="User",
-#         email=f"{secrets.token_hex(4)}@example.com",
+#         email="{}@example.com".format(secrets.token_hex(4)),
 #         userType="STANDARD",
 #         createdAt=datetime.now(),
 #         updatedAt=datetime.now(),
@@ -148,7 +148,7 @@ client = TestClient(app)
 #     User.objects.create(
 #         firstName="Test",
 #         lastName="User",
-#         email=f"{secrets.token_hex(4)}@example.com",
+#         email="{}@example.com".format(secrets.token_hex(4)),
 #         userType="STANDARD",
 #         createdAt=datetime.now(),
 #         updatedAt=datetime.now(),
@@ -163,7 +163,7 @@ client = TestClient(app)
 #     user = User.objects.create(
 #         firstName="Test",
 #         lastName="User",
-#         email=f"{secrets.token_hex(4)}@example.com",
+#         email="{}@example.com".format(secrets.token_hex(4)),
 #         userType="STANDARD",
 #         createdAt=datetime.now(),
 #         updatedAt=datetime.now(),
@@ -180,7 +180,7 @@ client = TestClient(app)
 
 #     # Revoke the API key
 #     response = client.delete(
-#         f"/api-keys/{api_key_id}",
+#         "/api-keys/{}".format(api_key_id),
 #         headers={
 #             "Authorization": create_jwt_token({"id": user.id, "userType": "STANDARD"})
 #         },
