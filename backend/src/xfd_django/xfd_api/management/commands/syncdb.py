@@ -3,7 +3,6 @@
 from django.core.management.base import BaseCommand
 from xfd_api.tasks.searchSync import handler as sync_es_domains
 from xfd_api.tasks.syncdb_helpers import (
-    create_scan_user,
     drop_all_tables,
     manage_elasticsearch_indices,
     populate_sample_data,
@@ -48,10 +47,6 @@ class Command(BaseCommand):
 
         # Step 2: Elasticsearch Index Management
         manage_elasticsearch_indices(dangerouslyforce)
-
-        # Step 3: Create the scanning user if doesn't exist
-        self.stdout.write("Creating and configuring the scanning user...")
-        create_scan_user()
 
         # Step 4: Populate Sample Data
         if populate:
