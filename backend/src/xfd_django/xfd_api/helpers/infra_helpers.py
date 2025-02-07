@@ -4,9 +4,10 @@
 import os
 
 # Third-Party Libraries
-import pymysql
 from django.conf import settings
 from django.db import connections
+import pymysql
+
 
 def create_scan_user():
     """Create and configure the XFD scanning user if it does not already exist."""
@@ -56,6 +57,7 @@ def create_scan_user():
         except Exception as e:
             print("Error creating or configuring scan user: {}".format(e))
 
+
 def create_matomo_scan_user():
     """Create and configure the Matomo scanning user if it does not already exist."""
     # Only create if not in the DMZ
@@ -83,7 +85,7 @@ def create_matomo_scan_user():
             user=db_user,
             password=db_password,
             database=db_name,
-            cursorclass=pymysql.cursors.DictCursor
+            cursorclass=pymysql.cursors.DictCursor,
         )
 
         with conn.cursor() as cursor:
@@ -93,19 +95,36 @@ def create_matomo_scan_user():
 
             if not user_exists:
                 # Create the scan user
-                cursor.execute("CREATE USER %s@'%%' IDENTIFIED BY %s;", [scan_user, scan_password])
-                print("User '{}' created successfully in Matomo database.".format(scan_user))
+                cursor.execute(
+                    "CREATE USER %s@'%%' IDENTIFIED BY %s;", [scan_user, scan_password]
+                )
+                print(
+                    "User '{}' created successfully in Matomo database.".format(
+                        scan_user
+                    )
+                )
             else:
                 print("User '{}' already exists. Skipping creation.".format(scan_user))
 
             # Grant privileges (aligned with PostgreSQL version)
-            cursor.execute("GRANT CONNECT ON DATABASE {} TO %s@'%%';".format(db_name), [scan_user])
+            cursor.execute(
+                "GRANT CONNECT ON DATABASE {} TO %s@'%%';".format(db_name), [scan_user]
+            )
             cursor.execute("GRANT USAGE ON SCHEMA public TO %s@'%%';", [scan_user])
-            cursor.execute("GRANT SELECT ON {}.* TO %s@'%%';".format(db_name), [scan_user]) 
-            cursor.execute("ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO %s@'%%';", [scan_user])  # ✅ ADDED
+            cursor.execute(
+                "GRANT SELECT ON {}.* TO %s@'%%';".format(db_name), [scan_user]
+            )
+            cursor.execute(
+                "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO %s@'%%';",
+                [scan_user],
+            )  # ✅ ADDED
             cursor.execute("FLUSH PRIVILEGES;")  # MariaDB-specific, but necessary
 
-            print("User '{}' configured successfully in Matomo database.".format(scan_user))
+            print(
+                "User '{}' configured successfully in Matomo database.".format(
+                    scan_user
+                )
+            )
 
         conn.commit()
         conn.close()

@@ -13,10 +13,7 @@ os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 django.setup()
 
 # Third-Party Libraries
-from xfd_api.helpers.infra_helpers import (
-    create_scan_user,
-    create_matomo_scan_user
-)
+from xfd_api.helpers.infra_helpers import create_matomo_scan_user, create_scan_user
 
 
 def handler(event, context):
