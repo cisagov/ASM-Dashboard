@@ -90,11 +90,6 @@ from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
 api_router = APIRouter()
 
 
-async def default_identifier(request):
-    """Return default identifier."""
-    return request.headers.get("X-Real-IP", request.client.host)
-
-
 async def get_redis_client(request: Request):
     """Get the Redis client from the application state."""
     return request.app.state.redis
