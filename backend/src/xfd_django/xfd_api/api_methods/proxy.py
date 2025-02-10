@@ -21,11 +21,18 @@ async def proxy_request(
     """Proxy requests to the specified target URL with optional cookie handling."""
     headers = dict(request.headers)
 
+        # Remove /matomo from the path
+    # print("Path prior to removing /matomo: ", path)
+    # if path and path.__contains__("/matomo"):
+    #     print("Path contains /matomo")
+    #     path = path.replace("/matomo", "", 1)
+    #     print("Path after removing /matomo: ", path)
+
     # Include specified cookie in the headers if present
     if cookie_name:
         cookies = request.cookies.get(cookie_name)
         if cookies:
-            headers["Cookie"] = "{}={}".format(cookie_name, cookies[cookie_name])
+            headers["Cookie"] = "{}={}".format(cookie_name, cookies)
 
     # Send the request to the target
     async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
@@ -52,7 +59,6 @@ async def proxy_request(
 async def matomo_proxy_handler(
     request: Request,
     path: str,
-    current_user: Optional[UserSchema],
     MATOMO_URL: str,
 ):
     """
@@ -68,18 +74,6 @@ async def matomo_proxy_handler(
     }
     if path in font_paths:
         return RedirectResponse(url=font_paths[path])
-
-    # Public paths allowed without authentication
-    public_paths = ["matomo.php", "matomo.js", "index.php"]
-    if path in public_paths:
-        print("THIS IS A PUBLIC PATH")
-        return await proxy_request(request, MATOMO_URL, path)
-
-    # Authenticate private paths
-    if not current_user:
-        current_user = await get_current_active_user(request)
-    if current_user is None or current_user.userType != "globalAdmin":
-        raise HTTPException(status_code=403, detail="Unauthorized")
 
     # Proxy private paths
     return await proxy_request(
