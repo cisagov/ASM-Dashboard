@@ -148,6 +148,7 @@ async def search_post(search_body: DomainSearchBody, current_user):
                 for hit in response["hits"]["hits"]
             ],
         },
+        "aggregations": response.get("aggregations", {}),
     }
 
     return result
