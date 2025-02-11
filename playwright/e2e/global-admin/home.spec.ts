@@ -1,5 +1,3 @@
-import { describe } from 'node:test';
-
 const { test, expect, Page } = require('../../axe-test');
 
 test.describe.configure({ mode: 'parallel' });
@@ -16,10 +14,7 @@ test.describe('home', () => {
     await page.close();
   });
 
-  test('Test homepage accessibility', async ({
-    page,
-    makeAxeBuilder
-  }, testInfo) => {
+  test('Test homepage accessibility', async ({ makeAxeBuilder }, testInfo) => {
     const accessibilityScanResults = await makeAxeBuilder().analyze();
 
     await testInfo.attach('accessibility-scan-results', {

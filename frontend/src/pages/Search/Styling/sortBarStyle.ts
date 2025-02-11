@@ -23,7 +23,7 @@ export const classes = {
   option: `${PREFIX}-option`
 };
 
-export const Root = styled('div')(({ theme }) => ({
+export const Root = styled('div')(() => ({
   [`&.${classes.root}`]: {
     zIndex: 100,
     display: 'flex',
