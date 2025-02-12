@@ -20,7 +20,6 @@ docs/node_modules
 frontend/node_modules
 frontend/.pnp
 frontend/.pnp.js
-xfd_backend_venv/
 
 # testing
 backend/coverage
