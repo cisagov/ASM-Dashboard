@@ -309,14 +309,6 @@ SCAN_SCHEMA = {
         memory="4096",
         description="Open source tool that fingerprints web technologies based on HTTP responses",
     ),
-    "xpanseSync": ScanSchema(
-        type="fargate",
-        isPassive=True,
-        global_scan=True,
-        cpu="1024",
-        memory="8192",
-        description="Pull in xpanse vulnerability data from PEs Vulnerability database",
-    ),
     "flagFloatingIps": ScanSchema(
         type="fargate",
         isPassive=True,
