@@ -24,7 +24,7 @@ class LambdaClient:
 
     def run_command(self, name: str):
         """Invoke a lambda function with the given name."""
-        print(f"Invoking lambda function: {name}")
+        print("Invoking lambda function: {}".format(name))
         if self.is_local:
             # If running locally, directly call the scheduler function
             scheduler({}, {})

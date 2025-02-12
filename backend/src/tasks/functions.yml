@@ -12,6 +12,10 @@ syncdb:
   timeout: 900
   handler: src/xfd_django/xfd_api/tasks/run_syncdb.handler
 
+syncmdl:
+  timeout: 900
+  handler: src/xfd_django/xfd_api/tasks/run_syncmdl.handler
+
 bastion:
   timeout: 900
   handler: src/xfd_django/xfd_api/tasks/bastion.handler
@@ -40,6 +44,10 @@ updateScanTaskStatus:
           detail:
             clusterArn:
               - ${file(env.yml):${self:provider.stage}-ecs-cluster, ''}
+
+infraOps:
+  timeout: 900
+  handler: src/xfd_django/xfd_api/tasks/infra_ops.handler
 
 serviceStatsCache:
   handler: src/xfd_django/xfd_api/tasks/elasticache_tasks.populate_services_cache

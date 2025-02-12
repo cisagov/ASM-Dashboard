@@ -20,14 +20,14 @@ def test_invite_by_regular_user_should_not_work():
     user = User.objects.create(
         firstName="first",
         lastName="last",
-        email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
         userType=UserType.STANDARD,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
     organization = Organization.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
-        rootDomains=[f"test-{secrets.token_hex(4)}"],
+        name="test-{}".format(secrets.token_hex(4)),
+        rootDomains=["test-{}".format(secrets.token_hex(4))],
         ipBlocks=[],
         isPassive=False,
         createdAt=datetime.now(),
@@ -46,9 +46,9 @@ def test_invite_by_regular_user_should_not_work():
         json={
             "firstName": "first name",
             "lastName": "last name",
-            "email": f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+            "email": "{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
         },
-        headers={"Authorization": f"Bearer {create_jwt_token(user)}"},
+        headers={"Authorization": "Bearer {}".format(create_jwt_token(user))},
     )
 
     assert response.status_code == 403
@@ -61,16 +61,16 @@ def test_invite_by_global_admin_should_work():
     user = User.objects.create(
         firstName="first",
         lastName="last",
-        email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
         userType=UserType.GLOBAL_ADMIN,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
-    email = f"{secrets.token_hex(4)}@crossfeed.cisa.gov"
+    email = "{}@crossfeed.cisa.gov".format(secrets.token_hex(4))
     response = client.post(
         "/users",
         json={"firstName": "first name", "lastName": "last name", "email": email},
-        headers={"Authorization": f"Bearer {create_jwt_token(user)}"},
+        headers={"Authorization": "Bearer {}".format(create_jwt_token(user))},
     )
 
     assert response.status_code == 200
@@ -89,12 +89,12 @@ def test_invite_by_global_admin_with_user_type_setting():
     user = User.objects.create(
         firstName="first",
         lastName="last",
-        email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
         userType=UserType.GLOBAL_ADMIN,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
-    email = f"{secrets.token_hex(4)}@crossfeed.cisa.gov"
+    email = "{}@crossfeed.cisa.gov".format(secrets.token_hex(4))
     response = client.post(
         "/users",
         json={
@@ -103,7 +103,7 @@ def test_invite_by_global_admin_with_user_type_setting():
             "email": email,
             "userType": UserType.GLOBAL_ADMIN,
         },
-        headers={"Authorization": f"Bearer {create_jwt_token(user)}"},
+        headers={"Authorization": "Bearer {}".format(create_jwt_token(user))},
     )
 
     assert response.status_code == 200
@@ -122,7 +122,7 @@ def test_invite_by_global_view_should_not_work():
     user = User.objects.create(
         firstName="first",
         lastName="last",
-        email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
         userType=UserType.GLOBAL_VIEW,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
@@ -132,9 +132,9 @@ def test_invite_by_global_view_should_not_work():
         json={
             "firstName": "first name",
             "lastName": "last name",
-            "email": f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+            "email": "{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
         },
-        headers={"Authorization": f"Bearer {create_jwt_token(user)}"},
+        headers={"Authorization": "Bearer {}".format(create_jwt_token(user))},
     )
 
     print(response.json())
@@ -148,14 +148,14 @@ def test_invite_by_organization_admin_should_work():
     user = User.objects.create(
         firstName="first",
         lastName="last",
-        email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
         userType=UserType.STANDARD,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
     organization = Organization.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
-        rootDomains=[f"test-{secrets.token_hex(4)}"],
+        name="test-{}".format(secrets.token_hex(4)),
+        rootDomains=["test-{}".format(secrets.token_hex(4))],
         ipBlocks=[],
         isPassive=False,
         createdAt=datetime.now(),
@@ -168,7 +168,7 @@ def test_invite_by_organization_admin_should_work():
         role="admin",
     )
 
-    email = f"{secrets.token_hex(4)}@crossfeed.cisa.gov"
+    email = "{}@crossfeed.cisa.gov".format(secrets.token_hex(4))
     print("here")
     response = client.post(
         "/users",
@@ -176,10 +176,10 @@ def test_invite_by_organization_admin_should_work():
             "firstName": "first name",
             "lastName": "last name",
             "email": email,
-            "organization": str(organization.id),
+            "organization": "{}".format(organization.id),
             "organizationAdmin": False,
         },
-        headers={"Authorization": f"Bearer {create_jwt_token(user)}"},
+        headers={"Authorization": "Bearer {}".format(create_jwt_token(user))},
     )
 
     assert response.status_code == 200
@@ -199,15 +199,15 @@ def test_invite_by_organization_admin_should_not_work_if_setting_user_type():
     user = User.objects.create(
         firstName="first",
         lastName="last",
-        email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
         userType=UserType.STANDARD,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
 
     organization = Organization.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
-        rootDomains=[f"test-{secrets.token_hex(4)}"],
+        name="test-{}".format(secrets.token_hex(4)),
+        rootDomains=["test-{}".format(secrets.token_hex(4))],
         ipBlocks=[],
         isPassive=False,
         createdAt=datetime.now(),
@@ -220,18 +220,18 @@ def test_invite_by_organization_admin_should_not_work_if_setting_user_type():
         role="admin",
     )
 
-    email = f"{secrets.token_hex(4)}@crossfeed.cisa.gov"
+    email = "{}@crossfeed.cisa.gov".format(secrets.token_hex(4))
     response = client.post(
         "/users",
         json={
             "firstName": "first name",
             "lastName": "last name",
             "email": email,
-            "organization": str(organization.id),
+            "organization": "{}".format(organization.id),
             "organizationAdmin": False,
             "userType": UserType.GLOBAL_ADMIN,
         },
-        headers={"Authorization": f"Bearer {create_jwt_token(user)}"},
+        headers={"Authorization": "Bearer {}".format(create_jwt_token(user))},
     )
 
     assert response.status_code == 403
@@ -242,23 +242,23 @@ def test_invite_by_organization_admin_should_not_work_if_setting_user_type():
 def test_invite_existing_user_by_different_org_admin_should_not_modify_other_user_details():
     """Invite existing user by a different organization admin should work, and should not modify other user details."""
     organization = Organization.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
-        rootDomains=[f"test-{secrets.token_hex(4)}"],
+        name="test-{}".format(secrets.token_hex(4)),
+        rootDomains=["test-{}".format(secrets.token_hex(4))],
         ipBlocks=[],
         isPassive=False,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
     organization2 = Organization.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
-        rootDomains=[f"test-{secrets.token_hex(4)}"],
+        name="test-{}".format(secrets.token_hex(4)),
+        rootDomains=["test-{}".format(secrets.token_hex(4))],
         ipBlocks=[],
         isPassive=False,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
 
-    email = f"{secrets.token_hex(4)}@crossfeed.cisa.gov"
+    email = "{}@crossfeed.cisa.gov".format(secrets.token_hex(4))
     user = User.objects.create(
         firstName="first name", lastName="last name", email=email
     )
@@ -269,7 +269,7 @@ def test_invite_existing_user_by_different_org_admin_should_not_modify_other_use
     user2 = User.objects.create(
         firstName="first",
         lastName="last",
-        email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
         userType=UserType.STANDARD,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
@@ -288,10 +288,10 @@ def test_invite_existing_user_by_different_org_admin_should_not_modify_other_use
             "firstName": "new first name",
             "lastName": "new last name",
             "email": email,
-            "organization": str(organization2.id),
+            "organization": "{}".format(organization2.id),
             "organizationAdmin": False,
         },
-        headers={"Authorization": f"Bearer {create_jwt_token(user2)}"},
+        headers={"Authorization": "Bearer {}".format(create_jwt_token(user2))},
     )
 
     assert response.status_code == 200
@@ -306,7 +306,7 @@ def test_invite_existing_user_by_different_org_admin_should_not_modify_other_use
         for role in data["roles"]
         if role["organization"]["id"] == str(organization2.id)
     ]
-    assert role_for_org2, f"No role found for organization {organization2.id}"
+    assert role_for_org2, "No role found for organization {}".format(organization2.id)
     assert role_for_org2[0]["approved"] is True
     assert role_for_org2[0]["role"] == "user"
 
@@ -315,23 +315,23 @@ def test_invite_existing_user_by_different_org_admin_should_not_modify_other_use
 def test_invite_existing_user_by_different_org_admin_should_modify_user_name_if_initially_blank():
     """Invite existing user by a different organization admin should modify user name if user name is initially blank."""
     organization = Organization.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
-        rootDomains=[f"test-{secrets.token_hex(4)}"],
+        name="test-{}".format(secrets.token_hex(4)),
+        rootDomains=["test-{}".format(secrets.token_hex(4))],
         ipBlocks=[],
         isPassive=False,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
     organization2 = Organization.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
-        rootDomains=[f"test-{secrets.token_hex(4)}"],
+        name="test-{}".format(secrets.token_hex(4)),
+        rootDomains=["test-{}".format(secrets.token_hex(4))],
         ipBlocks=[],
         isPassive=False,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
 
-    email = f"{secrets.token_hex(4)}@crossfeed.cisa.gov"
+    email = "{}@crossfeed.cisa.gov".format(secrets.token_hex(4))
     user = User.objects.create(firstName="", lastName="", email=email)
     Role.objects.create(
         role="user", approved=False, organization=organization, user=user
@@ -340,7 +340,7 @@ def test_invite_existing_user_by_different_org_admin_should_modify_user_name_if_
     user2 = User.objects.create(
         firstName="first",
         lastName="last",
-        email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
         userType=UserType.STANDARD,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
@@ -359,10 +359,10 @@ def test_invite_existing_user_by_different_org_admin_should_modify_user_name_if_
             "firstName": "new first name",
             "lastName": "new last name",
             "email": email,
-            "organization": str(organization2.id),
+            "organization": "{}".format(organization2.id),
             "organizationAdmin": False,
         },
-        headers={"Authorization": f"Bearer {create_jwt_token(user2)}"},
+        headers={"Authorization": "Bearer {}".format(create_jwt_token(user2))},
     )
 
     assert response.status_code == 200
@@ -377,7 +377,7 @@ def test_invite_existing_user_by_different_org_admin_should_modify_user_name_if_
         for role in data["roles"]
         if role["organization"]["id"] == str(organization2.id)
     ]
-    assert role_for_org2, f"No role found for organization {organization2.id}"
+    assert role_for_org2, "No role found for organization {}".format(organization2.id)
     assert role_for_org2[0]["approved"] is True
     assert role_for_org2[0]["role"] == "user"
 
@@ -386,8 +386,8 @@ def test_invite_existing_user_by_different_org_admin_should_modify_user_name_if_
 def test_invite_existing_user_by_same_org_admin_should_update_user_org_role():
     """Invite existing user by same organization admin should work, and should update the user organization role."""
     organization = Organization.objects.create(
-        name=f"test-{secrets.token_hex(4)}",
-        rootDomains=[f"test-{secrets.token_hex(4)}"],
+        name="test-{}".format(secrets.token_hex(4)),
+        rootDomains=["test-{}".format(secrets.token_hex(4))],
         ipBlocks=[],
         isPassive=False,
         createdAt=datetime.now(),
@@ -396,9 +396,9 @@ def test_invite_existing_user_by_same_org_admin_should_update_user_org_role():
     admin_user = User.objects.create(
         firstName="first",
         lastName="last",
-        email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
     )
-    email = f"{secrets.token_hex(4)}@crossfeed.cisa.gov"
+    email = "{}@crossfeed.cisa.gov".format(secrets.token_hex(4))
     user = User.objects.create(firstName="first", lastName="last", email=email)
     Role.objects.create(
         role="user",
@@ -412,7 +412,7 @@ def test_invite_existing_user_by_same_org_admin_should_update_user_org_role():
     user2 = User.objects.create(
         firstName="first",
         lastName="last",
-        email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
         userType=UserType.STANDARD,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
@@ -431,10 +431,10 @@ def test_invite_existing_user_by_same_org_admin_should_update_user_org_role():
             "firstName": "first",
             "lastName": "last",
             "email": email,
-            "organization": str(organization.id),
+            "organization": "{}".format(organization.id),
             "organizationAdmin": True,
         },
-        headers={"Authorization": f"Bearer {create_jwt_token(user2)}"},
+        headers={"Authorization": "Bearer {}".format(create_jwt_token(user2))},
     )
 
     assert response.status_code == 200
@@ -454,15 +454,15 @@ def test_invite_existing_user_by_global_admin_should_update_user_type():
     User.objects.create(
         firstName="first",
         lastName="last",
-        email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
     )
-    email = f"{secrets.token_hex(4)}@crossfeed.cisa.gov"
+    email = "{}@crossfeed.cisa.gov".format(secrets.token_hex(4))
     user = User.objects.create(firstName="first", lastName="last", email=email)
 
     user2 = User.objects.create(
         firstName="first",
         lastName="last",
-        email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
         userType=UserType.GLOBAL_ADMIN,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
@@ -476,7 +476,7 @@ def test_invite_existing_user_by_global_admin_should_update_user_type():
             "email": email,
             "userType": UserType.GLOBAL_ADMIN,
         },
-        headers={"Authorization": f"Bearer {create_jwt_token(user2)}"},
+        headers={"Authorization": "Bearer {}".format(create_jwt_token(user2))},
     )
 
     assert response.status_code == 200
@@ -496,15 +496,15 @@ def test_invite_existing_user_by_global_view_should_not_work():
     User.objects.create(
         firstName="first",
         lastName="last",
-        email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
     )
-    email = f"{secrets.token_hex(4)}@crossfeed.cisa.gov"
+    email = "{}@crossfeed.cisa.gov".format(secrets.token_hex(4))
     User.objects.create(firstName="first", lastName="last", email=email)
 
     user2 = User.objects.create(
         firstName="first",
         lastName="last",
-        email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
         userType=UserType.GLOBAL_VIEW,
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
@@ -513,7 +513,7 @@ def test_invite_existing_user_by_global_view_should_not_work():
     response = client.post(
         "/users",
         json={"firstName": "first", "lastName": "last", "email": email},
-        headers={"Authorization": f"Bearer {create_jwt_token(user2)}"},
+        headers={"Authorization": "Bearer {}".format(create_jwt_token(user2))},
     )
 
     assert response.status_code == 403
@@ -528,7 +528,7 @@ def test_register_approve_success(mock_email):
     current_user = User.objects.create(
         firstName="Admin",
         lastName="User",
-        email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
         userType=UserType.GLOBAL_ADMIN,
         regionId="region-1",
         createdAt=datetime.now(),
@@ -537,16 +537,15 @@ def test_register_approve_success(mock_email):
     user_to_approve = User.objects.create(
         firstName="Test",
         lastName="User",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         regionId="region-1",
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
-
     # Mock email sending
     response = client.put(
-        f"/users/{user_to_approve.id}/register/approve",
-        headers={"Authorization": f"Bearer {create_jwt_token(current_user)}"},
+        "/users/{}/register/approve".format(user_to_approve.id),
+        headers={"Authorization": "Bearer {}".format(create_jwt_token(current_user))},
     )
 
     assert response.status_code == 200
@@ -567,7 +566,7 @@ def test_register_approve_unauthorized_region():
     current_user = User.objects.create(
         firstName="Admin",
         lastName="User",
-        email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
         userType=UserType.REGIONAL_ADMIN,
         regionId="1",
         createdAt=datetime.now(),
@@ -576,15 +575,15 @@ def test_register_approve_unauthorized_region():
     user_to_approve = User.objects.create(
         firstName="Test",
         lastName="User",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         regionId="2",
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
 
     response = client.put(
-        f"/users/{user_to_approve.id}/register/approve",
-        headers={"Authorization": f"Bearer {create_jwt_token(current_user)}"},
+        "/users/{}/register/approve".format(user_to_approve.id),
+        headers={"Authorization": "Bearer {}".format(create_jwt_token(current_user))},
     )
 
     assert response.status_code == 403
@@ -599,7 +598,7 @@ def test_register_deny_success(mock_denied_email):
     current_user = User.objects.create(
         firstName="Admin",
         lastName="User",
-        email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
         userType=UserType.GLOBAL_ADMIN,
         regionId="1",
         createdAt=datetime.now(),
@@ -608,14 +607,14 @@ def test_register_deny_success(mock_denied_email):
     user_to_deny = User.objects.create(
         firstName="Test",
         lastName="User",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         regionId="1",
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
     response = client.put(
-        f"/users/{user_to_deny.id}/register/deny",
-        headers={"Authorization": f"Bearer {create_jwt_token(current_user)}"},
+        "/users/{}/register/deny".format(user_to_deny.id),
+        headers={"Authorization": "Bearer {}".format(create_jwt_token(current_user))},
     )
 
     assert response.status_code == 200
@@ -635,7 +634,7 @@ def test_register_deny_unauthorized_region():
     current_user = User.objects.create(
         firstName="Admin",
         lastName="User",
-        email=f"{secrets.token_hex(4)}@crossfeed.cisa.gov",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
         userType=UserType.REGIONAL_ADMIN,
         regionId="1",
         createdAt=datetime.now(),
@@ -644,15 +643,15 @@ def test_register_deny_unauthorized_region():
     user_to_deny = User.objects.create(
         firstName="Test",
         lastName="User",
-        email=f"{secrets.token_hex(4)}@example.com",
+        email="{}@example.com".format(secrets.token_hex(4)),
         regionId="2",
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
 
     response = client.put(
-        f"/users/{user_to_deny.id}/register/deny",
-        headers={"Authorization": f"Bearer {create_jwt_token(current_user)}"},
+        "/users/{}/register/deny".format(user_to_deny.id),
+        headers={"Authorization": "Bearer {}".format(create_jwt_token(current_user))},
     )
 
     print(response.json())

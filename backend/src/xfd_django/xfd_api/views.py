@@ -90,11 +90,6 @@ from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
 api_router = APIRouter()
 
 
-async def default_identifier(request):
-    """Return default identifier."""
-    return request.headers.get("X-Real-IP", request.client.host)
-
-
 async def get_redis_client(request: Request):
     """Get the Redis client from the application state."""
     return request.app.state.redis
@@ -129,7 +124,9 @@ async def matomo_proxy(
         "/plugins/Morpheus/fonts/matomo.ttf",
     ]:
         return RedirectResponse(
-            url=f"https://cdn.jsdelivr.net/gh/matomo-org/matomo@5.2.1{request.url.path}"
+            url="https://cdn.jsdelivr.net/gh/matomo-org/matomo@5.2.1{}".format(
+                request.url.path
+            )
         )
 
     # Ensure only global admin can access other paths
@@ -1209,7 +1206,9 @@ async def call_search_vulnerabilities(
         # Convert each ORM instance to a Pydantic model
         result = [GetVulnerabilityResponse.model_validate(v) for v in vulnerabilities]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Serialization error: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail="Serialization error: {}".format(str(e))
+        )
 
     return VulnerabilitySearchResponse(result=result, count=count)
 

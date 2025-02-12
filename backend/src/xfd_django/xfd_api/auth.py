@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import hashlib
 from hashlib import sha256
 import os
+import re
 from typing import List, Optional
 from urllib.parse import urlencode
 import uuid
@@ -213,8 +214,7 @@ def hash_key(key: str) -> str:
 # async def get_user_info_from_cognito(token):
 #     """Get user info from cognito."""
 #     jwks_url = (
-#         f"https://cognito-idp.us-east-1.amazonaws.com/"
-#         f"{os.getenv('REACT_APP_USER_POOL_ID')}/.well-known/jwks.json"
+#         "https://cognito-idp.us-east-1.amazonaws.com/{}/.well-known/jwks.json".format(os.getenv('REACT_APP_USER_POOL_ID'))
 #     )
 #     response = requests.get(jwks_url)
 #     jwks = response.json()
@@ -273,34 +273,38 @@ def get_current_active_user(
     if api_key:
         user = get_user_by_api_key(api_key)
     elif token:
-        try:
-            # Decode token in Authorization header to get user
-            payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-            user_id = payload.get("id")
+        # Check if token is an API key
+        if re.match(r"^[A-Fa-f0-9]{32}$", token):
+            user = get_user_by_api_key(token)
+        else:
+            try:
+                # Decode token in Authorization header to get user
+                payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+                user_id = payload.get("id")
 
-            if user_id is None:
-                print("No user ID found in token")
+                if user_id is None:
+                    print("No user ID found in token")
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Invalid token",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+                # Fetch the user by ID from the database
+                user = User.objects.get(id=user_id)
+            except jwt.ExpiredSignatureError:
+                print("Token has expired")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token has expired",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            except jwt.InvalidTokenError:
+                print("Invalid token")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid token",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
-            # Fetch the user by ID from the database
-            user = User.objects.get(id=user_id)
-        except jwt.ExpiredSignatureError:
-            print("Token has expired")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has expired",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        except jwt.InvalidTokenError:
-            print("Invalid token")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
     else:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -368,7 +372,7 @@ async def get_jwt_from_code(auth_code: str):
         proxy_url = os.getenv("LZ_PROXY_URL")
 
         scope = "openid"
-        authorize_token_url = f"https://{domain}/oauth2/token"
+        authorize_token_url = "https://{}/oauth2/token".format(domain)
         authorize_token_body = {
             "grant_type": "authorization_code",
             "client_id": client_id,
@@ -400,7 +404,7 @@ async def get_jwt_from_code(auth_code: str):
 
         # Decode the token without verifying the signature (if needed)
         decoded_token = jwt.decode(id_token, options={"verify_signature": False})
-        print(f"decoded token: {decoded_token}")
+        print("decoded token: {}".format(decoded_token))
         return {
             "refresh_token": refresh_token,
             "id_token": id_token,
@@ -409,7 +413,7 @@ async def get_jwt_from_code(auth_code: str):
         }
 
     except Exception as error:
-        print(f"get_jwt_from_code post error: {error}")
+        print("get_jwt_from_code post error: {}".format(error))
 
 
 def can_access_user(current_user, target_user_id) -> bool:
@@ -541,6 +545,7 @@ def get_stats_org_ids(current_user, filters):
                 is_global_view_admin(current_user)
                 or (is_regional_admin_for_organization(current_user, org_id))
                 or (is_org_admin(current_user, org_id))
+                or (get_org_memberships(current_user))
             ):
                 organization_ids.add(org_id)
 

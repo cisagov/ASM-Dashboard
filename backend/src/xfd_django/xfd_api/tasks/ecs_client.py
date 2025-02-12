@@ -54,7 +54,12 @@ class ECSClient:
             # Run the command in a local Docker container
             try:
                 container_name = to_snake_case(
-                    f"crossfeed_worker_{'global' if global_scan else organization_name}_{scan_name}_{int(os.urandom(4).hex(), 16)}"
+                    "crossfeed_worker_{global_str}_{organization}_{scan}_{random}".format(
+                        global_str="global" if global_scan else organization_name,
+                        organization=organization_name,
+                        scan=scan_name,
+                        random=int(os.urandom(4).hex(), 16),
+                    )
                 )
                 container = self.docker.containers.run(
                     "crossfeed-worker",
@@ -143,7 +148,7 @@ class ECSClient:
                             },
                             {
                                 "name": "NODE_OPTIONS",
-                                "value": f"--max_old_space_size={memory}"
+                                "value": "--max_old_space_size={}".format(memory)
                                 if memory
                                 else "",
                             },
@@ -164,7 +169,7 @@ class ECSClient:
             # Process and return the logs
             return "\n".join(line for line in log_stream.decode("utf-8").splitlines())
         else:
-            log_stream_name = f"worker/main/{fargate_task_arn.split('/')[-1]}"
+            log_stream_name = "worker/main/{}".format(fargate_task_arn.split("/")[-1])
 
             # Fetch logs from AWS CloudWatch
             response = self.cloudwatch_logs.get_log_events(
@@ -180,7 +185,12 @@ class ECSClient:
 
             # Format the logs as "timestamp message"
             formatted_logs = "\n".join(
-                f"{datetime.utcfromtimestamp(event['timestamp'] / 1000).isoformat(timespec='seconds')} {event['message']}"
+                "{} {}".format(
+                    datetime.fromtimestamp(
+                        event["timestamp"] / 1000, datetime.timezone.utc
+                    ).isoformat(timespec="seconds"),
+                    event["message"],
+                )
                 for event in events
             )
             return formatted_logs
