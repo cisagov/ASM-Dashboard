@@ -1,6 +1,6 @@
 """ShodanSync scan."""
 # Standard Python Libraries
-from datetime import datetime, timedelta
+import datetime
 import os
 import time
 
@@ -46,9 +46,9 @@ def main():
     )
 
     # Step 1: Get the current date and time in UTC
-    current_time = datetime.now(datetime.timezone.utc)
+    current_time = datetime.datetime.now(datetime.timezone.utc)
     # Step 2: Subtract days from the current date
-    days_ago = current_time - timedelta(days=15)
+    days_ago = current_time - datetime.timedelta(days=15)
     # Step 3: Convert to an ISO 8601 string with timezone (e.g., UTC)
     since_timestamp_str = days_ago.isoformat()
 

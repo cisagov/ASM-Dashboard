@@ -1,6 +1,6 @@
 """CredentialSync scan."""
 # Standard Python Libraries
-from datetime import datetime, timedelta
+import datetime
 import os
 import time
 
@@ -44,9 +44,9 @@ def main():
     # all_orgs = Organization.objects.filter(acronym__in=['USAGM', 'DHS'])
 
     # Step 1: Get the current date and time in UTC
-    current_time = datetime.now(datetime.timezone.utc)
+    current_time = datetime.datetime.now(datetime.timezone.utc)
     # Step 2: Subtract days from the current date
-    days_ago = current_time - timedelta(days=15)
+    days_ago = current_time - datetime.timedelta(days=15)
     # Step 3: Convert to an ISO 8601 string with timezone (e.g., UTC)
     since_timestamp_str = days_ago.isoformat()
 
@@ -213,7 +213,7 @@ def save_findings_to_db(cred_exposures_array, cred_breaches_array, org):
                         ),
                         "description": breach.get("description"),
                         "exposed_cred_count": breach.get("exposed_cred_count"),
-                        "breach_date": datetime.fromisoformat(
+                        "breach_date": datetime.datetime.fromisoformat(
                             breach.get("breach_date")
                         ).date(),
                         "added_date": breach.get("added_date"),
