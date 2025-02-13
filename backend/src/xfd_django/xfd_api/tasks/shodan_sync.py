@@ -34,94 +34,96 @@ def handler(event):
 
 def main():
     """Fetch and save DMZ Shodan vulnerabilities and assets."""
-    all_orgs = Organization.objects.all()
-    # all_orgs = Organization.objects.filter(acronym__in=['USAGM', 'DHS'])
+    try:
+        all_orgs = Organization.objects.all()
+        # all_orgs = Organization.objects.filter(acronym__in=['USAGM', 'DHS'])
 
-    shodan_datasource, created = DataSource.objects.get_or_create(
-        name="Shodan",
-        defaults={
-            "description": "Scans the internet for publicly accessible devices, concentrating on SCADA (supervisory control and data acquisition) systems.",
-            "last_run": timezone.now().date(),  # Sets the current date and time
-        },
-    )
-
-    # Step 1: Get the current date and time in UTC
-    current_time = datetime.datetime.now(datetime.timezone.utc)
-    # Step 2: Subtract days from the current date
-    days_ago = current_time - datetime.timedelta(days=15)
-    # Step 3: Convert to an ISO 8601 string with timezone (e.g., UTC)
-    since_timestamp_str = days_ago.isoformat()
-
-    for org in all_orgs:
-        print(
-            "Processing organization: {acronym}, {name}".format(
-                acronym=org.acronym, name=org.name
-            )
+        shodan_datasource, created = DataSource.objects.get_or_create(
+            name="Shodan",
+            defaults={
+                "description": "Scans the internet for publicly accessible devices, concentrating on SCADA (supervisory control and data acquisition) systems.",
+                "last_run": timezone.now().date(),  # Sets the current date and time
+            },
         )
-        done = False
-        page = 1
-        total_pages = 2
-        per_page = 200
-        retry_count = 0
 
-        while not done:
-            data = fetch_dmz_shodan_task(
-                org.acronym, page, per_page, since_timestamp_str
-            )
-            print(data)
-            if not data or data.get("status") != "Processing":
-                print(
-                    "Failed to start Shodan Sync task for org: {acronym}, {name}".format(
-                        acronym=org.acronym, name=org.name
-                    )
+        # Step 1: Get the current date and time in UTC
+        current_time = datetime.datetime.now(datetime.timezone.utc)
+        # Step 2: Subtract days from the current date
+        days_ago = current_time - datetime.timedelta(days=15)
+        # Step 3: Convert to an ISO 8601 string with timezone (e.g., UTC)
+        since_timestamp_str = days_ago.isoformat()
+
+        for org in all_orgs:
+            print(
+                "Processing organization: {acronym}, {name}".format(
+                    acronym=org.acronym, name=org.name
                 )
+            )
+            done = False
+            page = 1
+            total_pages = 2
+            per_page = 200
+            retry_count = 0
 
-                retry_count += 1
-
-                if retry_count >= MAX_RETRIES:
+            while not done:
+                data = fetch_dmz_shodan_task(
+                    org.acronym, page, per_page, since_timestamp_str
+                )
+                print(data)
+                if not data or data.get("status") != "Processing":
                     print(
-                        "Max retries reached for org: {acronym}. Moving to next organization.".format(
-                            acronym=org.acronym
+                        "Failed to start Shodan Sync task for org: {acronym}, {name}".format(
+                            acronym=org.acronym, name=org.name
                         )
                     )
-                    break  # Skip to next organization
 
-                time.sleep(5)
-                continue
+                    retry_count += 1
 
-            response = fetch_dmz_shodan_data(data.get("task_id", None))
+                    if retry_count >= MAX_RETRIES:
+                        print(
+                            "Max retries reached for org: {acronym}. Moving to next organization.".format(
+                                acronym=org.acronym
+                            )
+                        )
+                        break  # Skip to next organization
 
-            while response and response.get("status") == "Pending":
-                time.sleep(1)
+                    time.sleep(5)
+                    continue
+
                 response = fetch_dmz_shodan_data(data.get("task_id", None))
 
-            if response and response.get("status") == "Completed":
-                shodan_asset_array = (
-                    response.get("result", {}).get("data", {}).get("shodan_assets", [])
-                )
-                shodan_vuln_array = (
-                    response.get("result", {}).get("data", {}).get("shodan_vulns", [])
-                )
-                total_pages = response.get("result", {}).get("total_pages", 1)
-                current_page = response.get("result", {}).get("current_page", 1)
-                print("vulns")
-                print(shodan_vuln_array)
-                print("assets")
-                print(shodan_asset_array)
-                save_findings_to_db(
-                    shodan_asset_array, shodan_vuln_array, org, shodan_datasource
-                )
+                while response and response.get("status") == "Pending":
+                    time.sleep(1)
+                    response = fetch_dmz_shodan_data(data.get("task_id", None))
 
-                if current_page >= total_pages:
-                    done = True
-                page += 1
-            else:
-                raise Exception(
-                    "Task error: {error} - Status: {status}".format(
-                        error=response.get("error"), status=response.get("status")
+                if response and response.get("status") == "Completed":
+                    shodan_asset_array = (
+                        response.get("result", {}).get("data", {}).get("shodan_assets", [])
                     )
-                )
+                    shodan_vuln_array = (
+                        response.get("result", {}).get("data", {}).get("shodan_vulns", [])
+                    )
+                    total_pages = response.get("result", {}).get("total_pages", 1)
+                    current_page = response.get("result", {}).get("current_page", 1)
+                    print("vulns")
+                    print(shodan_vuln_array)
+                    print("assets")
+                    print(shodan_asset_array)
+                    save_findings_to_db(
+                        shodan_asset_array, shodan_vuln_array, org, shodan_datasource
+                    )
 
+                    if current_page >= total_pages:
+                        done = True
+                    page += 1
+                else:
+                    raise Exception(
+                        "Task error: {error} - Status: {status}".format(
+                            error=response.get("error"), status=response.get("status")
+                        )
+                    )
+    except Exception as e:
+        print('Scan failed to complete: {error}'.format(error=e))
 
 def fetch_dmz_shodan_task(org_acronym, page, per_page, since_timestamp):
     """Fetch shodan task id."""

@@ -39,85 +39,88 @@ def handler(event):
 
 def main():
     """Fetch and save DMZ credential breaches and exposures."""
-    all_orgs = Organization.objects.all()
-    # For testing
-    # all_orgs = Organization.objects.filter(acronym__in=['USAGM', 'DHS'])
+    try:
+        all_orgs = Organization.objects.all()
+        # For testing
+        # all_orgs = Organization.objects.filter(acronym__in=['USAGM', 'DHS'])
 
-    # Step 1: Get the current date and time in UTC
-    current_time = datetime.datetime.now(datetime.timezone.utc)
-    # Step 2: Subtract days from the current date
-    days_ago = current_time - datetime.timedelta(days=15)
-    # Step 3: Convert to an ISO 8601 string with timezone (e.g., UTC)
-    since_timestamp_str = days_ago.isoformat()
+        # Step 1: Get the current date and time in UTC
+        current_time = datetime.datetime.now(datetime.timezone.utc)
+        # Step 2: Subtract days from the current date
+        days_ago = current_time - datetime.timedelta(days=15)
+        # Step 3: Convert to an ISO 8601 string with timezone (e.g., UTC)
+        since_timestamp_str = days_ago.isoformat()
 
-    for org in all_orgs:
-        print(
-            "Processing organization: {acronym}, {name}".format(
-                acronym=org.acronym, name=org.name
-            )
-        )
-        done = False
-        page = 1
-        total_pages = 2
-        per_page = 200
-        retry_count = 0
-
-        while not done:
-            data = fetch_dmz_cred_task(org.acronym, page, per_page, since_timestamp_str)
-            if not data or data.get("status") != "Processing":
-                print(
-                    "Failed to start Credential Sync task for org: {acronym}, {name}".format(
-                        acronym=org.acronym, name=org.name
-                    )
+        for org in all_orgs:
+            print(
+                "Processing organization: {acronym}, {name}".format(
+                    acronym=org.acronym, name=org.name
                 )
+            )
+            done = False
+            page = 1
+            total_pages = 2
+            per_page = 200
+            retry_count = 0
 
-                retry_count += 1
-
-                if retry_count >= MAX_RETRIES:
+            while not done:
+                data = fetch_dmz_cred_task(org.acronym, page, per_page, since_timestamp_str)
+                if not data or data.get("status") != "Processing":
                     print(
-                        "Max retries reached for org: {acronym}. Moving to next organization.".format(
-                            acronym=org.acronym
+                        "Failed to start Credential Sync task for org: {acronym}, {name}".format(
+                            acronym=org.acronym, name=org.name
                         )
                     )
-                    break  # Skip to next organization
 
-                time.sleep(5)
-                continue
+                    retry_count += 1
 
-            response = fetch_dmz_cred_data(data.get("task_id", None))
+                    if retry_count >= MAX_RETRIES:
+                        print(
+                            "Max retries reached for org: {acronym}. Moving to next organization.".format(
+                                acronym=org.acronym
+                            )
+                        )
+                        break  # Skip to next organization
 
-            while response and response.get("status") == "Pending":
-                time.sleep(1)
+                    time.sleep(5)
+                    continue
+
                 response = fetch_dmz_cred_data(data.get("task_id", None))
 
-            if response and response.get("status") == "Completed":
-                cred_exposures_array = (
-                    response.get("result", {})
-                    .get("data", {})
-                    .get("credential_exposures", [])
-                )
-                cred_breaches_array = (
-                    response.get("result", {})
-                    .get("data", {})
-                    .get("credential_breaches", [])
-                )
-                total_pages = response.get("result", {}).get("total_pages", 1)
-                current_page = response.get("result", {}).get("current_page", 1)
-                print("Returned breaches")
-                print(cred_breaches_array)
-                print("Returned exposures")
-                print(cred_exposures_array)
-                save_findings_to_db(cred_exposures_array, cred_breaches_array, org)
+                while response and response.get("status") == "Pending":
+                    time.sleep(1)
+                    response = fetch_dmz_cred_data(data.get("task_id", None))
 
-                if current_page >= total_pages:
-                    done = True
-                page += 1
-            else:
-                raise Exception(
-                    "Task error: {error} - Status: {status}".format(
-                        error=response.get("error"), status=response.get("status")
+                if response and response.get("status") == "Completed":
+                    cred_exposures_array = (
+                        response.get("result", {})
+                        .get("data", {})
+                        .get("credential_exposures", [])
                     )
-                )
+                    cred_breaches_array = (
+                        response.get("result", {})
+                        .get("data", {})
+                        .get("credential_breaches", [])
+                    )
+                    total_pages = response.get("result", {}).get("total_pages", 1)
+                    current_page = response.get("result", {}).get("current_page", 1)
+                    print("Returned breaches")
+                    print(cred_breaches_array)
+                    print("Returned exposures")
+                    print(cred_exposures_array)
+                    save_findings_to_db(cred_exposures_array, cred_breaches_array, org)
+
+                    if current_page >= total_pages:
+                        done = True
+                    page += 1
+                else:
+                    raise Exception(
+                        "Task error: {error} - Status: {status}".format(
+                            error=response.get("error"), status=response.get("status")
+                        )
+                    )
+    except Exception as e:
+        print('Scan failed to complete: {error}'.format(error=e))
 
 
 def fetch_dmz_cred_task(org_acronym, page, per_page, since_timestamp):
@@ -208,9 +211,6 @@ def save_findings_to_db(cred_exposures_array, cred_breaches_array, org):
                 ) = CredentialBreaches.objects.get_or_create(
                     breach_name=breach.get("breach_name"),
                     defaults={
-                        "credential_breaches_uid": breach.get(
-                            "credential_breaches_uid"
-                        ),
                         "description": breach.get("description"),
                         "exposed_cred_count": breach.get("exposed_cred_count"),
                         "breach_date": datetime.datetime.fromisoformat(
@@ -240,9 +240,6 @@ def save_findings_to_db(cred_exposures_array, cred_breaches_array, org):
                     breach_name=exposure.get("breach_name"),
                     email=exposure.get("email"),
                     defaults={
-                        "credential_exposures_uid": exposure.get(
-                            "credential_exposures_uid"
-                        ),
                         "root_domain": exposure.get("root_domain"),
                         "sub_domain": exposure.get("sub_domain"),
                         "modified_date": exposure.get("modified_date"),
