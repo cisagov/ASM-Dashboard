@@ -1,139 +1,125 @@
 """Test notifications."""
-# Third-Party Libraries
+import secrets
+import uuid
+from datetime import datetime
+
+import pytest
 from fastapi.testclient import TestClient
-from xfd_django.asgi import app  # Import your FastAPI app
+
+from xfd_api.auth import create_jwt_token
+from xfd_api.models import Notification, User, UserType
+from xfd_django.asgi import app
 
 client = TestClient(app)
 
-# TODO: Fix tests
-# @pytest.mark.django_db
-# def test_create_notification():
-#     # Create a test user
-#     user = User.objects.create(
-#         firstName="Test",
-#         lastName="User",
-#         email="testuser@example.com",
-#         userType="STANDARD",
-#     )
+# Test: Creating a notification as a GlobalViewAdmin user should succeed
+@pytest.mark.django_db(transaction=True)
+def test_create_notification_as_global_view_admin():
+    """Test notification creation by GlobalViewAdmin."""
+    user = User.objects.create(
+        firstName="",
+        lastName="",
+        email="{}@example.com".format(secrets.token_hex(4)),
+        userType=UserType.GLOBAL_VIEW,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
 
-#     # Define the notification data
-#     notification_data = {"message": "Test notification", "status": "unread"}
+    response = client.post(
+        "/notifications",
+        headers={"Authorization": "Bearer " + create_jwt_token(user)},
+        json={"message": "Test notification"},
+    )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert "id" in data
+    assert data["message"] == "Test notification"
+    
+    # Ensure the notification was stored in the database
+    assert Notification.objects.filter(id=data["id"]).exists()
 
-#     # Send the POST request
-#     response = client.post(
-#         "/notifications",
-#         json=notification_data,
-#         headers={
-#             "Authorization": create_jwt_token({"id": user.id, "userType": "STANDARD"})
-#         },
-#     )
+# Test: Deleting a notification as a GlobalViewAdmin user should succeed
+@pytest.mark.django_db(transaction=True)
+def test_delete_notification_as_global_view_admin():
+    """Test notification deletion by GlobalViewAdmin."""
+    user = User.objects.create(
+        firstName="",
+        lastName="",
+        email="{}@example.com".format(secrets.token_hex(4)),
+        userType=UserType.GLOBAL_VIEW,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+    
+    notification = Notification.objects.create(
+        id=uuid.uuid4(),
+        message="Test notification",
+        user=user,
+        createdAt=datetime.utcnow(),
+        updatedAt=datetime.utcnow(),
+    )
+    
+    response = client.delete(
+        f"/notifications/{notification.id}",
+        headers={"Authorization": "Bearer " + create_jwt_token(user)},
+    )
+    
+    assert response.status_code == 200
+    assert response.json() == {"status": "success", "message": "Item deleted successfully"}
+    
+    # Ensure the notification was removed from the database
+    assert not Notification.objects.filter(id=notification.id).exists()
 
-#     # Assert the response status code
-#     assert response.status_code == 200
+# Test: Getting all notifications should succeed
+@pytest.mark.django_db(transaction=True)
+def test_get_all_notifications():
+    """Test retrieving all notifications."""
+    Notification.objects.create(
+        id=uuid.uuid4(),
+        message="Test notification 1",
+        createdAt=datetime.utcnow(),
+        updatedAt=datetime.utcnow(),
+    )
+    Notification.objects.create(
+        id=uuid.uuid4(),
+        message="Test notification 2",
+        createdAt=datetime.utcnow(),
+        updatedAt=datetime.utcnow(),
+    )
+    
+    response = client.get("/notifications")
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) >= 2
 
-#     # Assert the notification was created correctly
-#     response_data = response.json()
-#     assert response_data["message"] == "Test notification"
-#     assert response_data["status"] == "unread"
-#     assert "id" in response_data  # Ensure that ID was assigned
-
-
-# @pytest.mark.django_db
-# def test_delete_notification():
-#     # Create a test user
-#     user = User.objects.create(
-#         firstName="Test",
-#         lastName="User",
-#         email="testuser@example.com",
-#         userType="STANDARD",
-#     )
-
-#     # Create a test notification
-#     notification = Notification.objects.create(
-#         message="Test notification", status="unread", userId=user
-#     )
-
-#     # Send the DELETE request
-#     response = client.delete(
-#         "/notifications/{}".format(notification.id),
-#         headers={
-#             "Authorization": create_jwt_token({"id": user.id, "userType": "STANDARD"})
-#         },
-#     )
-
-#     # Assert the response status code
-#     assert response.status_code == 200
-
-#     # Assert the response content
-#     response_data = response.json()
-#     assert response_data["status"] == "success"
-#     assert response_data["message"] == "Item deleted successfully"
-
-#     # Assert the notification no longer exists
-#     with pytest.raises(Notification.DoesNotExist):
-#         Notification.objects.get(id=notification.id)
-
-
-# @pytest.mark.django_db
-# def test_get_all_notifications():
-#     # Create a test user
-#     user = User.objects.create(
-#         firstName="Test",
-#         lastName="User",
-#         email="testuser@example.com",
-#         userType="STANDARD",
-#     )
-
-#     # Create two test notifications
-#     Notification.objects.create(message="Notification 1", status="unread", userId=user)
-#     Notification.objects.create(message="Notification 2", status="read", userId=user)
-
-#     # Send the GET request
-#     response = client.get(
-#         "/notifications",
-#         headers={
-#             "Authorization": create_jwt_token({"id": user.id, "userType": "STANDARD"})
-#         },
-#     )
-
-#     # Assert the response status code
-#     assert response.status_code == 200
-
-#     # Assert that two notifications are returned
-#     notifications = response.json()
-#     assert len(notifications) == 2
-#     assert notifications[0]["message"] == "Notification 1"
-#     assert notifications[1]["message"] == "Notification 2"
-
-
-# @pytest.mark.django_db
-# def test_get_notification_by_id():
-#     # Create a test user
-#     user = User.objects.create(
-#         firstName="Test",
-#         lastName="User",
-#         email="testuser@example.com",
-#         userType="STANDARD",
-#     )
-
-#     # Create a test notification
-#     notification = Notification.objects.create(
-#         message="Test notification", status="unread", userId=user
-#     )
-
-#     # Send the GET request
-#     response = client.get(
-#         "/notifications/{}".format(notification.id),
-#         headers={
-#             "Authorization": create_jwt_token({"id": user.id, "userType": "STANDARD"})
-#         },
-#     )
-
-#     # Assert the response status code
-#     assert response.status_code == 200
-
-#     # Assert the correct notification is returned
-#     response_data = response.json()
-#     assert response_data["message"] == "Test notification"
-#     assert response_data["status"] == "unread"
-#     assert response_data["id"] == str(notification.id)
+# Test: Getting a notification by ID as a GlobalViewAdmin user should succeed
+@pytest.mark.django_db(transaction=True)
+def test_get_notification_by_id_as_global_view_admin():
+    """Test retrieving a specific notification by ID as GlobalViewAdmin."""
+    user = User.objects.create(
+        firstName="",
+        lastName="",
+        email="{}@example.com".format(secrets.token_hex(4)),
+        userType=UserType.GLOBAL_VIEW,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+    
+    notification = Notification.objects.create(
+        id=uuid.uuid4(),
+        message="Test notification",
+        user=user,
+        createdAt=datetime.utcnow(),
+        updatedAt=datetime.utcnow(),
+    )
+    
+    response = client.get(
+        f"/notifications/{notification.id}",
+        headers={"Authorization": "Bearer " + create_jwt_token(user)},
+    )
+    
+    assert response.status_code == 200
+    assert response.json()["message"] == "Test notification"
