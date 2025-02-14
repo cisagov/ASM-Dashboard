@@ -14,6 +14,7 @@ django.setup()
 
 # Third-Party Libraries
 from xfd_api.tasks.syncdb_helpers import (
+    create_scan_user,
     drop_all_tables,
     manage_elasticsearch_indices,
     populate_sample_data,
@@ -31,15 +32,16 @@ def handler(event, context):
         # Drop and recreate the database if dangerouslyforce is true
         if dangerouslyforce:
             print("Dropping and recreating the database...")
-            drop_all_tables()
+            drop_all_tables(app_label="xfd_api")
 
         # Generate and apply migrations dynamically
         print("Applying migrations dynamically...")
-        synchronize()
+        synchronize(target_app_label="xfd_api")
 
         # Elasticsearch Index Management
         manage_elasticsearch_indices(dangerouslyforce)
 
+        create_scan_user()
         # Populate Sample Data
         if populate:
             print("Populating the database with sample data...")
