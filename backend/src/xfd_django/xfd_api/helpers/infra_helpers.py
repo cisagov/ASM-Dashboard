@@ -98,33 +98,20 @@ def create_matomo_scan_user():
                 cursor.execute(
                     "CREATE USER %s@'%%' IDENTIFIED BY %s;", [scan_user, scan_password]
                 )
-                print(
-                    "User '{}' created successfully in Matomo database.".format(
-                        scan_user
-                    )
-                )
+                print("User '{}' created successfully in Matomo database.".format(scan_user))
             else:
-                print("User '{}' already exists. Skipping creation.".format(scan_user))
+                print("User '{}' already exists in Matomo database. Skipping creation.".format(scan_user))
 
-            # Grant privileges (aligned with PostgreSQL version)
-            cursor.execute(
-                "GRANT CONNECT ON DATABASE {} TO %s@'%%';".format(db_name), [scan_user]
-            )
-            cursor.execute("GRANT USAGE ON SCHEMA public TO %s@'%%';", [scan_user])
-            cursor.execute(
-                "GRANT SELECT ON {}.* TO %s@'%%';".format(db_name), [scan_user]
-            )
-            cursor.execute(
-                "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO %s@'%%';",
-                [scan_user],
-            )  # ✅ ADDED
-            cursor.execute("FLUSH PRIVILEGES;")  # MariaDB-specific, but necessary
+            cursor.execute("GRANT USAGE ON *.* TO %s@'%%';", [scan_user])
+            cursor.execute("GRANT SELECT ON matomo.* TO %s@'%%';", [scan_user])
 
-            print(
-                "User '{}' configured successfully in Matomo database.".format(
-                    scan_user
-                )
-            )
+            # Additional permissions to allow access to system tables
+            cursor.execute("GRANT SHOW DATABASES ON *.* TO %s@'%%';", [scan_user])
+            cursor.execute("GRANT PROCESS ON *.* TO %s@'%%';", [scan_user]) 
+
+            cursor.execute("FLUSH PRIVILEGES;")
+
+            print("User '{}' configured successfully in Matomo database.".format(scan_user))
 
         conn.commit()
         conn.close()
