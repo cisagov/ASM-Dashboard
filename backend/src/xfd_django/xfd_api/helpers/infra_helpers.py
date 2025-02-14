@@ -98,20 +98,32 @@ def create_matomo_scan_user():
                 cursor.execute(
                     "CREATE USER %s@'%%' IDENTIFIED BY %s;", [scan_user, scan_password]
                 )
-                print("User '{}' created successfully in Matomo database.".format(scan_user))
+                print(
+                    "User '{}' created successfully in Matomo database.".format(
+                        scan_user
+                    )
+                )
             else:
-                print("User '{}' already exists in Matomo database. Skipping creation.".format(scan_user))
+                print(
+                    "User '{}' already exists in Matomo database. Skipping creation.".format(
+                        scan_user
+                    )
+                )
 
             cursor.execute("GRANT USAGE ON *.* TO %s@'%%';", [scan_user])
             cursor.execute("GRANT SELECT ON matomo.* TO %s@'%%';", [scan_user])
 
             # Additional permissions to allow access to system tables
             cursor.execute("GRANT SHOW DATABASES ON *.* TO %s@'%%';", [scan_user])
-            cursor.execute("GRANT PROCESS ON *.* TO %s@'%%';", [scan_user]) 
+            cursor.execute("GRANT PROCESS ON *.* TO %s@'%%';", [scan_user])
 
             cursor.execute("FLUSH PRIVILEGES;")
 
-            print("User '{}' configured successfully in Matomo database.".format(scan_user))
+            print(
+                "User '{}' configured successfully in Matomo database.".format(
+                    scan_user
+                )
+            )
 
         conn.commit()
         conn.close()
