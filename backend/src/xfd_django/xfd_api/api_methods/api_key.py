@@ -94,6 +94,9 @@ def get_all(current_user):
 
         return validated_response
 
+    except HTTPException as http_exc:
+        raise http_exc
+    
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
 
@@ -116,6 +119,9 @@ def get_by_id(api_key_id, current_user):
             exclude={"hashedKey", "userId"}
         )
 
+    except HTTPException as http_exc:
+        raise http_exc
+    
     except ApiKey.DoesNotExist:
         raise HTTPException(status_code=404, detail="API Key not found")
 

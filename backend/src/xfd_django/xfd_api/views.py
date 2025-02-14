@@ -171,7 +171,7 @@ async def create_api_key(current_user: User = Depends(get_current_active_user)):
 
 
 # DELETE
-@api_router.delete("/api-keys/{id}", tags=["API Keys"])
+@api_router.delete("/api-keys/{api_key_id}", tags=["API Keys"])
 async def delete_api_key(
     api_key_id: str, current_user: User = Depends(get_current_active_user)
 ):
@@ -187,7 +187,7 @@ async def get_all_api_keys(current_user: User = Depends(get_current_active_user)
 
 
 # GET BY ID
-@api_router.get("/api-keys/{id}", response_model=ApiKeySchema, tags=["API Keys"])
+@api_router.get("/api-keys/{api_key_id}", response_model=ApiKeySchema, tags=["API Keys"])
 async def get_api_key(
     api_key_id: str, current_user: User = Depends(get_current_active_user)
 ):
