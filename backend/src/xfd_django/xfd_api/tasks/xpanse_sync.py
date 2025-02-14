@@ -61,47 +61,49 @@ def main():
             total_pages = 2
             per_page = 100
             retry_count = 0
+            if business_unit.cyhy_db_name:
+                while not done:
+                    data = fetch_dmz_xpanse_alert_task(
+                        business_unit.cyhy_db_name.acronym,
+                        page,
+                        per_page,
+                        modified_timestamp_str,
+                    )
+                    if not data or data.get("status") != "Processing":
+                        retry_count += 1
 
-            while not done:
-                data = fetch_dmz_xpanse_alert_task(
-                    business_unit.cyhy_db_name.acronym,
-                    page,
-                    per_page,
-                    modified_timestamp_str,
-                )
-                if not data or data.get("status") != "Processing":
-                    retry_count += 1
+                        if retry_count >= MAX_RETRIES:
+                            print(
+                                "Max retries reached for org: {acronym}. Moving to next organization.".format(
+                                    acronym=business_unit.cyhy_db_name.acronym
+                                )
+                            )
+                            break  # Skip to next organization
 
-                    if retry_count >= MAX_RETRIES:
-                        print(
-                            "Max retries reached for org: {acronym}. Moving to next organization.".format(
-                                acronym=business_unit.cyhy_db_name.acronym
+                        time.sleep(5)
+                        continue
+                    response = fetch_dmz_xpanse_data(data.get("task_id"))
+
+                    while response and response.get("status") == "Pending":
+                        time.sleep(1)
+                        response = fetch_dmz_xpanse_data(data.get("task_id", None))
+                    if response and response.get("status") == "Completed":
+                        xpanse_alerts = response.get("result", {}).get("data", {})
+                        total_pages = response.get("result", {}).get("total_pages", 1)
+                        current_page = response.get("result", {}).get("current_page", 1)
+                        save_alerts_to_db(xpanse_alerts)
+                        print(len(xpanse_alerts))
+                        if current_page >= total_pages:
+                            done = True
+                        page += 1
+                    else:
+                        raise Exception(
+                            "Task error: {error} - Status: {status}".format(
+                                error=response.get("error"), status=response.get("status")
                             )
                         )
-                        break  # Skip to next organization
-
-                    time.sleep(5)
-                    continue
-                response = fetch_dmz_xpanse_data(data.get("task_id"))
-
-                while response and response.get("status") == "Pending":
-                    time.sleep(1)
-                    response = fetch_dmz_xpanse_data(data.get("task_id", None))
-                if response and response.get("status") == "Completed":
-                    xpanse_alerts = response.get("result", {}).get("data", {})
-                    total_pages = response.get("result", {}).get("total_pages", 1)
-                    current_page = response.get("result", {}).get("current_page", 1)
-                    save_alerts_to_db(xpanse_alerts)
-                    print(len(xpanse_alerts))
-                    if current_page >= total_pages:
-                        done = True
-                    page += 1
-                else:
-                    raise Exception(
-                        "Task error: {error} - Status: {status}".format(
-                            error=response.get("error"), status=response.get("status")
-                        )
-                    )
+            else:
+                print('{name} does not have a linked CyHy org'.format(name=business_unit.entity_name))
     except Exception as e:
         print('Scan failed to complete: {error}'.format(error=e))
 
@@ -138,10 +140,10 @@ def pull_and_save_business_units():
         business_unit_list = response.json()
 
         for business_unit in business_unit_list:
-            if business_unit.get("cyhy_db_name_id"):
+            if business_unit.get("cyhy_db_name"):
                 try:
                     organization = Organization.objects.get(
-                        acronym=business_unit.get("cyhy_db_name_id")
+                        acronym=business_unit.get("cyhy_db_name")
                     )
                 except ObjectDoesNotExist:
                     organization = None
@@ -164,7 +166,8 @@ def pull_and_save_business_units():
                     entity_name=business_unit.get("entity_name"), defaults=mdl_defaults
                 )
                 bu_list.append(mdl_business_unit_object)
-                break
+                
+        print('Business Units saved to MDL.')
         return bu_list
     except Exception as e:
         print("Error fetching DMZ Business Unit pull: {error}".format(error=e))
