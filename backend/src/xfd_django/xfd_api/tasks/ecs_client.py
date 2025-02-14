@@ -1,7 +1,7 @@
 """AWS Elastic Container Service Client."""
 
 # Standard Python Libraries
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import os
 
@@ -187,7 +187,7 @@ class ECSClient:
             formatted_logs = "\n".join(
                 "{} {}".format(
                     datetime.fromtimestamp(
-                        event["timestamp"] / 1000, datetime.timezone.utc
+                        event["timestamp"] / 1000, timezone.utc
                     ).isoformat(timespec="seconds"),
                     event["message"],
                 )
