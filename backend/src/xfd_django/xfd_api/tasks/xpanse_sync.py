@@ -1,6 +1,6 @@
 """XpanseSync scan."""
 # Standard Python Libraries
-from datetime import datetime, timedelta
+import datetime
 import os
 import random
 import time
@@ -41,71 +41,76 @@ def handler(event):
 
 def main():
     """Fetch and save DMZ Xpanse alerts."""
-    # Step 1: Get the current date and time in UTC
-    current_time = datetime.now(datetime.timezone.utc)
-    # Step 2: Subtract days from the current date
-    days_ago = current_time - timedelta(days=15)
-    # Step 3: Convert to an ISO 8601 string with timezone (e.g., UTC)
-    modified_timestamp_str = days_ago.isoformat()
-    if is_bu_pull_day():
-        business_units = pull_and_save_business_units()
-    else:
-        business_units = list(XpanseBusinessUnits.objects.all())
+    try:
+        # Step 1: Get the current date and time in UTC
+        current_time = datetime.datetime.now(datetime.timezone.utc)
+        # Step 2: Subtract days from the current date
+        days_ago = current_time - datetime.timedelta(days=15)
+        # Step 3: Convert to an ISO 8601 string with timezone (e.g., UTC)
+        modified_timestamp_str = days_ago.isoformat()
+        if is_bu_pull_day() or XpanseBusinessUnits.objects.count() == 0:
+            business_units = pull_and_save_business_units()
+        else:
+            business_units = list(XpanseBusinessUnits.objects.all())
 
-    random.shuffle(business_units)
+        random.shuffle(business_units)
 
-    for business_unit in business_units:
-        done = False
-        page = 1
-        total_pages = 2
-        per_page = 100
-        retry_count = 0
+        for business_unit in business_units:
+            done = False
+            page = 1
+            total_pages = 2
+            per_page = 100
+            retry_count = 0
+            if business_unit.cyhy_db_name:
+                while not done:
+                    data = fetch_dmz_xpanse_alert_task(
+                        business_unit.cyhy_db_name.acronym,
+                        page,
+                        per_page,
+                        modified_timestamp_str,
+                    )
+                    if not data or data.get("status") != "Processing":
+                        retry_count += 1
 
-        while not done:
-            data = fetch_dmz_xpanse_alert_task(
-                business_unit.cyhy_db_name.acronym,
-                page,
-                per_page,
-                modified_timestamp_str,
-            )
-            if not data or data.get("status") != "Processing":
-                retry_count += 1
+                        if retry_count >= MAX_RETRIES:
+                            print(
+                                "Max retries reached for org: {acronym}. Moving to next organization.".format(
+                                    acronym=business_unit.cyhy_db_name.acronym
+                                )
+                            )
+                            break  # Skip to next organization
 
-                if retry_count >= MAX_RETRIES:
-                    print(
-                        "Max retries reached for org: {acronym}. Moving to next organization.".format(
-                            acronym=business_unit.cyhy_db_name.acronym
+                        time.sleep(5)
+                        continue
+                    response = fetch_dmz_xpanse_data(data.get("task_id"))
+
+                    while response and response.get("status") == "Pending":
+                        time.sleep(1)
+                        response = fetch_dmz_xpanse_data(data.get("task_id", None))
+                    if response and response.get("status") == "Completed":
+                        xpanse_alerts = response.get("result", {}).get("data", {})
+                        total_pages = response.get("result", {}).get("total_pages", 1)
+                        current_page = response.get("result", {}).get("current_page", 1)
+                        save_alerts_to_db(xpanse_alerts)
+                        print(len(xpanse_alerts))
+                        if current_page >= total_pages:
+                            done = True
+                        page += 1
+                    else:
+                        raise Exception(
+                            "Task error: {error} - Status: {status}".format(
+                                error=response.get("error"), status=response.get("status")
+                            )
                         )
-                    )
-                    break  # Skip to next organization
-
-                time.sleep(5)
-                continue
-            response = fetch_dmz_xpanse_data(data.get("task_id"))
-
-            while response and response.get("status") == "Pending":
-                time.sleep(1)
-                response = fetch_dmz_xpanse_data(data.get("task_id", None))
-            if response and response.get("status") == "Completed":
-                xpanse_alerts = response.get("result", {}).get("data", {})
-                total_pages = response.get("result", {}).get("total_pages", 1)
-                current_page = response.get("result", {}).get("current_page", 1)
-                save_alerts_to_db(xpanse_alerts)
-                print(len(xpanse_alerts))
-                if current_page >= total_pages:
-                    done = True
-                page += 1
             else:
-                raise Exception(
-                    "Task error: {error} - Status: {status}".format(
-                        error=response.get("error"), status=response.get("status")
-                    )
-                )
+                print('{name} does not have a linked CyHy org'.format(name=business_unit.entity_name))
+    except Exception as e:
+        print('Scan failed to complete: {error}'.format(error=e))
 
 
 def is_bu_pull_day():
     """Check if today is a day to repull all business units."""
-    today = datetime.today()
+    today = datetime.datetime.today()
     day_of_month = today.day
     return day_of_month in (17, 2)
 
@@ -135,10 +140,10 @@ def pull_and_save_business_units():
         business_unit_list = response.json()
 
         for business_unit in business_unit_list:
-            if business_unit.get("cyhy_db_name_id"):
+            if business_unit.get("cyhy_db_name"):
                 try:
                     organization = Organization.objects.get(
-                        acronym=business_unit.get("cyhy_db_name_id")
+                        acronym=business_unit.get("cyhy_db_name")
                     )
                 except ObjectDoesNotExist:
                     organization = None
@@ -161,7 +166,8 @@ def pull_and_save_business_units():
                     entity_name=business_unit.get("entity_name"), defaults=mdl_defaults
                 )
                 bu_list.append(mdl_business_unit_object)
-                break
+                
+        print('Business Units saved to MDL.')
         return bu_list
     except Exception as e:
         print("Error fetching DMZ Business Unit pull: {error}".format(error=e))
@@ -227,7 +233,6 @@ def save_alerts_to_db(alert_list):
     for alert in alert_list:
         try:
             defaults = {
-                "xpanse_alert_uid": alert.get("xpanse_alert_uid", None),
                 "time_pulled_from_xpanse": alert.get("time_pulled_from_xpanse", None),
                 "detection_timestamp": alert.get("detection_timestamp", None),
                 "alert_name": alert.get("alert_name", None),
@@ -296,7 +301,6 @@ def save_alerts_to_db(alert_list):
             service_objects = []
             for service in alert.get("services", []):
                 service_defaults = {
-                    "xpanse_service_uid": service.get("xpanse_service_uid"),
                     "service_name": service.get("service_name"),
                     "service_type": service.get("service_type"),
                     "ip_address": service.get("ip_address"),
@@ -327,7 +331,6 @@ def save_alerts_to_db(alert_list):
 
                 for cve in service.get("cves", []):
                     cve_defaults = {
-                        "xpanse_cve_uid": cve.get("xpanse_cve_uid"),
                         "cvss_score_v2": cve.get("cvss_score_v2"),
                         "cve_severity_v2": cve.get("cve_severity_v2"),
                         "cvss_score_v3": cve.get("cvss_score_v3"),
