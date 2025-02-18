@@ -185,6 +185,7 @@ SECURE_CSP_POLICY = {
         "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js",
         "'sha256-QOOQu4W1oxGqd2nbXbxiA1Di6OHQOLQD+o+G9oWL8YY='",
         "https://www.dhs.gov",
+        "https://localhost:3000/matomo/*",
     ],
     "style-src": [
         "'self'",
