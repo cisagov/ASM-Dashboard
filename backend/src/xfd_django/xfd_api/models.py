@@ -629,13 +629,11 @@ class Vulnerability(models.Model):
     cpe = models.TextField(blank=True, null=True)
     description = models.CharField()
     references = models.JSONField(default=list)
-    cvss = models.DecimalField(
-        max_digits=1000, decimal_places=1000, blank=True, null=True
-    )
+    cvss = models.DecimalField(max_digits=4, decimal_places=2, blank=True, null=True)
     severity = models.CharField(
         max_length=10, choices=SeverityChoices.choices, blank=True, null=True
     )
-    needsPopulation = models.BooleanField(db_column="needsPopulation")
+    needsPopulation = models.BooleanField(db_column="needsPopulation", default=False)
     state = models.CharField(
         max_length=10, choices=StateChoices.choices, default=StateChoices.OPEN
     )
