@@ -345,7 +345,7 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
       onClick={() => {
         fetchVulnerabilities({
           page: 1,
-          pageSize: 100,
+          pageSize: PAGE_SIZE,
           filters: [...filters],
           showAll: false
         });
