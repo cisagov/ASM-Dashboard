@@ -26,7 +26,7 @@ import {
   UserFormValues
 } from 'types';
 import { useAuthContext } from 'context';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import UserForm from './UserForm';
 
 type ApiErrorStates = {
