@@ -11,7 +11,6 @@ from redis import asyncio as aioredis
 
 # from .schemas import Cpe
 from .api_methods import api_key as api_key_methods
-from .api_methods import auth as auth_methods
 from .api_methods import notification as notification_methods
 from .api_methods import organization, proxy, scan, scan_tasks, user
 from .api_methods.cpe import get_cpes_by_id
@@ -52,8 +51,8 @@ from .api_methods.vulnerability import (
     search_vulnerabilities,
     update_vulnerability,
 )
-from .auth import get_current_active_user
-from .login_gov import callback, login
+from .auth import get_current_active_user, handle_okta_callback
+from .login_gov import callback
 from .models import User
 from .schema_models import organization_schema as OrganizationSchema
 from .schema_models import scan as scanSchema
@@ -207,14 +206,7 @@ async def get_api_key(
 @api_router.post("/auth/okta-callback", tags=["Auth"])
 async def okta_callback(request: Request):
     """Handle Okta Callback."""
-    return await auth_methods.handle_okta_callback(request)
-
-
-# Login
-@api_router.get("/login", tags=["Auth"])
-async def login_route():
-    """Handle V1 Login."""
-    return login()
+    return await handle_okta_callback(request)
 
 
 # V1 Callback
