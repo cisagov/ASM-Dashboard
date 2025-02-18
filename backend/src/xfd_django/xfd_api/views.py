@@ -63,6 +63,7 @@ from .schema_models.api_key import ApiKey as ApiKeySchema
 from .schema_models.cpe import Cpe as CpeSchema
 from .schema_models.cve import Cve as CveSchema
 from .schema_models.domain import DomainSearch, DomainSearchResponse, GetDomainResponse
+from .schema_models.notification import CreateNotificationSchema
 from .schema_models.notification import Notification as NotificationSchema
 from .schema_models.saved_search import (
     SavedSearchCreate,
@@ -187,7 +188,9 @@ async def get_all_api_keys(current_user: User = Depends(get_current_active_user)
 
 
 # GET BY ID
-@api_router.get("/api-keys/{api_key_id}", response_model=ApiKeySchema, tags=["API Keys"])
+@api_router.get(
+    "/api-keys/{api_key_id}", response_model=ApiKeySchema, tags=["API Keys"]
+)
 async def get_api_key(
     api_key_id: str, current_user: User = Depends(get_current_active_user)
 ):
@@ -321,17 +324,24 @@ async def call_get_domain_by_id(domain_id: str):
 
 # POST
 @api_router.post(
-    "/notifications", response_model=NotificationSchema, tags=["Notifications"]
+    "/notifications",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=NotificationSchema,
+    tags=["Notifications"],
 )
-async def create_notification(current_user: User = Depends(get_current_active_user)):
+async def create_notification(
+    notification_data: CreateNotificationSchema,
+    current_user: User = Depends(get_current_active_user),
+):
     """Create notification key."""
-    # return notification_handler.post(current_user)
-    return []
+    return notification_methods.post(notification_data, current_user)
 
 
 # DELETE
 @api_router.delete(
-    "/notifications/{id}", response_model=NotificationSchema, tags=["Notifications"]
+    "/notifications/{notification_id}",
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Notifications"],
 )
 async def delete_notification(
     notification_id: str, current_user: User = Depends(get_current_active_user)
@@ -351,7 +361,10 @@ async def get_all_notifications():
 
 # GET BY ID
 @api_router.get(
-    "/notifications/{id}", response_model=NotificationSchema, tags=["Notifications"]
+    "/notifications/{notification_id}",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=NotificationSchema,
+    tags=["Notifications"],
 )
 async def get_notification(
     notification_id: str, current_user: User = Depends(get_current_active_user)
@@ -361,12 +374,19 @@ async def get_notification(
 
 
 # UPDATE BY ID
-@api_router.put("/notifications/{id}", tags=["Notifications"])
+@api_router.put(
+    "/notifications/{notification_id}",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=NotificationSchema,
+    tags=["Notifications"],
+)
 async def update_notification(
-    notification_id: str, current_user: User = Depends(get_current_active_user)
+    notification_id: str,
+    notification_data: CreateNotificationSchema,
+    current_user: User = Depends(get_current_active_user),
 ):
     """Update notification key by id."""
-    return notification_methods.delete(notification_id, current_user)
+    return notification_methods.put(notification_id, notification_data, current_user)
 
 
 # TODO: Adding placeholder until we determine if we still need this.

@@ -208,9 +208,9 @@ class Log(models.Model):
 class Notification(models.Model):
     """The Notification model."""
 
-    id = models.UUIDField(primary_key=True)
-    createdAt = models.DateTimeField(db_column="createdAt")
-    updatedAt = models.DateTimeField(db_column="updatedAt")
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    createdAt = models.DateTimeField(auto_now_add=True, db_column="createdAt")
+    updatedAt = models.DateTimeField(auto_now=True, db_column="updatedAt")
     startDatetime = models.DateTimeField(
         db_column="startDatetime", blank=True, null=True
     )

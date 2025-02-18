@@ -96,7 +96,7 @@ def get_all(current_user):
 
     except HTTPException as http_exc:
         raise http_exc
-    
+
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
 
@@ -121,7 +121,7 @@ def get_by_id(api_key_id, current_user):
 
     except HTTPException as http_exc:
         raise http_exc
-    
+
     except ApiKey.DoesNotExist:
         raise HTTPException(status_code=404, detail="API Key not found")
 

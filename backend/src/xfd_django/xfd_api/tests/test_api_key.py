@@ -1,16 +1,19 @@
+"""Test API key endpoints."""
+# Standard Python Libraries
+from datetime import datetime
+import hashlib
 import secrets
 import uuid
-import hashlib
-from datetime import datetime
 
-import pytest
+# Third-Party Libraries
 from fastapi.testclient import TestClient
-
+import pytest
 from xfd_api.auth import create_jwt_token
 from xfd_api.models import ApiKey, User, UserType
 from xfd_django.asgi import app
 
 client = TestClient(app)
+
 
 # Test: Creating an API key as a GlobalViewAdmin user should succeed
 @pytest.mark.django_db(transaction=True)
@@ -29,7 +32,7 @@ def test_create_api_key_as_global_view_admin():
         "/api-keys",
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
-    
+
     assert response.status_code == 200
     data = response.json()
     assert "api_key" in data
@@ -39,7 +42,11 @@ def test_create_api_key_as_global_view_admin():
     assert ApiKey.objects.filter(user=user).exists()
     api_key_instance = ApiKey.objects.get(user=user)
     assert api_key_instance.lastFour == data["api_key"][-4:]
-    assert hashlib.sha256(data["api_key"].encode()).hexdigest() == api_key_instance.hashedKey
+    assert (
+        hashlib.sha256(data["api_key"].encode()).hexdigest()
+        == api_key_instance.hashedKey
+    )
+
 
 # Test: Creating an API key as a regular user should fail
 @pytest.mark.django_db(transaction=True)
@@ -58,12 +65,13 @@ def test_create_api_key_as_regular_user_fails():
         "/api-keys",
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
-    
+
     assert response.status_code == 403
     assert response.json() == {"detail": "Unauthorized"}
-    
+
     # Ensure no API key was created
     assert not ApiKey.objects.filter(user=user).exists()
+
 
 # Test: Deleting an API key as a GlobalViewAdmin user should succeed
 @pytest.mark.django_db(transaction=True)
@@ -77,7 +85,7 @@ def test_delete_api_key_as_global_view_admin():
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
-    
+
     api_key = ApiKey.objects.create(
         id=uuid.uuid4(),
         hashedKey=hashlib.sha256(b"testkey").hexdigest(),
@@ -86,17 +94,21 @@ def test_delete_api_key_as_global_view_admin():
         createdAt=datetime.utcnow(),
         updatedAt=datetime.utcnow(),
     )
-    
+
     response = client.delete(
-        f"/api-keys/{api_key.id}",
+        "/api-keys/{}".format(api_key.id),
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
-    
+
     assert response.status_code == 200
-    assert response.json() == {"status": "success", "message": "API Key deleted successfully"}
-    
+    assert response.json() == {
+        "status": "success",
+        "message": "API Key deleted successfully",
+    }
+
     # Ensure the API key was removed from the database
     assert not ApiKey.objects.filter(id=api_key.id).exists()
+
 
 # Test: Deleting an API key as a regular user should fail
 @pytest.mark.django_db(transaction=True)
@@ -110,7 +122,7 @@ def test_delete_api_key_as_regular_user_fails():
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
-    
+
     api_key = ApiKey.objects.create(
         id=uuid.uuid4(),
         hashedKey=hashlib.sha256(b"testkey").hexdigest(),
@@ -119,17 +131,18 @@ def test_delete_api_key_as_regular_user_fails():
         createdAt=datetime.utcnow(),
         updatedAt=datetime.utcnow(),
     )
-    
+
     response = client.delete(
-        f"/api-keys/{api_key.id}",
+        "/api-keys/{}".format(api_key.id),
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
-    
+
     assert response.status_code == 403
     assert response.json() == {"detail": "Unauthorized"}
-    
+
     # Ensure the API key was not removed from the database
     assert ApiKey.objects.filter(id=api_key.id).exists()
+
 
 # Test: Getting all API keys as a regular user should fail
 @pytest.mark.django_db(transaction=True)
@@ -143,14 +156,15 @@ def test_get_all_api_keys_as_regular_user_fails():
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
-    
+
     response = client.get(
         "/api-keys",
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
-    
+
     assert response.status_code == 403
     assert response.json() == {"detail": "Unauthorized"}
+
 
 # Test: Getting all API keys as a GlobalViewAdmin user should succeed
 @pytest.mark.django_db(transaction=True)
@@ -164,7 +178,7 @@ def test_get_all_api_keys_as_global_view_admin():
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
-    
+
     ApiKey.objects.create(
         id=uuid.uuid4(),
         hashedKey=hashlib.sha256(b"testkey").hexdigest(),
@@ -173,15 +187,16 @@ def test_get_all_api_keys_as_global_view_admin():
         createdAt=datetime.utcnow(),
         updatedAt=datetime.utcnow(),
     )
-    
+
     response = client.get(
         "/api-keys",
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
-    
+
     assert response.status_code == 200
     assert isinstance(response.json(), list)
     assert len(response.json()) > 0
+
 
 # Test: Getting an API key by ID as a regular user should fail
 @pytest.mark.django_db(transaction=True)
@@ -195,7 +210,7 @@ def test_get_api_key_by_id_as_regular_user_fails():
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
-    
+
     api_key = ApiKey.objects.create(
         id=uuid.uuid4(),
         hashedKey=hashlib.sha256(b"testkey").hexdigest(),
@@ -204,14 +219,15 @@ def test_get_api_key_by_id_as_regular_user_fails():
         createdAt=datetime.utcnow(),
         updatedAt=datetime.utcnow(),
     )
-    
+
     response = client.get(
-        f"/api-keys/{api_key.id}",
+        "/api-keys/{}".format(api_key.id),
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
-    
+
     assert response.status_code == 403
     assert response.json() == {"detail": "Unauthorized"}
+
 
 # Test: Getting an API key by ID as a GlobalViewAdmin user should succeed
 @pytest.mark.django_db(transaction=True)
@@ -225,7 +241,7 @@ def test_get_api_key_by_id_as_global_view_admin():
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
-    
+
     api_key = ApiKey.objects.create(
         id=uuid.uuid4(),
         hashedKey=hashlib.sha256(b"testkey").hexdigest(),
@@ -234,11 +250,11 @@ def test_get_api_key_by_id_as_global_view_admin():
         createdAt=datetime.utcnow(),
         updatedAt=datetime.utcnow(),
     )
-    
+
     response = client.get(
-        f"/api-keys/{api_key.id}",
+        "/api-keys/{}".format(api_key.id),
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
-    
+
     assert response.status_code == 200
     assert response.json()["lastFour"] == "test"
