@@ -22,9 +22,14 @@ const Settings: React.FC = () => {
       <h2>Region: {user && user.regionId ? user.regionId : 'None'} </h2>
       {user?.userType === 'globalAdmin' && (
         <>
-          <a href={`${process.env.REACT_APP_API_URL}/matomo/index.php`}>
-            <Button type="button">Matomo</Button>
-          </a>
+          <Button
+            type="button"
+            onClick={() => {
+              window.location.href = `${process.env.REACT_APP_API_URL}/matomo/index.php`;
+            }}
+          >
+            Matomo
+          </Button>
           <br />
           <br />
         </>

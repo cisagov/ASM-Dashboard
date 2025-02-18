@@ -4,11 +4,9 @@
 from typing import Optional
 
 # Third-Party Libraries
-from fastapi import HTTPException, Request
+from fastapi import Request
 from fastapi.responses import RedirectResponse, Response
 import httpx
-from xfd_api.auth import get_current_active_user
-from xfd_api.schema_models.user import User as UserSchema
 
 
 # Helper function to proxy requests
@@ -18,15 +16,18 @@ async def proxy_request(
     path: Optional[str] = None,
     cookie_name: Optional[str] = None,
 ):
+    """
+    Proxy requests to the specified URL.
+
+    Includes optional cookie handling.
+    """
+    print("Proxying request to target URL: {}".format(target_url))
     """Proxy requests to the specified target URL with optional cookie handling."""
     headers = dict(request.headers)
 
-    # Remove /matomo from the path
-    if path and path.startswith("matomo"):
-        path = path.replace("matomo", "", 1)
-    
     # Include specified cookie in the headers if present
     if cookie_name:
+        print("Cookie name: {}".format(cookie_name))
         cookies = request.cookies.get(cookie_name)
         if cookies:
             headers["Cookie"] = "{}={}".format(cookie_name, cookies)
@@ -38,7 +39,7 @@ async def proxy_request(
 
     print("This is the path: ", path)
     # Send the request to the target
-    async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(90.0)) as client:
         proxy_response = await client.request(
             method=request.method,
             url="{}/{}".format(target_url, path),
@@ -99,8 +100,6 @@ async def matomo_proxy_handler(
     if path in font_paths:
         return RedirectResponse(url=font_paths[path])
 
-
-    # Proxy private paths
     return await proxy_request(
         request=request,
         target_url=MATOMO_URL,

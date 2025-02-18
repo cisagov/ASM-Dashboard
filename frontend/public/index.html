@@ -8,23 +8,8 @@
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <title>CyHy Dashboard</title>
     <!-- Matomo -->
-    <script type="text/javascript">
-      var _paq = (window._paq = window._paq || []);
-      _paq.push(['trackPageView']);
-      _paq.push(['enableLinkTracking']);
-      (function () {
-        var u = '//localhost:8080/';
-        _paq.push(['setTrackerUrl', u + 'matomo.php']);
-        _paq.push(['setSiteId', '1']);
-        var d = document,
-          g = d.createElement('script'),
-          s = d.getElementsByTagName('script')[0];
-        g.type = 'text/javascript';
-        g.async = true;
-        g.src = u + 'matomo.js';
-        s.parentNode.insertBefore(g, s);
-      })();
-    </script>
+    <script src="./js/tracking.js"></script>
+    <script src="http://localhost:3000/matomo/matomo.js" async defer></script>
     <!-- End Matomo Code -->
   </head>
   <body>
