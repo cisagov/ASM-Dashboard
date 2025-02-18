@@ -1,24 +1,30 @@
 """Test Stats endpoint."""
 # Standard Python Libraries
+from asyncio import Semaphore
 from datetime import datetime
-import secrets
-from django.core.management import call_command
 from decimal import Decimal
+import secrets
 
 # Third-Party Libraries
-from asyncio import Semaphore
+from django.core.management import call_command
 from fastapi.testclient import TestClient
 import pytest
 from redis import asyncio as aioredis
-
-
 from xfd_api.auth import create_jwt_token
-from xfd_api.models import Domain, Organization, Role, Service, User, UserType, Vulnerability
-from xfd_django.asgi import app
+from xfd_api.models import (
+    Domain,
+    Organization,
+    Role,
+    Service,
+    User,
+    UserType,
+    Vulnerability,
+)
 from xfd_api.views import get_redis_client
-
+from xfd_django.asgi import app
 
 client = TestClient(app)
+
 
 @pytest.fixture(scope="session")
 def redis_client():
@@ -31,11 +37,12 @@ def redis_client():
         max_connections=100,
         socket_timeout=5,
     )
-    
+
     yield client  # Redis client available for tests
 
     client.flushdb()  # Clean Redis after tests
     client.close()
+
 
 @pytest.fixture(scope="session", autouse=True)
 def ensure_fastapi_state(redis_client):
@@ -47,12 +54,14 @@ def ensure_fastapi_state(redis_client):
     print("Cleaning up FastAPI Redis state...")
     del app.state.redis  # Cleanup after tests
 
+
 @pytest.fixture(scope="session", autouse=True)
 def override_redis_dependency(redis_client):
     """Ensure FastAPI's Redis dependency is overridden globally for tests."""
     app.dependency_overrides[get_redis_client] = lambda: redis_client
     yield
     app.dependency_overrides.pop(get_redis_client)
+
 
 @pytest.mark.django_db(transaction=True)
 def test_get_stats_by_org_user():
@@ -65,7 +74,7 @@ def test_get_stats_by_org_user():
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
-    
+
     organization2 = Organization.objects.create(
         name="test-" + secrets.token_hex(4),
         rootDomains=["test-" + secrets.token_hex(4)],
@@ -76,28 +85,17 @@ def test_get_stats_by_org_user():
     )
 
     domain = Domain.objects.create(
-        name="test-" + secrets.token_hex(4),
-        isFceb=True,
-        organization=organization
-    )
-    
-    Vulnerability.objects.create(
-        title="vuln title",
-        domain=domain,
-        cvss=Decimal(9.0),
-        severity="Critical"
-    )
-    
-    Service.objects.create(
-        service="http",
-        port=80,
-        domain=domain
+        name="test-" + secrets.token_hex(4), isFceb=True, organization=organization
     )
 
+    Vulnerability.objects.create(
+        title="vuln title", domain=domain, cvss=Decimal(9.0), severity="Critical"
+    )
+
+    Service.objects.create(service="http", port=80, domain=domain)
+
     Domain.objects.create(
-        name="test-" + secrets.token_hex(4),
-        isFceb=True,
-        organization=organization2
+        name="test-" + secrets.token_hex(4), isFceb=True, organization=organization2
     )
 
     user = User.objects.create(
@@ -134,7 +132,10 @@ def test_get_stats_by_org_user():
     data = response.json()
     assert "domains" in data["result"]
     assert "numVulnerabilities" in data["result"]["domains"]
-    assert data["result"]["domains"]["numVulnerabilities"][0]["id"] == f"{domain.name}|Critical"
+    assert (
+        data["result"]["domains"]["numVulnerabilities"][0]["id"]
+        == f"{domain.name}|Critical"
+    )
 
 
 @pytest.mark.django_db(transaction=True)
@@ -159,42 +160,24 @@ def test_get_stats_by_global_view_user():
     )
 
     domain = Domain.objects.create(
-        name="test-" + secrets.token_hex(4),
-        isFceb=True,
-        organization=organization
+        name="test-" + secrets.token_hex(4), isFceb=True, organization=organization
     )
 
     Vulnerability.objects.create(
-        title="vuln title",
-        domain=domain,
-        cvss=Decimal(8.0),
-        severity="High"
+        title="vuln title", domain=domain, cvss=Decimal(8.0), severity="High"
     )
 
-    Service.objects.create(
-        service="http",
-        port=80,
-        domain=domain
-    )
+    Service.objects.create(service="http", port=80, domain=domain)
 
     domain2 = Domain.objects.create(
-        name="test-" + secrets.token_hex(4),
-        isFceb=True,
-        organization=organization2
+        name="test-" + secrets.token_hex(4), isFceb=True, organization=organization2
     )
 
     Vulnerability.objects.create(
-        title="vuln title 2",
-        domain=domain2,
-        cvss=Decimal(1.0),
-        severity="Low"
+        title="vuln title 2", domain=domain2, cvss=Decimal(1.0), severity="Low"
     )
 
-    Service.objects.create(
-        service="https",
-        port=443,
-        domain=domain2
-    )
+    Service.objects.create(service="https", port=443, domain=domain2)
 
     user = User.objects.create(
         firstName="",
@@ -224,7 +207,7 @@ def test_get_stats_by_global_view_user():
     data = response.json()
     assert "domains" in data["result"]
     assert "numVulnerabilities" in data["result"]["domains"]
-    assert data["result"]["domains"]["numVulnerabilities"][0]["id"] == f"{domain.name}|High"
-
-
-
+    assert (
+        data["result"]["domains"]["numVulnerabilities"][0]["id"]
+        == f"{domain.name}|High"
+    )
