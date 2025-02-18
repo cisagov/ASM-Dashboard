@@ -113,11 +113,10 @@ async def get_redis_client(request: Request):
 async def matomo_proxy(
     path: str,
     request: Request,
-    current_user: Optional[UserSchema] = None,  # Optional for public paths
 ):
     """Proxy requests to the Matomo analytics instance."""
     MATOMO_URL = os.getenv("MATOMO_URL", "")
-    return await proxy.matomo_proxy_handler(request, path, current_user, MATOMO_URL)
+    return await proxy.matomo_proxy_handler(request, path, MATOMO_URL)
 
 
 # P&E Proxy
