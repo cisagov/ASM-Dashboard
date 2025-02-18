@@ -28,7 +28,7 @@ import { getSeverityColor } from 'pages/Risk/utils';
 import { differenceInCalendarDays, parseISO } from 'date-fns';
 import { truncateString } from 'utils/dataTransformUtils';
 import { ORGANIZATION_EXCLUSIONS } from 'hooks/useUserTypeFilters';
-import ListAltIcon from '@mui/icons-material/ListAlt';
+import ChecklistIcon from '@mui/icons-material/Checklist';
 import DynamicFeedIcon from '@mui/icons-material/DynamicFeed';
 
 export interface ApiResponse {
@@ -341,7 +341,7 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
     <Button
       size="small"
       sx={{ '& .MuiButton-startIcon': { mr: '2px', mb: '2px' } }}
-      startIcon={<ListAltIcon />}
+      startIcon={<ChecklistIcon />}
       onClick={() => {
         fetchVulnerabilities({
           page: 1,
