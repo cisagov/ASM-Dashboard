@@ -98,10 +98,14 @@ def main():
 
                 if response and response.get("status") == "Completed":
                     shodan_asset_array = (
-                        response.get("result", {}).get("data", {}).get("shodan_assets", [])
+                        response.get("result", {})
+                        .get("data", {})
+                        .get("shodan_assets", [])
                     )
                     shodan_vuln_array = (
-                        response.get("result", {}).get("data", {}).get("shodan_vulns", [])
+                        response.get("result", {})
+                        .get("data", {})
+                        .get("shodan_vulns", [])
                     )
                     total_pages = response.get("result", {}).get("total_pages", 1)
                     current_page = response.get("result", {}).get("current_page", 1)
@@ -123,7 +127,8 @@ def main():
                         )
                     )
     except Exception as e:
-        print('Scan failed to complete: {error}'.format(error=e))
+        print("Scan failed to complete: {error}".format(error=e))
+
 
 def fetch_dmz_shodan_task(org_acronym, page, per_page, since_timestamp):
     """Fetch shodan task id."""
