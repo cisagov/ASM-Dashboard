@@ -32,7 +32,7 @@ export const classesRisk = {
   note: `${PREFIX}-note`
 };
 
-export const RiskRoot = styled('div')(({ theme }) => ({
+export const RiskRoot = styled('div')(() => ({
   [`& .${classesRisk.cardRoot}`]: {
     boxSizing: 'border-box',
     marginBottom: '1rem',

@@ -179,6 +179,7 @@ export const OrgSettings: React.FC<OrgSettingsProps> = ({
                   }
                   setIsSaveDisabled(false);
                 }}
+                disabled={user?.userType === 'globalView'}
               ></Chip>
             </Grid>
           ))}
@@ -201,6 +202,7 @@ export const OrgSettings: React.FC<OrgSettingsProps> = ({
                     stage: 1
                   });
                 }}
+                disabled={user?.userType === 'globalView'}
               ></Chip>
             </Grid>
           ))}
@@ -218,6 +220,7 @@ export const OrgSettings: React.FC<OrgSettingsProps> = ({
                   stage: 0
                 });
               }}
+              disabled={user?.userType === 'globalView'}
             />
           </Grid>
         )}
@@ -455,6 +458,7 @@ export const OrgSettings: React.FC<OrgSettingsProps> = ({
                   }
                 }}
                 color="primary"
+                disabled={user?.userType === 'globalView'}
               />
             </Grid>
           </Grid>
@@ -473,7 +477,11 @@ export const OrgSettings: React.FC<OrgSettingsProps> = ({
           <Button
             variant="contained"
             onClick={updateOrganization}
-            disabled={organization.rootDomains.length === 0 || isSaveDisabled}
+            disabled={
+              organization.rootDomains.length === 0 ||
+              isSaveDisabled ||
+              user?.userType === 'globalView'
+            }
           >
             Save
           </Button>

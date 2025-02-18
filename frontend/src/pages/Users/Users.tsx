@@ -26,7 +26,7 @@ import {
   UserFormValues
 } from 'types';
 import { useAuthContext } from 'context';
-import { parseISO, format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import UserForm from './UserForm';
 
 type ApiErrorStates = {
@@ -78,7 +78,7 @@ export const Users: React.FC = () => {
       const rows = await apiGet<UserType[]>(`/users`);
       rows.forEach((row) => {
         row.lastLoggedInString = row.lastLoggedIn
-          ? format(parseISO(row.lastLoggedIn), 'MM-dd-yyyy hh:mm a')
+          ? format(new Date(row.lastLoggedIn), 'MM-dd-yyyy hh:mm a')
           : 'None';
         row.dateToUSigned = row.dateAcceptedTerms
           ? format(parseISO(row.dateAcceptedTerms), 'MM-dd-yyyy hh:mm a')
@@ -92,6 +92,7 @@ export const Users: React.FC = () => {
         row.fullName = `${row.firstName} ${row.lastName}`;
       });
       setUsers(rows);
+      console.log('rows', rows);
       setApiErrorStates((prev) => ({ ...prev, getUsersError: '' }));
     } catch (e: any) {
       setLoadingError(true);
@@ -117,7 +118,7 @@ export const Users: React.FC = () => {
     },
     { field: 'userType', headerName: 'User Type', minWidth: 100, flex: 0.75 },
     {
-      field: 'dateToUSigned',
+      field: 'dateAcceptedTerms',
       headerName: 'Date ToU Signed',
       minWidth: 100,
       flex: 1
@@ -132,7 +133,16 @@ export const Users: React.FC = () => {
       field: 'lastLoggedInString',
       headerName: 'Last Logged In',
       minWidth: 100,
-      flex: 1
+      flex: 1,
+      sortComparator: (v1, v2) => {
+        if (v1 === 'None') return -1;
+        if (v2 === 'None') return 1;
+
+        const date1 = new Date(v1);
+        const date2 = new Date(v2);
+
+        return date1.getTime() - date2.getTime();
+      }
     },
     {
       field: 'edit',

@@ -419,37 +419,6 @@ def test_list_orgs_by_org_member_only_gets_their_org():
     assert data[0]["id"] == str(organization1.id)
 
 
-# Test: Get organization by global view should fail
-@pytest.mark.django_db(transaction=True)
-def test_get_org_by_global_view_fails():
-    """Test organization."""
-    user = User.objects.create(
-        firstName="",
-        lastName="",
-        email="{}@example.com".format(secrets.token_hex(4)),
-        userType=UserType.GLOBAL_VIEW,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
-    organization = Organization.objects.create(
-        name="test-{}".format(secrets.token_hex(4)),
-        rootDomains=["test-{}".format(secrets.token_hex(4))],
-        ipBlocks=[],
-        isPassive=False,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-    )
-
-    response = client.get(
-        "/organizations/{}".format(organization.id),
-        headers={"Authorization": "Bearer " + create_jwt_token(user)},
-    )
-
-    assert response.status_code == 403
-    assert response.json() == {"detail": "Unauthorized"}
-
-
 # Test: Get organization by org admin user should pass
 @pytest.mark.django_db(transaction=True)
 def test_get_org_by_org_admin_succeeds():
