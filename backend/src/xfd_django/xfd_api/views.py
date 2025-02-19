@@ -6,7 +6,6 @@ from uuid import UUID
 
 # Third-Party Libraries
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
-from fastapi.responses import RedirectResponse
 from redis import asyncio as aioredis
 
 # from .schemas import Cpe
@@ -103,40 +102,16 @@ async def get_redis_client(request: Request):
 # Matomo Proxy
 @api_router.api_route(
     "/matomo/{path:path}",
-    dependencies=[Depends(get_current_active_user)],
+    methods=["GET", "POST", "PUT", "DELETE"],
     tags=["Analytics"],
 )
 async def matomo_proxy(
-    path: str, request: Request, current_user: User = Depends(get_current_active_user)
+    path: str,
+    request: Request,
 ):
     """Proxy requests to the Matomo analytics instance."""
-    # Public paths -- directly allowed
-    allowed_paths = ["/matomo.php", "/matomo.js"]
-    if any(
-        [request.url.path.startswith(allowed_path) for allowed_path in allowed_paths]
-    ):
-        return await proxy.proxy_request(path, request, os.getenv("MATOMO_URL"))
-
-    # Redirects for specific font files
-    if request.url.path in [
-        "/plugins/Morpheus/fonts/matomo.woff2",
-        "/plugins/Morpheus/fonts/matomo.woff",
-        "/plugins/Morpheus/fonts/matomo.ttf",
-    ]:
-        return RedirectResponse(
-            url="https://cdn.jsdelivr.net/gh/matomo-org/matomo@5.2.1{}".format(
-                request.url.path
-            )
-        )
-
-    # Ensure only global admin can access other paths
-    if current_user.userType != "globalAdmin":
-        raise HTTPException(status_code=403, detail="Unauthorized")
-
-    # Handle the proxy request to Matomo
-    return await proxy.proxy_request(
-        request, os.getenv("MATOMO_URL", ""), path, cookie_name="MATOMO_SESSID"
-    )
+    MATOMO_URL = os.getenv("MATOMO_URL", "")
+    return await proxy.matomo_proxy_handler(request, path, MATOMO_URL)
 
 
 # P&E Proxy
@@ -147,15 +122,19 @@ async def matomo_proxy(
     tags=["Analytics"],
 )
 async def pe_proxy(
-    path: str, request: Request, current_user: User = Depends(get_current_active_user)
+    path: str,
+    request: Request,
+    current_user: UserSchema = Depends(get_current_active_user),
 ):
     """Proxy requests to the P&E Django application."""
+    PE_API_URL = os.getenv("PE_API_URL", "")
+
     # Ensure only Global Admin and Global View users can access
     if current_user.userType not in ["globalView", "globalAdmin"]:
         raise HTTPException(status_code=403, detail="Unauthorized")
 
-    # Handle the proxy request to the P&E Django application
-    return await proxy.proxy_request(request, os.getenv("PE_API_URL", ""), path)
+    # Proxy the request to the P&E Django application
+    return await proxy.proxy_request(request, PE_API_URL, path)
 
 
 # ========================================

@@ -20,6 +20,20 @@ const Settings: React.FC = () => {
             .join(', ')}
       </h2>
       <h2>Region: {user && user.regionId ? user.regionId : 'None'} </h2>
+      {user?.userType === 'globalAdmin' && (
+        <>
+          <Button
+            type="button"
+            onClick={() => {
+              window.location.href = `${process.env.REACT_APP_API_URL}/matomo/index.php`;
+            }}
+          >
+            Matomo
+          </Button>
+          <br />
+          <br />
+        </>
+      )}
       <Button type="button" onClick={logout}>
         Logout
       </Button>
