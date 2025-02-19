@@ -160,12 +160,12 @@ def fetch_dmz_was_finding_data(task_id):
         return None
 
 
-def convert_timestamp_to_date(timestamp: str) -> str:
+def convert_timestamp_to_date(timestamp: str) -> str | None:
     """Convert an ISO 8601 timestamp to a date string in YYYY-MM-DD format."""
-    if timestamp:
+    try:
         date_object = datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S")
         formatted_date = date_object.strftime("%Y-%m-%d")
-    else:
+    except Exception:
         formatted_date = None
     return formatted_date
 
