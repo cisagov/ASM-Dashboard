@@ -167,6 +167,7 @@ def create_sample_services_and_vulnerabilities(domain):
 
     # Add random vulnerabilities
     if random.random() < PROB_SAMPLE_VULNERABILITIES:
+        state = random.choice(["open", "closed"])
         Vulnerability.objects.create(
             title="Sample Vulnerability "
             + "".join(random.choices("ABCDEFGHIJKLMNOPQRSTUVWXYZ", k=3)),
@@ -210,8 +211,10 @@ def create_sample_services_and_vulnerabilities(domain):
                 ]
             ),
             needsPopulation=True,
-            state="open",
-            substate="unconfirmed",
+            state=state,
+            substate=random.choice(["unconfirmed", "exploitable"])
+            if state == "open"
+            else random.choice(["false-positive", "accepted-risk", "remediated"]),
             source="sample_source",
             actions=[],
             structuredData={},
