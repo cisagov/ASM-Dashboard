@@ -47,7 +47,7 @@ jobs:
       - name: Run site locally
         run: |
           cp dev.env.example .env
-          docker compose up -d db backend es
+          docker compose up -d db backend es redis
           python -m pip install wait-for-it
           wait-for-it --service localhost:3000 --timeout=10
           wait-for-it --service localhost:5432 --timeout=10

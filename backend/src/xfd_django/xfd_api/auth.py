@@ -2,26 +2,24 @@
 
 # Standard Python Libraries
 from datetime import datetime, timedelta, timezone
-import hashlib
 from hashlib import sha256
 import os
 import re
-from typing import List, Optional
+from typing import Optional
 from urllib.parse import urlencode
 import uuid
 
 # Third-Party Libraries
-from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.forms.models import model_to_dict
 from fastapi import Depends, HTTPException, Request, Security, status
+from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
 import jwt
-from jwt import ExpiredSignatureError, InvalidTokenError
 import requests
 
 # from .helpers import user_to_dict
-from .models import ApiKey, Domain, Organization, OrganizationTag, Role, Service, User
+from .models import ApiKey, Organization, OrganizationTag, Role, User
 
 # JWT_ALGORITHM = "RS256"
 JWT_SECRET = settings.JWT_SECRET
@@ -33,15 +31,7 @@ api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False)
 
 
 def user_to_dict(user):
-    """
-    Take a user model object from django and sanitize fields for output.
-
-    Args:
-        user (django model): Django User model object
-
-    Returns:
-        dict: Returns sanitized and formated dict
-    """
+    """Take a user model object from django and sanitize fields for output."""
     user_dict = model_to_dict(user)  # Convert model to dict
     # Convert any UUID fields to strings
     if isinstance(user_dict.get("id"), uuid.UUID):
@@ -53,15 +43,7 @@ def user_to_dict(user):
 
 
 def create_jwt_token(user):
-    """
-    Create a JWT token for a given user.
-
-    Args:
-        user (User): The user object for whom the token is created.
-
-    Returns:
-        str: The encoded JWT token.
-    """
+    """Create a JWT token for a given user."""
     payload = {
         "id": str(user.id),
         "email": user.email,
@@ -70,178 +52,8 @@ def create_jwt_token(user):
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
-def decode_jwt_token(token):
-    """
-    Decode a JWT token to retrieve the user.
-
-    Args:
-        token (str): The JWT token to decode.
-
-    Returns:
-        User: The user object decoded from the token, or None if invalid or expired.
-    """
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithm=JWT_ALGORITHM)
-        user = User.objects.get(id=payload["id"])
-        return user
-    except (ExpiredSignatureError, InvalidTokenError, User.DoesNotExist):
-        return None
-
-
-def get_org_memberships(current_user) -> list[str]:
-    """Return the organization IDs that a user is a member of."""
-    # Check if the user has a 'roles' attribute and it's not None
-
-    roles = Role.objects.filter(user=current_user)
-    return [role.organization.id for role in roles if role.organization]
-
-
-async def get_user_domains(user_id: str) -> List[str]:
-    """Retrieve a list of domain names associated with the user's organizations."""
-    try:
-        # Check if the user exists
-        user_exists = await sync_to_async(User.objects.filter(id=user_id).exists)()
-        if not user_exists:
-            return []
-
-        # Fetch organization IDs associated with the user
-        organization_ids_qs = Role.objects.filter(user__id=user_id).values_list(
-            "organization", flat=True
-        )
-        organization_ids = await sync_to_async(lambda qs: list(qs))(organization_ids_qs)
-
-        if not organization_ids:
-            return []
-
-        # Fetch domain names associated with these organizations
-        domain_names_qs = Domain.objects.filter(
-            organization__in=organization_ids
-        ).values_list("name", flat=True)
-        domain_list = await sync_to_async(lambda qs: list(qs))(domain_names_qs)
-
-        return domain_list
-    except Exception as e:
-        print(e)
-        # Optionally, handle exceptions or return an empty list
-        return []
-
-
-def get_user_service_ids(current_user):
-    """Retrieve service IDs associated with the organizations the user belongs to."""
-    # Get organization IDs the user is a member of
-    organization_ids = Role.objects.filter(user=current_user).values_list(
-        "organization", flat=True
-    )
-    # Get domain IDs associated with these organizations
-    domain_ids = Domain.objects.filter(organization__in=organization_ids).values_list(
-        "id", flat=True
-    )
-
-    # Get service IDs associated with these domains
-    service_ids = Service.objects.filter(domain__in=domain_ids).values_list(
-        "id", flat=True
-    )
-
-    return list(map(str, service_ids))  # Convert UUIDs to strings if necessary
-
-
-async def get_user_organization_ids(user_id: str) -> List[str]:
-    """Get organization ids."""
-    try:
-        # Fetch organization IDs associated with the user
-        organization_ids_qs = Role.objects.filter(user__id=user_id).values_list(
-            "organization__id", flat=True
-        )
-        organization_ids = await sync_to_async(list)(organization_ids_qs)
-        return [str(org_id) for org_id in organization_ids]
-    except Exception:
-        return []
-
-
-def get_user_ports(user_id):
-    """Retrieve port numbers associated with the organizations the user belongs to."""
-    # Get organization IDs the user is a member of
-    organization_ids = Role.objects.filter(user=user_id).values_list(
-        "organization", flat=True
-    )
-
-    # Get domain IDs associated with these organizations
-    domain_ids = Domain.objects.filter(organization__in=organization_ids).values_list(
-        "id", flat=True
-    )
-
-    # Get ports associated with services of these domains
-    ports = (
-        Service.objects.filter(domainId__in=domain_ids)
-        .values_list("port", flat=True)
-        .distinct()
-    )
-
-    return list(ports)
-
-
-def get_tag_organization_ids(current_user, tag_id: Optional[str] = None) -> list[str]:
-    """Return the organizations belonging to a tag, if the user can access the tag."""
-    # Check if the user is a global view admin
-    if not is_global_view_admin(current_user):
-        return []
-
-    # Fetch the OrganizationTag and its related organizations
-    tag = (
-        OrganizationTag.objects.prefetch_related("organizations")
-        .filter(id=tag_id)
-        .first()
-    )
-    if tag:
-        # Return a list of organization IDs
-        return [org.id for org in tag.organizations.all()]
-
-    # Return an empty list if tag is not found
-    return []
-
-
-def hash_key(key: str) -> str:
-    """
-    Hash API key.
-
-    Returns:
-        str: hashed API key value
-    """
-    return hashlib.sha256(key.encode()).hexdigest()
-
-
-# TODO: Confirm still needed
-# async def get_user_info_from_cognito(token):
-#     """Get user info from cognito."""
-#     jwks_url = (
-#         "https://cognito-idp.us-east-1.amazonaws.com/{}/.well-known/jwks.json".format(os.getenv('REACT_APP_USER_POOL_ID'))
-#     )
-#     response = requests.get(jwks_url)
-#     jwks = response.json()
-#     unverified_header = jwt.get_unverified_header(token)
-#     for key in jwks["keys"]:
-#         if key["kid"] == unverified_header["kid"]:
-#             rsa_key = {
-#                 "kty": key["kty"],
-#                 "kid": key["kid"],
-#                 "use": key["use"],
-#                 "n": key["n"],
-#                 "e": key["e"],
-#             }
-#     user_info = decode_jwt_token(token)
-#     return user_info
-
-
 async def get_token_from_header(request: Request) -> Optional[str]:
-    """
-    Extract token from the Authorization header, allowing 'Bearer' or raw tokens.
-
-    Args:
-        request (Request): The incoming request object.
-
-    Returns:
-        Optional[str]: The token extracted from the Authorization header, or None if missing.
-    """
+    """Extract token from the Authorization header, allowing 'Bearer' or raw tokens."""
     auth_header = request.headers.get("Authorization")
     if auth_header:
         if auth_header.startswith("Bearer "):
@@ -263,6 +75,7 @@ def get_user_by_api_key(api_key: str):
         return None
 
 
+# Endpoint Authorization Function
 def get_current_active_user(
     request: Request,
     api_key: Optional[str] = Security(api_key_header),
@@ -321,6 +134,46 @@ def get_current_active_user(
     # Attach email to request state for logging
     request.state.user_email = user.email
     return user
+
+
+# POST: /auth/okta-callback
+async def handle_okta_callback(request):
+    """POST API LOGIC."""
+    body = await request.json()
+    code = body.get("code", None)
+    if code is None:
+        return HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Code not found in request body",
+        )
+    jwt_data = await get_jwt_from_code(code)
+    print("JWT Data: {}".format(jwt_data))
+    if jwt_data is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid authorization code or failed to retrieve tokens",
+        )
+
+    decoded_token = jwt_data.get("decoded_token")
+
+    resp = await process_user(decoded_token)
+    token = resp.get("token")
+
+    # Create a JSONResponse object to return the response and set the cookie
+    response = JSONResponse(
+        content={"message": "User authenticated", "data": resp, "token": token}
+    )
+    response.set_cookie(key="token", value=token)
+
+    # Set the 'crossfeed-token' cookie
+    response.set_cookie(
+        key="crossfeed-token",
+        value=token,
+        # httponly=True,  # This makes the cookie inaccessible to JavaScript
+        # secure=True,    # Ensures the cookie is only sent over HTTPS
+        # samesite="Lax"  # Restricts when cookies are sent
+    )
+    return response
 
 
 async def process_user(decoded_token):
@@ -416,25 +269,6 @@ async def get_jwt_from_code(auth_code: str):
         print("get_jwt_from_code post error: {}".format(error))
 
 
-def can_access_user(current_user, target_user_id) -> bool:
-    """Check if current user is allowed to modify.the target user."""
-    if not target_user_id:
-        return False
-
-    # Check if the current user is the target user or a global write admin
-    if str(current_user.id) == str(target_user_id) or is_global_write_admin(
-        current_user
-    ):
-        return True
-
-    # Check if the user is a regional admin and the target user is in the same region
-    if is_regional_admin(current_user):
-        target_user = User.objects.get(id=target_user_id)
-        return current_user.regionId == target_user.regionId
-
-    return False
-
-
 def is_global_write_admin(current_user) -> bool:
     """Check if the user has global write admin permissions."""
     return current_user and current_user.userType == "globalAdmin"
@@ -481,6 +315,33 @@ def is_regional_admin_for_organization(current_user, organization_id) -> bool:
         return user_region_id == organization_region_id
 
     return False
+
+
+def can_access_user(current_user, target_user_id) -> bool:
+    """Check if current user is allowed to modify.the target user."""
+    if not target_user_id:
+        return False
+
+    # Check if the current user is the target user or a global write admin
+    if str(current_user.id) == str(target_user_id) or is_global_write_admin(
+        current_user
+    ):
+        return True
+
+    # Check if the user is a regional admin and the target user is in the same region
+    if is_regional_admin(current_user):
+        target_user = User.objects.get(id=target_user_id)
+        return current_user.regionId == target_user.regionId
+
+    return False
+
+
+def get_org_memberships(current_user) -> list[str]:
+    """Return the organization IDs that a user is a member of."""
+    # Check if the user has a 'roles' attribute and it's not None
+
+    roles = Role.objects.filter(user=current_user)
+    return [role.organization.id for role in roles if role.organization]
 
 
 def get_organization_region(organization_id: str) -> str:

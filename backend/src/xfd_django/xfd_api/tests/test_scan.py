@@ -510,3 +510,104 @@ def test_run_scan_by_global_view_fails():
 
     assert response.status_code == 403
     assert response.json() == {"detail": "Unauthorized access."}
+
+
+@pytest.mark.django_db(transaction=True)
+def test_list_granular_scans_as_global_admin():
+    """Test that a GlobalViewAdmin can retrieve granular scans."""
+    admin = User.objects.create(
+        firstName="Admin",
+        lastName="User",
+        email="{}@example.com".format(secrets.token_hex(4)),
+        userType=UserType.GLOBAL_VIEW,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+
+    Scan.objects.create(
+        name="Granular Scan 1",
+        isGranular=True,
+        isUserModifiable=True,
+        isSingleScan=False,
+        frequency=999999,
+    )
+    Scan.objects.create(
+        name="Granular Scan 2",
+        isGranular=True,
+        isUserModifiable=True,
+        isSingleScan=False,
+        frequency=999999,
+    )
+    Scan.objects.create(
+        name="Non Granular Scan",
+        isGranular=False,
+        isUserModifiable=True,
+        isSingleScan=False,
+        frequency=999999,
+    )
+
+    response = client.get(
+        "/granularScans",
+        headers={"Authorization": "Bearer {}".format(create_jwt_token(admin))},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "scans" in data
+    assert isinstance(data["scans"], list)
+    assert len(data["scans"]) == 2  # Only the granular scans should be returned
+    assert data["scans"][0]["name"] in ["Granular Scan 1", "Granular Scan 2"]
+    assert "schema" in data  # Check that SCAN_SCHEMA is included in response
+
+
+@pytest.mark.django_db(transaction=True)
+def test_list_granular_scans_as_standard_user_fails():
+    """Test that a standard user cannot retrieve granular scans."""
+    user = User.objects.create(
+        firstName="Test",
+        lastName="User",
+        email="{}@example.com".format(secrets.token_hex(4)),
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+
+    response = client.get(
+        "/granularScans",
+        headers={"Authorization": "Bearer {}".format(create_jwt_token(user))},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Unauthorized access."
+
+
+@pytest.mark.django_db(transaction=True)
+def test_list_granular_scans_no_auth():
+    """Test that an unauthenticated request returns 401."""
+    response = client.get("/granularScans")
+    assert response.status_code == 401
+
+
+@pytest.mark.django_db(transaction=True)
+def test_list_granular_scans_empty():
+    """Test that an empty result is returned if no granular scans exist."""
+    admin = User.objects.create(
+        firstName="Admin",
+        lastName="User",
+        email="{}@example.com".format(secrets.token_hex(4)),
+        userType=UserType.GLOBAL_VIEW,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+
+    response = client.get(
+        "/granularScans",
+        headers={"Authorization": "Bearer {}".format(create_jwt_token(admin))},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "scans" in data
+    assert isinstance(data["scans"], list)
+    assert len(data["scans"]) == 0  # No scans exist
+    assert "schema" in data  # Ensure schema is still returned
