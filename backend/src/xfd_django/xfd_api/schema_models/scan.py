@@ -285,6 +285,14 @@ SCAN_SCHEMA = {
         memory="8192",
         description="Pull in vulnerability data from PEs Vulnerability database",
     ),
+    "vulnScanningSync": ScanSchema(
+        type="fargate",
+        isPassive=True,
+        global_scan=True,
+        cpu="1024",
+        memory="8192",
+        description="Pull in vulnerability data from PEs Vulnerability database",
+    ),
     "wappalyzer": ScanSchema(
         type="fargate",
         isPassive=True,

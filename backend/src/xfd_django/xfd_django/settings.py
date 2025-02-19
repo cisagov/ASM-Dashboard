@@ -100,7 +100,7 @@ DATABASES = {
         "HOST": os.getenv("DB_HOST"),
         "PORT": "5432",
         "TEST": {
-            "NAME": "mini_data_lake_test",  # Test database for mini_data_lake
+            "NAME": "mini_data_lake_test",  # Name of the test database
         },
     },
 }
