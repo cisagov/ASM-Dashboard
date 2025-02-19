@@ -7,7 +7,7 @@ import time
 # Third-Party Libraries
 import django
 import requests
-from xfd_mini_dl.models import DataSource, Organization, WasFindings, WasReport
+from xfd_mini_dl.models import Organization, WasFindings
 
 # Django setup
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
