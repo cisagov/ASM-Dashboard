@@ -1,13 +1,18 @@
-import pytest
-import uuid
-from fastapi.testclient import TestClient
-from xfd_api.auth import create_jwt_token
-from xfd_api.models import User, UserType, Cpe, Cve
-from xfd_django.asgi import app
+"""Test CVE/CPE."""
+# Standard Python Libraries
 from datetime import datetime
 import secrets
+import uuid
+
+# Third-Party Libraries
+from fastapi.testclient import TestClient
+import pytest
+from xfd_api.auth import create_jwt_token
+from xfd_api.models import Cpe, Cve, User, UserType
+from xfd_django.asgi import app
 
 client = TestClient(app)
+
 
 @pytest.mark.django_db(transaction=True)
 def test_get_cpe_by_id_success():
@@ -28,7 +33,7 @@ def test_get_cpe_by_id_success():
         name="cpe:/o:test_os:1.0",
         version="1.0.0",
         vendor="TestVendor",
-        lastSeenAt=datetime.now()
+        lastSeenAt=datetime.now(),
     )
 
     # Make the request
@@ -41,6 +46,7 @@ def test_get_cpe_by_id_success():
     data = response.json()
     assert data["id"] == str(cpe.id)
     assert data["name"] == "cpe:/o:test_os:1.0"
+
 
 @pytest.mark.django_db(transaction=True)
 def test_get_cpe_by_id_not_found():
@@ -65,6 +71,7 @@ def test_get_cpe_by_id_not_found():
 
     assert response.status_code == 500
     assert "detail" in response.json()
+
 
 @pytest.mark.django_db(transaction=True)
 def test_get_cve_by_id_success():
@@ -101,6 +108,7 @@ def test_get_cve_by_id_success():
     assert data["id"] == str(cve.id)
     assert data["name"] == "CVE-2024-1234"
 
+
 @pytest.mark.django_db(transaction=True)
 def test_get_cve_by_id_not_found():
     """Test retrieving a non-existent CVE should return a 500 error."""
@@ -124,6 +132,7 @@ def test_get_cve_by_id_not_found():
 
     assert response.status_code == 500
     assert "detail" in response.json()
+
 
 @pytest.mark.django_db(transaction=True)
 def test_get_cve_by_name_success():
@@ -158,6 +167,7 @@ def test_get_cve_by_name_success():
     assert data["name"] == "CVE-2024-5678"
     assert data["description"] == "Another test CVE"
     assert data["status"] == "Resolved"
+
 
 @pytest.mark.django_db(transaction=True)
 def test_get_cve_by_name_not_found():

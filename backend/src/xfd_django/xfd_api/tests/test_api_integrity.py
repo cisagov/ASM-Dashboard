@@ -4,11 +4,11 @@ import os
 import re
 
 # Third-Party Libraries
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 import pytest
 from xfd_api.views import api_router
 from xfd_django.asgi import app
-from fastapi.routing import APIRoute
 
 client = TestClient(app)
 
@@ -31,6 +31,7 @@ routes_to_test_auth = [
     if (method, route.path) not in PUBLIC_ENDPOINTS
 ]
 
+
 @pytest.mark.parametrize("method, route", routes_to_test_auth)
 def test_endpoints_require_auth(method, route):
     """Ensure all secured endpoints return 401 Unauthorized or 405 Method Not Allowed when accessed without authentication."""
@@ -38,7 +39,9 @@ def test_endpoints_require_auth(method, route):
     assert response.status_code in [
         401,
         405,
-    ], "Expected 401 (unauthorized) or 405 (not a valid method) for {} {}, but got {}".format(method, route, response.status_code)
+    ], "Expected 401 (unauthorized) or 405 (not a valid method) for {} {}, but got {}".format(
+        method, route, response.status_code
+    )
 
 
 # Define an exclusion list for endpoints that do not require a response model
@@ -74,14 +77,19 @@ routes_to_test_response_models = [
     for route in app.router.routes
     if isinstance(route, APIRoute)
     for method in route.methods  # Ensures each HTTP method is checked separately
-    if (method, route.path) not in EXCLUDED_ENDPOINTS_RESPONSE_MODEL  # Skip excluded endpoints
+    if (method, route.path)
+    not in EXCLUDED_ENDPOINTS_RESPONSE_MODEL  # Skip excluded endpoints
 ]
+
 
 # Require every API endpoint to have a response model
 @pytest.mark.parametrize("path, method, response_model", routes_to_test_response_models)
 def test_all_endpoints_have_response_model(path, method, response_model):
     """Ensure every API endpoint has a response model for each HTTP method."""
-    assert response_model is not None, "Missing response model for {} {}".format(method, path)
+    assert response_model is not None, "Missing response model for {} {}".format(
+        method, path
+    )
+
 
 # List of API routes with their methods
 api_routes_test = [
@@ -93,24 +101,25 @@ api_routes_test = [
 
 # Exclusion List: API calls we do NOT require tests for**
 EXCLUDED_ENDPOINTS_TESTS = {
-    ("GET", "/healthcheck"), # Test not needed
-    ("GET", "/matomo/{path:path}"), # TODO
-    ("GET", "/pe/{path:path}"), # Tested
-    ("PUT", "/pe/{path:path}"), # Tested
-    ("POST", "/pe/{path:path}"), # Tested
-    ("DELETE", "/pe/{path:path}"), # Tested
-    ("OPTIONS", "/pe/{path:path}"), # Tested
-    ("POST", "/auth/callback"), # Not used
-    ("POST", "/domain/export"), # TODO
-    ("POST", "/vulnerabilities/export"), # TODO
-    ("POST", "/services"), # Tested by /stats
-    ("POST", "/ports"), # Tested by /stats
-    ("POST", "/num-vulns"), # Tested by /stats
-    ("POST", "/latest-vulns"), # Tested by /stats
-    ("POST", "/most-common-vulns"), # Tested by /stats
-    ("POST", "/severity-counts"), # Tested by /stats
-    ("POST", "/by-org"), # Tested by /stats
+    ("GET", "/healthcheck"),  # Test not needed
+    ("GET", "/matomo/{path:path}"),  # TODO
+    ("GET", "/pe/{path:path}"),  # Tested
+    ("PUT", "/pe/{path:path}"),  # Tested
+    ("POST", "/pe/{path:path}"),  # Tested
+    ("DELETE", "/pe/{path:path}"),  # Tested
+    ("OPTIONS", "/pe/{path:path}"),  # Tested
+    ("POST", "/auth/callback"),  # Not used
+    ("POST", "/domain/export"),  # TODO
+    ("POST", "/vulnerabilities/export"),  # TODO
+    ("POST", "/services"),  # Tested by /stats
+    ("POST", "/ports"),  # Tested by /stats
+    ("POST", "/num-vulns"),  # Tested by /stats
+    ("POST", "/latest-vulns"),  # Tested by /stats
+    ("POST", "/most-common-vulns"),  # Tested by /stats
+    ("POST", "/severity-counts"),  # Tested by /stats
+    ("POST", "/by-org"),  # Tested by /stats
 }
+
 
 def convert_route_to_regex(route):
     """
@@ -118,6 +127,7 @@ def convert_route_to_regex(route):
     into regex pattern `/vulnerabilities/[^/]+` to match dynamic test calls.
     """
     return re.sub(r"\{.*?\}", r"[^/]+", route)  # Convert `{param}` → `[^/]+`
+
 
 @pytest.mark.parametrize("method, route", api_routes_test)
 def test_all_endpoints_have_tests(method, route):
@@ -127,17 +137,19 @@ def test_all_endpoints_have_tests(method, route):
 
     route_regex = convert_route_to_regex(route)  # Convert `{param}` → `[^/]+`
     test_files = [
-        f for f in os.listdir("xfd_api/tests") if f.startswith("test_") and f.endswith(".py")
+        f
+        for f in os.listdir("xfd_api/tests")
+        if f.startswith("test_") and f.endswith(".py")
     ]
 
     found = False
     for test_file in test_files:
-        with open(os.path.join("xfd_api/tests", test_file), "r") as f:
+        with open(os.path.join("xfd_api/tests", test_file)) as f:
             test_content = f.read()
 
             # Match API calls:
             pattern = r'client\.{}\(\s*["\']{}'.format(method.lower(), route_regex)
-            
+
             if re.search(pattern, test_content):
                 found = True
                 break  # Stop once a match is found
