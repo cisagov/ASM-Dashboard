@@ -42,7 +42,6 @@ from .api_methods.user import (
     get_users_by_region_id,
     get_users_by_state,
     get_users_v2,
-    update_user,
     update_user_v2,
 )
 from .api_methods.vulnerability import (
@@ -1090,7 +1089,7 @@ async def call_get_users(current_user: User = Depends(get_current_active_user)):
 
 @api_router.get(
     "/users/regionId/{regionId}",
-    response_model=List[UserSchema],
+    response_model=List[UserResponseV2],
     dependencies=[Depends(get_current_active_user)],
     tags=["Users"],
 )
@@ -1103,7 +1102,7 @@ async def call_get_users_by_region_id(
 
 @api_router.get(
     "/users/state/{state}",
-    response_model=List[UserSchema],
+    response_model=List[UserResponseV2],
     dependencies=[Depends(get_current_active_user)],
     tags=["Users"],
 )
@@ -1143,14 +1142,6 @@ async def update_user_v2_view(
 ):
     """Update a particular user."""
     return update_user_v2(user_id, user_data, current_user)
-
-
-@api_router.post("/users/{userId}", tags=["Users"])
-async def call_update_user(
-    userId, body, current_user: User = Depends(get_current_active_user)
-):
-    """Update a user by ID."""
-    return update_user(userId, body, current_user)
 
 
 @api_router.put(

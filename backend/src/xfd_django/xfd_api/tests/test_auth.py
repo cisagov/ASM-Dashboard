@@ -1,5 +1,6 @@
 """Test auth API."""
 # Standard Python Libraries
+import secrets
 from unittest.mock import AsyncMock, patch
 
 # Third-Party Libraries
@@ -15,10 +16,11 @@ client = TestClient(app)
 @patch("xfd_api.auth.get_jwt_from_code", new_callable=AsyncMock)
 def test_okta_callback_success(mock_get_jwt_from_code):
     """Test successful Okta callback authentication with real process_user."""
+    email = "{}@example.com".format(secrets.token_hex(4))
     # Mock the response from Okta token exchange
     mock_get_jwt_from_code.return_value = {
         "decoded_token": {
-            "email": "test@example.com",
+            "email": email,
             "sub": "okta-user-id-123",
             "given_name": "Test",
             "family_name": "User",
@@ -33,19 +35,20 @@ def test_okta_callback_success(mock_get_jwt_from_code):
     assert response.status_code == 200
     data = response.json()
     assert "token" in data
-    assert data["data"]["user"]["email"] == "test@example.com"
+    assert data["data"]["user"]["email"] == email
     assert response.cookies["crossfeed-token"] == data["token"]
 
     # Check that the user was actually created in the DB
-    assert User.objects.filter(email="test@example.com").exists()
+    assert User.objects.filter(email=email).exists()
 
 
 @pytest.mark.django_db(transaction=True)
 @patch("xfd_api.auth.get_jwt_from_code", new_callable=AsyncMock)
 def test_okta_callback_existing_user(mock_get_jwt_from_code):
     """Test Okta callback when the user already exists (should update last login)."""
+    email = "{}@example.com".format(secrets.token_hex(4))
     User.objects.create(
-        email="test@example.com",
+        email=email,
         oktaId="okta-user-id-123",
         firstName="Existing",
         lastName="User",
@@ -57,7 +60,7 @@ def test_okta_callback_existing_user(mock_get_jwt_from_code):
     # Mock the response from Okta token exchange
     mock_get_jwt_from_code.return_value = {
         "decoded_token": {
-            "email": "test@example.com",
+            "email": email,
             "sub": "okta-user-id-123",
             "given_name": "Existing",
             "family_name": "User",
@@ -71,10 +74,10 @@ def test_okta_callback_existing_user(mock_get_jwt_from_code):
     assert response.status_code == 200
 
     # Ensure user still exists and was NOT duplicated
-    assert User.objects.filter(email="test@example.com").count() == 1
+    assert User.objects.filter(email=email).count() == 1
 
     # Ensure last login timestamp was updated
-    updated_user = User.objects.get(email="test@example.com")
+    updated_user = User.objects.get(email=email)
     assert updated_user.lastLoggedIn != "2000-01-01T00:00:00Z"
 
 

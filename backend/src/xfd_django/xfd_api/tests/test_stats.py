@@ -132,10 +132,9 @@ def test_get_stats_by_org_user():
     data = response.json()
     assert "domains" in data["result"]
     assert "numVulnerabilities" in data["result"]["domains"]
-    assert (
-        data["result"]["domains"]["numVulnerabilities"][0]["id"]
-        == f"{domain.name}|Critical"
-    )
+    assert data["result"]["domains"]["numVulnerabilities"][0][
+        "id"
+    ] == "{}|Critical".format(domain.name)
 
 
 @pytest.mark.django_db(transaction=True)
@@ -207,7 +206,6 @@ def test_get_stats_by_global_view_user():
     data = response.json()
     assert "domains" in data["result"]
     assert "numVulnerabilities" in data["result"]["domains"]
-    assert (
-        data["result"]["domains"]["numVulnerabilities"][0]["id"]
-        == f"{domain.name}|High"
+    assert data["result"]["domains"]["numVulnerabilities"][0]["id"] == "{}|High".format(
+        domain.name
     )
