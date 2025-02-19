@@ -38,7 +38,6 @@ interface Props {
   removeFilter: ContextType['removeFilter'];
   filters: ContextType['filters'];
   facets: ContextType['facets'];
-  clearFilters: ContextType['clearFilters'];
   searchTerm: ContextType['searchTerm'];
   setSearchTerm: ContextType['setSearchTerm'];
   initialFilters: any[];
@@ -70,7 +69,6 @@ export const DrawerInterior: React.FC<Props> = (props) => {
     addFilter,
     removeFilter,
     facets,
-    clearFilters,
     setSearchTerm,
     initialFilters
   } = props;
@@ -116,6 +114,13 @@ export const DrawerInterior: React.FC<Props> = (props) => {
       filter.values.forEach((value: string) => {
         addFilter(filter.field, value, 'any');
       });
+    });
+  };
+
+  const clearFiltersAndSearch = () => {
+    setSearchTerm('', {
+      shouldClearFilters: true,
+      autocompleteResults: false
     });
   };
 
@@ -244,17 +249,16 @@ export const DrawerInterior: React.FC<Props> = (props) => {
           <FilterAlt />
         </Stack>
       </Toolbar>
-      <Divider />
 
-      {clearFilters && (
-        <Box display="flex" width="100%" justifyContent="center">
-          <Button onClick={clearFilters}>Clear All Filters</Button>
-        </Box>
-      )}
+      {filters.length > 0 ? (
+        <>
+          <Divider />
+          <Box marginY={1} display="flex" width="100%" justifyContent="center">
+            <Button onClick={clearFiltersAndSearch}>Clear All Filters</Button>
+          </Box>
+        </>
+      ) : null}
       <Accordion
-        sx={{
-          marginTop: 1
-        }}
         elevation={0}
         square
         classes={{

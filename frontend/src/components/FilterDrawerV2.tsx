@@ -28,7 +28,6 @@ export const FilterDrawer: FC<
     addFilter,
     removeFilter,
     facets,
-    clearFilters,
     searchTerm,
     setSearchTerm,
     filters,
@@ -62,7 +61,6 @@ export const FilterDrawer: FC<
           removeFilter={removeFilter}
           filters={filters}
           facets={facets}
-          clearFilters={filters.length > 0 ? () => clearFilters([]) : undefined}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           initialFilters={initialFilters}
@@ -100,7 +98,6 @@ export const FilterDrawerV2 = withSearch(
     removeFilter,
     filters,
     facets,
-    clearFilters,
     searchTerm,
     setSearchTerm
   }: ContextType) => ({
@@ -108,7 +105,6 @@ export const FilterDrawerV2 = withSearch(
     removeFilter,
     filters,
     facets,
-    clearFilters,
     searchTerm,
     setSearchTerm
   })
