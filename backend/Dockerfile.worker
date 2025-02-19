@@ -1,5 +1,5 @@
 # Base image for Python environment
-FROM python:3.10-bullseye
+FROM python:3.11-bullseye
 
 WORKDIR /app
 
