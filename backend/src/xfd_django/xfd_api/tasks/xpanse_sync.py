@@ -99,13 +99,18 @@ def main():
                     else:
                         raise Exception(
                             "Task error: {error} - Status: {status}".format(
-                                error=response.get("error"), status=response.get("status")
+                                error=response.get("error"),
+                                status=response.get("status"),
                             )
                         )
             else:
-                print('{name} does not have a linked CyHy org'.format(name=business_unit.entity_name))
+                print(
+                    "{name} does not have a linked CyHy org".format(
+                        name=business_unit.entity_name
+                    )
+                )
     except Exception as e:
-        print('Scan failed to complete: {error}'.format(error=e))
+        print("Scan failed to complete: {error}".format(error=e))
 
 
 def is_bu_pull_day():
@@ -166,8 +171,8 @@ def pull_and_save_business_units():
                     entity_name=business_unit.get("entity_name"), defaults=mdl_defaults
                 )
                 bu_list.append(mdl_business_unit_object)
-                
-        print('Business Units saved to MDL.')
+
+        print("Business Units saved to MDL.")
         return bu_list
     except Exception as e:
         print("Error fetching DMZ Business Unit pull: {error}".format(error=e))

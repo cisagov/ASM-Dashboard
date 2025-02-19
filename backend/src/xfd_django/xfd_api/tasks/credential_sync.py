@@ -64,7 +64,9 @@ def main():
             retry_count = 0
 
             while not done:
-                data = fetch_dmz_cred_task(org.acronym, page, per_page, since_timestamp_str)
+                data = fetch_dmz_cred_task(
+                    org.acronym, page, per_page, since_timestamp_str
+                )
                 if not data or data.get("status") != "Processing":
                     print(
                         "Failed to start Credential Sync task for org: {acronym}, {name}".format(
@@ -120,7 +122,7 @@ def main():
                         )
                     )
     except Exception as e:
-        print('Scan failed to complete: {error}'.format(error=e))
+        print("Scan failed to complete: {error}".format(error=e))
 
 
 def fetch_dmz_cred_task(org_acronym, page, per_page, since_timestamp):
