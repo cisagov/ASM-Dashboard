@@ -187,6 +187,7 @@ class UserResponseV2(BaseModel):
     fullName: str
     email: str
     acceptedTermsVersion: Optional[str] = None
+    dateAcceptedTerms: Optional[datetime] = None
     lastLoggedIn: Optional[datetime] = None
     regionId: Optional[str] = None
     state: Optional[str] = None

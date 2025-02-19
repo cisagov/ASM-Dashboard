@@ -203,6 +203,7 @@ def get_users(current_user):
                 "userType": user.userType,
                 "lastLoggedIn": user.lastLoggedIn,
                 "acceptedTermsVersion": user.acceptedTermsVersion,
+                "dateAcceptedTerms": user.dateAcceptedTerms,
                 "roles": [
                     {
                         "id": str(role.id),
