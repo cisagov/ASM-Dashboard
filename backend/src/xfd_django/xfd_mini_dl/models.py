@@ -5640,6 +5640,27 @@ class CpeProduct(models.Model):
         unique_together = (("cpe_product_name", "version_number"),)
 
 
+class Blocklist(models.Model):
+    """Define Blocklist Model."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    ip = InetAddressField(
+        null=False, blank=False, unique=True
+    )  # <-- Removed trailing comma
+    created_at = models.DateTimeField(auto_now=False)  # <-- Removed trailing comma
+
+    class Meta:
+        """Set Blocklist model metadata."""
+
+        app_label = app_label_name
+        managed = manage_db
+        db_table = "blocklist"
+        indexes = [
+            models.Index(fields=["ip"]),  # Reinforces index on 'ip' field
+            models.Index(fields=["created_at"]),  # Speeds up sorting by 'updated_at'
+        ]
+
+
 # # THese are all views, so they shouldn't be generated via the ORM
 
 # # This should be a view not a table
@@ -6397,6 +6418,7 @@ class CpeProduct(models.Model):
 
 #     class Meta:
 #         """Set VwIscoreOrgsIpCounts model metadata."""
+
 
 #         managed = False
 #         db_table = "vw_iscore_orgs_ip_counts"""" Django ORM models """
