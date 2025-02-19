@@ -122,10 +122,7 @@ EXCLUDED_ENDPOINTS_TESTS = {
 
 
 def convert_route_to_regex(route):
-    """
-    Convert FastAPI route format `/vulnerabilities/{vulnerability_id}`
-    into regex pattern `/vulnerabilities/[^/]+` to match dynamic test calls.
-    """
+    """Convert FastAPI route format."""
     return re.sub(r"\{.*?\}", r"[^/]+", route)  # Convert `{param}` → `[^/]+`
 
 
