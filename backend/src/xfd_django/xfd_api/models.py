@@ -193,9 +193,11 @@ class Log(models.Model):
     """The Log model."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    payload = models.JSONField()
-    createdAt = models.DateTimeField(auto_now_add=True)
-    eventType = models.CharField(max_length=255, null=True, blank=True)
+    payload = models.TextField()
+    createdAt = models.DateTimeField(db_column="createdAt", auto_now_add=True)
+    eventType = models.CharField(
+        db_column="eventType", max_length=255, null=True, blank=True
+    )
     result = models.CharField(max_length=255)
 
     class Meta:
