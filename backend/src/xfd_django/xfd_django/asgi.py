@@ -46,7 +46,7 @@ def set_security_headers(response: Response):
     response.headers["Content-Security-Policy"] = csp_value
 
     # Set Strict-Transport-Security (HSTS)
-    hsts_value = f"max-age={settings.SECURE_HSTS_SECONDS}"
+    hsts_value = "max-age={}".format(settings.SECURE_HSTS_SECONDS)
     if settings.SECURE_HSTS_PRELOAD:
         hsts_value += "; preload"
     if settings.SECURE_HSTS_INCLUDE_SUBDOMAINS:

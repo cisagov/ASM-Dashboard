@@ -210,9 +210,9 @@ class Log(models.Model):
 class Notification(models.Model):
     """The Notification model."""
 
-    id = models.UUIDField(primary_key=True)
-    createdAt = models.DateTimeField(db_column="createdAt")
-    updatedAt = models.DateTimeField(db_column="updatedAt")
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    createdAt = models.DateTimeField(auto_now_add=True, db_column="createdAt")
+    updatedAt = models.DateTimeField(auto_now=True, db_column="updatedAt")
     startDatetime = models.DateTimeField(
         db_column="startDatetime", blank=True, null=True
     )
@@ -631,13 +631,11 @@ class Vulnerability(models.Model):
     cpe = models.TextField(blank=True, null=True)
     description = models.CharField()
     references = models.JSONField(default=list)
-    cvss = models.DecimalField(
-        max_digits=1000, decimal_places=1000, blank=True, null=True
-    )
+    cvss = models.DecimalField(max_digits=4, decimal_places=2, blank=True, null=True)
     severity = models.CharField(
         max_length=10, choices=SeverityChoices.choices, blank=True, null=True
     )
-    needsPopulation = models.BooleanField(db_column="needsPopulation")
+    needsPopulation = models.BooleanField(db_column="needsPopulation", default=False)
     state = models.CharField(
         max_length=10, choices=StateChoices.choices, default=StateChoices.OPEN
     )

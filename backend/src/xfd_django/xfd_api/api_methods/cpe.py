@@ -7,12 +7,7 @@ from ..models import Cpe
 
 
 def get_cpes_by_id(cpe_id):
-    """
-    Get Cpe by id.
-
-    Returns:
-        object: a single Cpe object.
-    """
+    """Get Cpe by id."""
     try:
         cpe = Cpe.objects.get(id=cpe_id)
         return cpe
