@@ -1,7 +1,11 @@
 """Serializers to support user event logging."""
-import json
+# Standard Python Libraries
 from datetime import datetime, timezone
-from xfd_api.models import User, Organization  # Adjust the import path as needed
+import json
+
+# Third-Party Libraries
+from xfd_api.models import Organization, User  # Adjust the import path as needed
+
 
 def format_datetime(dt: datetime) -> str:
     """Format a datetime as an ISO 8601 UTC string with a trailing 'Z'."""
@@ -9,10 +13,9 @@ def format_datetime(dt: datetime) -> str:
         return None
     return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
+
 def serialize_user(user: User) -> dict:
-    """
-    Serialize a User instance to a dictionary with camelCase keys.
-    """
+    """Serialize a User instance to a dictionary with camelCase keys."""
     return {
         "id": str(user.id),
         "cognitoId": user.cognitoId,
@@ -26,17 +29,23 @@ def serialize_user(user: User) -> dict:
         "email": user.email,
         "invitePending": user.invitePending,
         "loginBlockedByMaintenance": user.loginBlockedByMaintenance,
-        "dateAcceptedTerms": format_datetime(user.dateAcceptedTerms) if user.dateAcceptedTerms else None,
+        "dateAcceptedTerms": format_datetime(user.dateAcceptedTerms)
+        if user.dateAcceptedTerms
+        else None,
         "acceptedTermsVersion": user.acceptedTermsVersion,
-        "lastLoggedIn": format_datetime(user.lastLoggedIn) if user.lastLoggedIn else None,
+        "lastLoggedIn": format_datetime(user.lastLoggedIn)
+        if user.lastLoggedIn
+        else None,
         "userType": user.userType,
         "regionId": user.regionId,
         "state": user.state,
     }
 
+
 def serialize_organization(org: Organization) -> dict:
     """
     Serialize an Organization instance to a dictionary with camelCase keys.
+
     Note: The pendingDomains field is stored as TEXT but represents a JSON array.
     """
     try:
@@ -63,9 +72,11 @@ def serialize_organization(org: Organization) -> dict:
         "type": org.type,
     }
 
+
 def serialize_role(role) -> dict:
     """
     Serialize a Role instance to a dictionary.
+
     Adjust fields as needed.
     """
     return {

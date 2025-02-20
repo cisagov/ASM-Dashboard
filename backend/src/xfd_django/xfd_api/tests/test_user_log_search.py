@@ -1,14 +1,18 @@
 """User event log search tests."""
-import pytest
-import uuid
-import json
+# Standard Python Libraries
 from datetime import datetime
+import json
+import uuid
+
+# Third-Party Libraries
 from fastapi.testclient import TestClient
+import pytest
 from xfd_api.auth import create_jwt_token
-from xfd_api.models import User, UserType, Log
+from xfd_api.models import Log, User, UserType
 from xfd_django.asgi import app
 
 client = TestClient(app)
+
 
 @pytest.mark.django_db(transaction=True)
 def test_search_logs_success():
@@ -34,7 +38,6 @@ def test_search_logs_success():
         "result": {"value": "Success"},
     }
 
-    
     response = client.post(
         "/logs/search",
         headers={"Authorization": "Bearer {}".format(create_jwt_token(user))},
@@ -148,4 +151,3 @@ def test_search_logs_invalid_date_format():
 
     assert response.status_code == 500
     assert "Invalid date format" in response.json()["detail"]
-
