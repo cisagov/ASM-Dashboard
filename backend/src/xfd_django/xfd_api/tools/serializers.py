@@ -29,13 +29,7 @@ def serialize_user(user: User) -> dict:
         "email": user.email,
         "invitePending": user.invitePending,
         "loginBlockedByMaintenance": user.loginBlockedByMaintenance,
-        "dateAcceptedTerms": format_datetime(user.dateAcceptedTerms)
-        if user.dateAcceptedTerms
-        else None,
         "acceptedTermsVersion": user.acceptedTermsVersion,
-        "lastLoggedIn": format_datetime(user.lastLoggedIn)
-        if user.lastLoggedIn
-        else None,
         "userType": user.userType,
         "regionId": user.regionId,
         "state": user.state,
