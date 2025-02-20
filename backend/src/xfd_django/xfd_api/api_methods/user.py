@@ -28,6 +28,7 @@ from ..helpers.regionStateMap import REGION_STATE_MAP
 from ..models import Organization, Role, User
 from ..schema_models.user import NewUser as NewUserSchema
 from ..schema_models.user import User as UserSchema
+from ..tools.serializers import serialize_user
 
 
 def is_valid_uuid(val: str) -> bool:
@@ -172,6 +173,7 @@ def delete_user(target_user_id, current_user):
         return {
             "status": "success",
             "message": "User {} has been deleted successfully.".format(target_user_id),
+            "userDeleted": serialize_user(target_user),
         }
 
     except Exception as e:

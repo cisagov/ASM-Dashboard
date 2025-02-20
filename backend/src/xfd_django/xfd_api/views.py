@@ -1,5 +1,6 @@
 """This module defines the API endpoints for the FastAPI application."""
 # Standard Python Libraries
+from datetime import datetime, timezone
 import os
 from typing import List, Optional
 from uuid import UUID
@@ -46,6 +47,7 @@ from .api_methods.user import (
     update_user,
     update_user_v2,
 )
+from .api_methods.user_log_search import search_logs
 from .api_methods.vulnerability import (
     export_vulnerabilities,
     get_vulnerability_by_id,
@@ -79,12 +81,19 @@ from .schema_models.user import (
 )
 from .schema_models.user import User as UserSchema
 from .schema_models.user import UserResponseV2, VersionModel
+from .schema_models.user_log_schema import LogSearch, LogSearchResponse
 from .schema_models.vulnerability import (
     VulnerabilitySearch,
     VulnerabilitySearchResponse,
 )
 from .schema_models.vulnerability import GetVulnerabilityResponse
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
+from .tools.serializers import serialize_organization, serialize_user
+from .tools.user_logger_decorator import (
+    get_organization_sync,
+    get_user_sync,
+    log_action,
+)
 
 # Define API router
 api_router = APIRouter()
@@ -315,6 +324,25 @@ async def call_get_domain_by_id(domain_id: str):
 
 
 # ========================================
+#   Log Endpoints
+# ========================================
+
+
+@api_router.post(
+    "/logs/search",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=LogSearchResponse,
+    tags=["Logs"],
+)
+async def call_search_logs(
+    log_search: LogSearch, current_user: User = Depends(get_current_active_user)
+):
+    """Search log table."""
+    log_data, count = search_logs(log_search, current_user)
+    return LogSearchResponse(result=log_data, count=count)
+
+
+# ========================================
 #   Notification Endpoints
 # ========================================
 
@@ -504,6 +532,18 @@ async def delete_organization(
     dependencies=[Depends(get_current_active_user)],
     tags=["Organizations"],
 )
+@log_action(
+    action="USER ASSIGNED",
+    message_or_cb=lambda current_user, response, organization_id, user_data, **kwargs: {
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "userPerformedAssignment": serialize_user(current_user),
+        "organization": serialize_organization(get_organization_sync(organization_id)),
+        "role": user_data.role,
+        "user": serialize_user(get_user_sync(user_data.userId))
+        if user_data.userId
+        else None,
+    },
+)
 async def add_user_to_organization_v2(
     organization_id: str,
     user_data: OrganizationSchema.NewOrgUser,
@@ -531,8 +571,20 @@ async def approve_role(
 @api_router.post(
     "/organizations/{organization_id}/roles/{role_id}/remove",
     dependencies=[Depends(get_current_active_user)],
-    response_model=OrganizationSchema.GenericMessageResponseModel,
+    response_model=OrganizationSchema.RemoveRoleResponseModel,
     tags=["Organizations"],
+)
+@log_action(
+    action="USER ROLE REMOVED",
+    message_or_cb=lambda current_user, response, organization_id, role_id, **kwargs: {
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "userPerformedRemoval": serialize_user(current_user),
+        "fromOrganization": serialize_organization(
+            get_organization_sync(organization_id)
+        ),
+        "roleId": role_id,
+        "removalResult": response,
+    },
 )
 async def remove_role(
     organization_id: str,
@@ -1054,9 +1106,17 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 
 @api_router.delete(
     "/users/{userId}",
-    response_model=OrganizationSchema.GenericMessageResponseModel,
+    response_model=OrganizationSchema.DeleteUserResponseModel,
     dependencies=[Depends(get_current_active_user)],
     tags=["Users"],
+)
+@log_action(
+    action="USER DENY/REMOVE",
+    message_or_cb=lambda current_user, response, userId, **kwargs: {
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "userPerformedRemoval": serialize_user(current_user) if current_user else None,
+        "removalResult": response,
+    },
 )
 async def call_delete_user(
     userId: str, current_user: User = Depends(get_current_active_user)
@@ -1147,6 +1207,15 @@ async def call_update_user(
     response_model=RegisterUserResponse,
     tags=["Users"],
 )
+@log_action(
+    action="USER APPROVE",
+    message_or_cb=lambda current_user, response, user_id, **kwargs: {
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "userPerformedApproval": serialize_user(current_user) if current_user else None,
+        "userToApprove": serialize_user(get_user_sync(user_id)) if user_id else None,
+        "approvalResult": response,
+    },
+)
 async def register_approve(
     user_id: str, current_user: User = Depends(get_current_active_user)
 ):
@@ -1172,6 +1241,15 @@ async def register_deny(
     dependencies=[Depends(get_current_active_user)],
     response_model=NewUserResponseModel,
     tags=["Users"],
+)
+@log_action(
+    action="USER INVITE",
+    message_or_cb=lambda current_user, response, new_user, **kwargs: {
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "userPerformedInvite": serialize_user(current_user) if current_user else None,
+        "invitePayload": new_user.dict() if new_user else None,
+        "createdUserRecord": response,
+    },
 )
 async def invite_user(
     new_user: NewUser, current_user: User = Depends(get_current_active_user)
