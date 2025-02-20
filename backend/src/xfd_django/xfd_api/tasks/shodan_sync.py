@@ -1,13 +1,14 @@
 """ShodanSync scan."""
 # Standard Python Libraries
-import datetime
 import os
 import time
 
 # Third-Party Libraries
 import django
+from django.conf import settings
 from django.utils import timezone
 import requests
+from xfd_api.helpers.date_time_helpers import calculate_days_back
 from xfd_mini_dl.models import DataSource, Organization, ShodanAssets, ShodanVulns
 
 # Django setup
@@ -18,6 +19,8 @@ django.setup()
 # Constants
 MAX_RETRIES = 3  # Max retries for failed tasks
 TIMEOUT = 60  # Timeout in seconds for waiting on task completion
+
+headers = settings.DMZ_API_HEADER
 
 
 def handler(event):
@@ -46,12 +49,7 @@ def main():
             },
         )
 
-        # Step 1: Get the current date and time in UTC
-        current_time = datetime.datetime.now(datetime.timezone.utc)
-        # Step 2: Subtract days from the current date
-        days_ago = current_time - datetime.timedelta(days=15)
-        # Step 3: Convert to an ISO 8601 string with timezone (e.g., UTC)
-        since_timestamp_str = days_ago.isoformat()
+        since_timestamp_str = calculate_days_back(15)
 
         for org in all_orgs:
             print(
@@ -137,11 +135,6 @@ def fetch_dmz_shodan_task(org_acronym, page, per_page, since_timestamp):
             acronym=org_acronym
         )
     )
-    headers = {
-        "X-API-KEY": os.getenv("CF_API_KEY"),
-        "access_token": os.getenv("PE_API_KEY"),
-        "Content-Type": "",
-    }
 
     data = {
         "org_acronym": org_acronym,
@@ -169,11 +162,6 @@ def fetch_dmz_shodan_data(task_id):
     url = "https://api.staging-cd.crossfeed.cyber.dhs.gov/pe/apiv1/get_mdl_shodan_data/task/{t_id}".format(
         t_id=task_id
     )
-    headers = {
-        "X-API-KEY": os.getenv("CF_API_KEY"),
-        "access_token": os.getenv("PE_API_KEY"),
-        "Content-Type": "",
-    }
 
     try:
         response = requests.get(url, headers=headers, timeout=20)
