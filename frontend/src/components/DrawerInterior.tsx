@@ -122,7 +122,12 @@ export const DrawerInterior: React.FC<Props> = (props) => {
       shouldClearFilters: true,
       autocompleteResults: false
     });
+    restoreInitialFilters();
   };
+
+  const selectedFilters = filters.filter(
+    (filter) => !initialFilters.some((f) => f.field === filter.field)
+  );
 
   const revertSearch = () => {
     setSearchTerm('', {
@@ -250,11 +255,11 @@ export const DrawerInterior: React.FC<Props> = (props) => {
         </Stack>
       </Toolbar>
 
-      {filters.length > 0 ? (
+      {selectedFilters.length > 0 ? (
         <>
           <Divider />
           <Box marginY={1} display="flex" width="100%" justifyContent="center">
-            <Button onClick={clearFiltersAndSearch}>Clear All Filters</Button>
+            <Button onClick={clearFiltersAndSearch}>Clear Filters</Button>
           </Box>
         </>
       ) : null}
