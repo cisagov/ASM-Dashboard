@@ -13,6 +13,7 @@ from xfd_mini_dl.models import Organization, Sector
 
 from ..helpers.s3_client import S3Client
 from ..utils.csv_utils import convert_csv_to_json, create_checksum
+from ..utils.validation import save_validation_checksum
 
 
 # Helper function
@@ -32,6 +33,7 @@ async def sync_post(sync_body, request: Request):
             return {"status": 500}
 
         # Use MinIO client to save CSV data to S3
+        save_validation_checksum(generated_checksum, "DMZ INGEST")
         s3_client = S3Client()
         cursor_header = headers.get("x-cursor")
         start_bound, end_bound = -1, -2

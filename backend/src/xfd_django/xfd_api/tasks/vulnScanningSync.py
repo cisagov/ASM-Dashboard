@@ -28,6 +28,7 @@ from xfd_api.utils.scan_utils.vuln_scanning_sync_utils import (
     save_ticket_to_datalake,
     save_vuln_scan,
 )
+from xfd_api.utils.validation import save_validation_checksum
 from xfd_mini_dl.models import Cidr, Organization, Sector
 
 
@@ -306,8 +307,13 @@ def main():
                 "Content-Type": "application/json",
                 "Authorization": os.environ.get("DMZ_API_KEY"),
             }
+            print("Sending chunk to /sync")
+            save_validation_checksum(checksum, "LZ PUSH TO DMZ")
             response = requests.post(
-                os.environ.get("DMZ_SYNC_ENDPOINT"), json=body, headers=headers
+                os.environ.get("DMZ_SYNC_ENDPOINT"),
+                json=body,
+                headers=headers,
+                timeout=60,
             )
             if response.status_code == 200:
                 print("CSV Succesfully sent to /sync")
