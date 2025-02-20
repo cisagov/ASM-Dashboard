@@ -1005,13 +1005,10 @@ class ScanTask(models.Model):
         null=True,
         help_text="Date and time the scan task was added to the queue.",
     )
-    organization = models.ForeignKey(
+    organizations = models.ManyToManyField(
         Organization,
-        models.DO_NOTHING,
-        db_column="organization_id",
-        blank=True,
-        null=True,
-        help_text="Foreign key to the organization instance the scan is being run on if it is a single scan.",
+        related_name="scan_tasks",
+        help_text="Many to many relationship to the organizations the scan is being run on.",
     )
     scan = models.ForeignKey(
         Scan,
@@ -1021,12 +1018,7 @@ class ScanTask(models.Model):
         null=True,
         help_text="Foreign key to the scan the scan task was based off of.",
     )
-    organization_tags = models.ManyToManyField(
-        OrganizationTag,
-        related_name="scan_tasks",
-        blank=True,
-        help_text="List of organization tags that the scan task is running on.",
-    )
+    
 
     class Meta:
         """The Meta class for ScanTask."""
@@ -1124,7 +1116,7 @@ class User(models.Model):
         primary_key=True, help_text="Unique identifier for a user object."
     )
     cognito_id = models.CharField(
-        db_column="cognitoId",
+        db_column="cognito_id",
         unique=True,
         blank=True,
         null=True,
@@ -1359,8 +1351,8 @@ class Webpage(models.Model):
         null=True,
         help_text="Last time the webpage was seen.",
     )
-    s3key = models.TextField(
-        db_column="s3Key",
+    s3_key = models.TextField(
+        db_column="s3_key",
         blank=True,
         null=True,
         help_text="The AWS S3 key that corresponds to this webpage's contents.",
@@ -2611,6 +2603,18 @@ class WasFindings(models.Model):
     response = models.TextField(
         blank=True, null=True, help_text="The returned response from the webapp."
     )
+    sub_domain = models.ForeignKey(
+        "SubDomains",
+        on_delete=models.CASCADE,
+        db_column="sub_domain_id",
+        help_text="FK: Foreign Key to the linked subdomain",
+    )
+    service = models.ForeignKey(
+        "Service",
+        on_delete=models.CASCADE,
+        db_column="service_id",
+        help_text="FK: Foreign Key to the linked service",
+    )
 
     class Meta:
         """Set WasFindings model metadata."""
@@ -3372,10 +3376,16 @@ class CredentialExposures(models.Model):
         null=True,
         help_text="The root domain for the email found in the breach",
     )
-    sub_domain = models.TextField(
+    sub_domain_string = models.TextField(
         blank=True,
         null=True,
         help_text="The sub domain for thee email found in the breach",
+    )
+    sub_domain = models.ForeignKey(
+        "SubDomains",
+        on_delete=models.CASCADE,
+        db_column="sub_domain_id",
+        help_text="FK: Foreign Key to the linked subdomain",
     )
     breach_name = models.TextField(
         blank=True, null=True, help_text="Name of breach where credentials were exposed"
@@ -4601,6 +4611,18 @@ class ShodanVulns(models.Model):
         null=True,
         help_text="Common Platform Enumeration (CPE) id for the product the vulnerability was found on.",
     )
+    sub_domain = models.ForeignKey(
+        "SubDomains",
+        on_delete=models.CASCADE,
+        db_column="sub_domain_id",
+        help_text="FK: Foreign Key to the linked subdomain",
+    )
+    service = models.ForeignKey(
+        "Service",
+        on_delete=models.CASCADE,
+        db_column="service_id",
+        help_text="FK: Foreign Key to the linked service",
+    )
 
     class Meta:
         """Set ShodanVulns model metadata."""
@@ -5379,6 +5401,18 @@ class XpanseAlerts(models.Model):
     )
     host_name = models.TextField(
         blank=True, null=True, help_text="IP or domain where the alert points."
+    )
+    sub_domain = models.ForeignKey(
+        "SubDomains",
+        on_delete=models.CASCADE,
+        db_column="sub_domain_id",
+        help_text="FK: Foreign Key to the linked subdomain",
+    )
+    service = models.ForeignKey(
+        "Service",
+        on_delete=models.CASCADE,
+        db_column="service_id",
+        help_text="FK: Foreign Key to the linked service",
     )
     alert_action = models.TextField(
         blank=True,
