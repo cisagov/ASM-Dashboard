@@ -266,6 +266,7 @@ export const ScanTasksView: React.FC = () => {
   const scanNameValues = [
     'censys',
     'amass',
+    'credential_sync',
     'findomain',
     'portscanner',
     'wappalyzer',
@@ -273,13 +274,15 @@ export const ScanTasksView: React.FC = () => {
     'censysCertificates',
     'sslyze',
     'searchSync',
+    'shodan_sync',
     'cve',
     'dotgov',
     'intrigueIdent',
     'shodan',
     'lookingGlass',
     'dnstwist',
-    'rootDomainSync'
+    'rootDomainSync',
+    'xpanse_sync'
   ];
 
   const statusValues = [
