@@ -282,6 +282,7 @@ export const ScanTasksView: React.FC = () => {
     'lookingGlass',
     'dnstwist',
     'rootDomainSync',
+    'was_sync',
     'xpanse_sync'
   ];
 

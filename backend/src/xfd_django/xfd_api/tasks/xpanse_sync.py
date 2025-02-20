@@ -7,8 +7,10 @@ import time
 
 # Third-Party Libraries
 import django
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 import requests
+from xfd_api.helpers.date_time_helpers import calculate_days_back
 from xfd_mini_dl.models import (
     Organization,
     XpanseAlerts,
@@ -26,6 +28,8 @@ django.setup()
 # Constants
 MAX_RETRIES = 3  # Max retries for failed tasks
 
+headers = settings.DMZ_API_HEADER
+
 
 def handler(event):
     """Retrieve and save Xpanse alerts from the DMZ."""
@@ -42,12 +46,8 @@ def handler(event):
 def main():
     """Fetch and save DMZ Xpanse alerts."""
     try:
-        # Step 1: Get the current date and time in UTC
-        current_time = datetime.datetime.now(datetime.timezone.utc)
-        # Step 2: Subtract days from the current date
-        days_ago = current_time - datetime.timedelta(days=15)
-        # Step 3: Convert to an ISO 8601 string with timezone (e.g., UTC)
-        modified_timestamp_str = days_ago.isoformat()
+        modified_timestamp_str = calculate_days_back(5)
+
         if is_bu_pull_day() or XpanseBusinessUnits.objects.count() == 0:
             business_units = pull_and_save_business_units()
         else:
