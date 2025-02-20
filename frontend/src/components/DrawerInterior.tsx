@@ -69,6 +69,7 @@ export const DrawerInterior: React.FC<Props> = (props) => {
     addFilter,
     removeFilter,
     facets,
+    searchTerm,
     setSearchTerm,
     initialFilters
   } = props;
@@ -125,8 +126,9 @@ export const DrawerInterior: React.FC<Props> = (props) => {
     restoreInitialFilters();
   };
 
-  const selectedFilters = filters.filter(
-    (filter) => !initialFilters.some((f) => f.field === filter.field)
+  const selectedFiltersAndSearch = filters.filter(
+    (filter) =>
+      !initialFilters.some((f) => f.field === filter.field) || searchTerm
   );
 
   const revertSearch = () => {
@@ -255,7 +257,7 @@ export const DrawerInterior: React.FC<Props> = (props) => {
         </Stack>
       </Toolbar>
 
-      {selectedFilters.length > 0 ? (
+      {selectedFiltersAndSearch.length > 0 ? (
         <>
           <Divider />
           <Box marginY={1} display="flex" width="100%" justifyContent="center">
