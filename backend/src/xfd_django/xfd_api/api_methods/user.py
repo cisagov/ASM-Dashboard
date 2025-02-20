@@ -25,8 +25,6 @@ from ..helpers.email import (
 )
 from ..helpers.regionStateMap import REGION_STATE_MAP
 from ..models import Organization, Role, User
-from ..schema_models.user import NewUser as NewUserSchema
-from ..schema_models.user import User as UserSchema
 from ..tools.serializers import serialize_user
 
 
