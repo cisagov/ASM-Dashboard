@@ -166,7 +166,7 @@ def main():
                     sector = {
                         "name": request["agency"]["name"],
                         "acronym": request["_id"],
-                        "retired": True if request["retired"] else False,
+                        "retired": bool(request["retired"]),
                     }
                     try:
                         sector_obj, created = Sector.objects.update_or_create(
@@ -225,7 +225,7 @@ def main():
                 "acronym": request["_id"],
                 "retired": True if request["retired"] else False,
                 "type": request.get("agency").get("type"),
-                "stakeholder": True if request["stakeholder"] else False,
+                "stakeholder": bool(request["stakeholder"]),
                 "enrolled_in_vs_timestamp": request["enrolled"]
                 if request["enrolled"]
                 else datetime.datetime.now(),
@@ -241,8 +241,7 @@ def main():
             org_id_dict[request["_id"]] = org_record.id
 
             # For Any org that has child organizations, link them here
-        for key in parent_child_dict.keys():
-            item = parent_child_dict[key]
+        for key, item in parent_child_dict.items():
             org_id = org_id_dict[key]
             org = Organization.objects.get(id=org_id)
             if org:
@@ -253,15 +252,14 @@ def main():
                             children_ids.append(org_id_dict[acronym])
                     except KeyError:
                         print("Org id dict @ acronym did not exist")
-                for id in children_ids:
+                for child_id in children_ids:
                     try:
-                        Organization.objects.filter(id=id).update(parent=org.id)
+                        Organization.objects.filter(id=child_id).update(parent=org.id)
                         print("Succesfully linked child to parent")
                     except Exception as e:
                         print("Error occured linking child to parent", e)
         # Working on sectors
-        for key in sector_child_dict.keys():
-            item = sector_child_dict[key]
+        for key, item in sector_child_dict.items():
             sector = Sector.objects.get(id=key)
             organization_ids = []
             if sector:
@@ -307,7 +305,7 @@ def main():
                 "Authorization": os.environ.get("DMZ_API_KEY"),
             }
             response = requests.post(
-                os.environ.get("DMZ_SYNC_ENDPOINT"), json=body, headers=headers
+                os.environ.get("DMZ_SYNC_ENDPOINT"), json=body, headers=headers, timeout=60
             )
             if response.status_code == 200:
                 print("CSV Succesfully sent to /sync")
@@ -346,13 +344,7 @@ def main():
                     cve_id = save_cve_to_datalake({"name": vuln.get("cve")})
                 vuln_scan_dict = {
                     "id": vuln.get("_id"),
-                    "asset_inventory": (
-                        True
-                        if vuln.get("asset_inventory") == "true"
-                        else False
-                        if vuln.get("asset_inventory") == "false"
-                        else vuln.get("asset_inventory")
-                    ),
+                    "asset_inventory": vuln.get("asset_inventory") in ["true", True],
                     "bid": vuln.get("bid"),
                     "cert_id": vuln.get("cert"),
                     "cisa_known_exploited": vuln.get("cisa-known-exploited"),
