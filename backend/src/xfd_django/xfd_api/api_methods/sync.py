@@ -1,9 +1,21 @@
+"""
+Module for handling synchronization of organization data to the data lake.
+
+This module provides the `sync_post` function for ingesting and persisting
+organization data, along with helper functions for linking organizations
+to parents and sectors.
+"""
+
+# Standard Python Libraries
 from datetime import datetime
 from uuid import uuid4
+
+# Third-Party Libraries
 from django.db import transaction
 from fastapi import Request
 from xfd_api.tasks.vulnScanningSync import save_organization_to_mdl
 from xfd_mini_dl.models import Organization, Sector
+
 from ..helpers.s3_client import S3Client
 from ..utils.csv_utils import convert_csv_to_json, create_checksum
 
@@ -73,7 +85,9 @@ def link_parent_organization(org, parent_data):
         return
 
     try:
-        parent_org = Organization.objects.using("mini_data_lake_integration").get(acronym=parent_acronym)
+        parent_org = Organization.objects.using("mini_data_lake_integration").get(
+            acronym=parent_acronym
+        )
         org.parent = parent_org
         org.save()
     except Organization.DoesNotExist:
@@ -94,7 +108,9 @@ def link_sectors_to_organization(org, sectors):
 
         try:
             with transaction.atomic():
-                sector_obj, created = Sector.objects.using("mini_data_lake_integration").get_or_create(
+                sector_obj, created = Sector.objects.using(
+                    "mini_data_lake_integration"
+                ).get_or_create(
                     acronym=sector_acronym,
                     defaults={"id": str(uuid4()), "name": sector.get("name")},
                 )
