@@ -209,6 +209,7 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
           pageCount: Math.ceil(count / (query.pageSize ?? PAGE_SIZE)),
           filters: query.filters
         }));
+        setLoadingError(false);
       } catch (e) {
         console.error(e);
         setLoadingError(true);
