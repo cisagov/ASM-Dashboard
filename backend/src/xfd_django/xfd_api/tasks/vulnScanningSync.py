@@ -117,7 +117,7 @@ def main():
     org_id_dict = process_orgs(request_list)
 
     # Process Organizations & Relations
-    process_organizations_and_relations(org_id_dict)
+    process_organizations_and_relations()
 
     # Process Vulnerability Scans
     vuln_scans = fetch_from_redshift(
@@ -345,8 +345,9 @@ def process_port_scans(port_scans, org_id_dict):
             print(f"Error processing port scan data: {e}")
 
 
-def process_orgs(request_list, org_id_dict):
+def process_orgs(request_list):
     """Process organization data, save to MDL and return org ID dict for linking."""
+    org_id_dict = {}
     sector_child_dict = {}
     parent_child_dict = {}
 
