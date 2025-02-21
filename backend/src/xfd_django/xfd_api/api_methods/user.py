@@ -9,7 +9,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Prefetch
 from django.forms import model_to_dict
 from fastapi import HTTPException
-from fastapi.responses import JSONResponse
 
 from ..auth import (
     can_access_user,
@@ -26,8 +25,7 @@ from ..helpers.email import (
 )
 from ..helpers.regionStateMap import REGION_STATE_MAP
 from ..models import Organization, Role, User
-from ..schema_models.user import NewUser as NewUserSchema
-from ..schema_models.user import User as UserSchema
+from ..tools.serializers import serialize_user
 
 
 def is_valid_uuid(val: str) -> bool:
@@ -172,8 +170,11 @@ def delete_user(target_user_id, current_user):
         return {
             "status": "success",
             "message": "User {} has been deleted successfully.".format(target_user_id),
+            "userDeleted": serialize_user(target_user),
         }
 
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -203,6 +204,7 @@ def get_users(current_user):
                 "userType": user.userType,
                 "lastLoggedIn": user.lastLoggedIn,
                 "acceptedTermsVersion": user.acceptedTermsVersion,
+                "dateAcceptedTerms": user.dateAcceptedTerms,
                 "roles": [
                     {
                         "id": str(role.id),
@@ -220,12 +222,14 @@ def get_users(current_user):
             }
             for user in users
         ]
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 # GET: /users/regionId/{regionId}
-def get_users_by_region_id(current_user, region_id):
+def get_users_by_region_id(region_id, current_user):
     """List users with specific regionId."""
     try:
         if not is_regional_admin(current_user):
@@ -237,22 +241,54 @@ def get_users_by_region_id(current_user, region_id):
             )
 
         users = User.objects.filter(regionId=region_id).prefetch_related(
-            "roles", "roles.organization"
+            "roles__organization"
         )
         if users:
-            return JSONResponse(
-                status_code=200,
-                content=[UserSchema.model_validate(user) for user in users],
+            return [
+                {
+                    "id": str(user.id),
+                    "createdAt": user.createdAt.isoformat(),
+                    "updatedAt": user.updatedAt.isoformat(),
+                    "firstName": user.firstName,
+                    "lastName": user.lastName,
+                    "fullName": user.fullName,
+                    "email": user.email,
+                    "regionId": user.regionId,
+                    "state": user.state,
+                    "userType": user.userType,
+                    "lastLoggedIn": user.lastLoggedIn,
+                    "acceptedTermsVersion": user.acceptedTermsVersion,
+                    "roles": [
+                        {
+                            "id": str(role.id),
+                            "approved": role.approved,
+                            "role": role.role,
+                            "organization": {
+                                "id": str(role.organization.id),
+                                "name": role.organization.name,
+                            }
+                            if role.organization
+                            else None,
+                        }
+                        for role in user.roles.all()
+                    ],
+                }
+                for user in users
+            ]
+        else:
+            raise HTTPException(
+                status_code=404, detail="No users found for the specified regionId"
             )
-        raise HTTPException(
-            status_code=404, detail="No users found for the specified regionId"
-        )
+
+    except HTTPException as http_exc:
+        raise http_exc
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 # GET: /users/state/{state}
-async def get_users_by_state(state, current_user):
+def get_users_by_state(state, current_user):
     """List users with specific state."""
     try:
         if not is_regional_admin(current_user):
@@ -263,17 +299,45 @@ async def get_users_by_state(state, current_user):
                 status_code=400, detail="Missing state in path parameters"
             )
 
-        users = User.objects.filter(state=state).prefetch_related(
-            "roles", "roles.organization"
-        )
+        users = User.objects.filter(state=state).prefetch_related("roles__organization")
         if users:
-            return JSONResponse(
-                status_code=200,
-                content=[UserSchema.model_validate(user) for user in users],
+            return [
+                {
+                    "id": str(user.id),
+                    "createdAt": user.createdAt.isoformat(),
+                    "updatedAt": user.updatedAt.isoformat(),
+                    "firstName": user.firstName,
+                    "lastName": user.lastName,
+                    "fullName": user.fullName,
+                    "email": user.email,
+                    "regionId": user.regionId,
+                    "state": user.state,
+                    "userType": user.userType,
+                    "lastLoggedIn": user.lastLoggedIn,
+                    "acceptedTermsVersion": user.acceptedTermsVersion,
+                    "roles": [
+                        {
+                            "id": str(role.id),
+                            "approved": role.approved,
+                            "role": role.role,
+                            "organization": {
+                                "id": str(role.organization.id),
+                                "name": role.organization.name,
+                            }
+                            if role.organization
+                            else None,
+                        }
+                        for role in user.roles.all()
+                    ],
+                }
+                for user in users
+            ]
+        else:
+            raise HTTPException(
+                status_code=404, detail="No users found for the specified state"
             )
-        raise HTTPException(
-            status_code=404, detail="No users found for the specified state"
-        )
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -329,54 +393,8 @@ def get_users_v2(state, regionId, invitePending, current_user):
             }
             for user in users
         ]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# POST: /users/{userId}
-async def update_user(target_user_id, body, current_user):
-    """
-    Update a particular user.
-
-    Args:
-        request: The HTTP request containing the update data.
-
-    Raises:
-        HTTPException: If the user is not authorized or the user is not found.
-
-    Returns:
-        User: The updated user.
-    """
-    try:
-        if not can_access_user(current_user, target_user_id):
-            raise HTTPException(status_code=401, detail="Unauthorized")
-
-        if not target_user_id or not User.objects.filter(id=target_user_id).exists():
-            raise HTTPException(status_code=404, detail="User not found")
-
-        update_data = NewUserSchema(**body)
-
-        if not is_global_write_admin(current_user) and update_data.userType:
-            raise HTTPException(status_code=401, detail="Unauthorized to set userType")
-
-        user = User.objects.get(id=target_user_id)
-        user.firstName = update_data.firstName or user.firstName
-        user.lastName = update_data.lastName or user.lastName
-        user.fullName = "{} {}".format(user.firstName, user.lastName)
-        user.userType = update_data.userType or user.userType
-        user.state = update_data.state or user.state
-        user.regionId = update_data.regionId or user.regionId
-        user.email = update_data.email or user.email
-        user.organization = update_data.organization or user.organization
-        user.organizationAdmin = (
-            update_data.organizationAdmin
-            if update_data.organizationAdmin is not None
-            else user.organizationAdmin
-        )
-
-        user.save()
-
-        return UserSchema.model_validate(user)
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -197,6 +197,21 @@ class GenericMessageResponseModel(BaseModel):
     message: str
 
 
+class RemoveRoleResponseModel(BaseModel):
+    """Remove role response model."""
+
+    status: str
+    message: str
+
+
+class DeleteUserResponseModel(BaseModel):
+    """Delete user response model."""
+
+    status: str
+    message: str
+    userDeleted: Any
+
+
 class OrganizationSearchBody(BaseModel):
     """Elastic search orgnaization model."""
 

@@ -151,6 +151,12 @@ CSRF_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 
+DMZ_API_HEADER = {
+    "X-API-KEY": os.getenv("CF_API_KEY"),
+    "access_token": os.getenv("PE_API_KEY"),
+    "Content-Type": "",
+}
+
 # SECURITY CONFIGURATION
 SECURE_HSTS_SECONDS = 31536000  # Enable HSTS for 1 year
 SECURE_HSTS_PRELOAD = True

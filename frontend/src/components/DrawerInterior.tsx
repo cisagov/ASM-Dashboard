@@ -38,10 +38,18 @@ interface Props {
   removeFilter: ContextType['removeFilter'];
   filters: ContextType['filters'];
   facets: ContextType['facets'];
-  clearFilters: ContextType['clearFilters'];
   searchTerm: ContextType['searchTerm'];
   setSearchTerm: ContextType['setSearchTerm'];
   initialFilters: any[];
+}
+
+interface SeverityData {
+  value: string;
+  count: number;
+}
+
+interface GroupedData {
+  [key: string]: number;
 }
 
 const FiltersApplied: React.FC = () => {
@@ -61,7 +69,7 @@ export const DrawerInterior: React.FC<Props> = (props) => {
     addFilter,
     removeFilter,
     facets,
-    clearFilters,
+    searchTerm,
     setSearchTerm,
     initialFilters
   } = props;
@@ -110,6 +118,19 @@ export const DrawerInterior: React.FC<Props> = (props) => {
     });
   };
 
+  const clearFiltersAndSearch = () => {
+    setSearchTerm('', {
+      shouldClearFilters: true,
+      autocompleteResults: false
+    });
+    restoreInitialFilters();
+  };
+
+  const selectedFiltersAndSearch = filters.filter(
+    (filter) =>
+      !initialFilters.some((f) => f.field === filter.field) || searchTerm
+  );
+
   const revertSearch = () => {
     setSearchTerm('', {
       shouldClearFilters: true,
@@ -151,26 +172,79 @@ export const DrawerInterior: React.FC<Props> = (props) => {
   );
 
   const portFacet: any[] = facets['services.port']
-    ? facets['services.port'][0].data
+    ? facets['services.port'][0].data.sort(
+        (a: { value: number }, b: { value: number }) => a.value - b.value
+      )
     : [];
 
   const fromDomainFacet: any[] = facets['fromRootDomain']
-    ? facets['fromRootDomain'][0].data
+    ? facets['fromRootDomain'][0].data.sort(
+        (a: { value: string }, b: { value: string }) =>
+          a.value.localeCompare(b.value)
+      )
     : [];
 
   const cveFacet: any[] = facets['vulnerabilities.cve']
-    ? facets['vulnerabilities.cve'][0].data
+    ? facets['vulnerabilities.cve'][0].data.sort(
+        (a: { value: string }, b: { value: string }) =>
+          a.value.localeCompare(b.value)
+      )
     : [];
 
-  const severityFacet: any[] = facets['vulnerabilities.severity']
-    ? facets['vulnerabilities.severity'][0].data
+  // To-Do: Create array(s) to handle permutations of null and N/A values
+  const titleCaseSeverityFacet = facets['vulnerabilities.severity']
+    ? facets['vulnerabilities.severity'][0].data.map(
+        (d: { value: string; count: number }) => {
+          if (d.value === null || d.value === undefined) {
+            return { value: 'N/A', count: d.count };
+          } else {
+            return {
+              value:
+                d.value[0]?.toUpperCase() + d.value.slice(1)?.toLowerCase(),
+              count: d.count
+            };
+          }
+        }
+      )
     : [];
 
-  // Always show all severities
-  for (const value of ['Critical', 'High', 'Medium', 'Low']) {
-    if (!severityFacet.find((severity) => value === severity.value))
-      severityFacet.push({ value, count: 0 });
-  }
+  const groupedData: GroupedData = titleCaseSeverityFacet
+    .map((d: SeverityData) => {
+      const severityLevels = [
+        'N/A',
+        'Low',
+        'Medium',
+        'High',
+        'Critical',
+        'Other'
+      ];
+      if (severityLevels.includes(d.value)) {
+        return d;
+      }
+      if (
+        !d.value ||
+        ['None', 'Null', 'N/a', 'Undefined', 'undefined'].includes(d.value)
+      ) {
+        return { value: 'N/A', count: d.count };
+      } else {
+        return { value: 'Other', count: d.count };
+      }
+    })
+    .reduce((acc: GroupedData, curr: SeverityData) => {
+      if (acc[curr.value]) {
+        acc[curr.value] += curr.count;
+      } else {
+        acc[curr.value] = curr.count;
+      }
+      return acc;
+    }, {});
+
+  const sortedSeverityFacets = Object.entries(groupedData)
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => {
+      const order = ['N/A', 'Low', 'Medium', 'High', 'Critical', 'Other'];
+      return order.indexOf(a.value) - order.indexOf(b.value);
+    });
 
   return (
     <StyledWrapper style={{ overflowY: 'auto' }}>
@@ -182,17 +256,16 @@ export const DrawerInterior: React.FC<Props> = (props) => {
           <FilterAlt />
         </Stack>
       </Toolbar>
-      <Divider />
 
-      {clearFilters && (
-        <Box display="flex" width="100%" justifyContent="center">
-          <Button onClick={clearFilters}>Clear All Filters</Button>
-        </Box>
-      )}
+      {selectedFiltersAndSearch.length > 0 ? (
+        <>
+          <Divider />
+          <Box marginY={1} display="flex" width="100%" justifyContent="center">
+            <Button onClick={clearFiltersAndSearch}>Clear Filters</Button>
+          </Box>
+        </>
+      ) : null}
       <Accordion
-        sx={{
-          marginTop: 1
-        }}
         elevation={0}
         square
         classes={{
@@ -360,7 +433,7 @@ export const DrawerInterior: React.FC<Props> = (props) => {
           </AccordionDetails>
         </Accordion>
       )}
-      {severityFacet.length > 0 && (
+      {sortedSeverityFacets.length > 0 && (
         <Accordion
           elevation={0}
           square
@@ -386,7 +459,7 @@ export const DrawerInterior: React.FC<Props> = (props) => {
           </AccordionSummary>
           <AccordionDetails classes={{ root: classes.details }}>
             <FacetFilter
-              options={severityFacet}
+              options={sortedSeverityFacets}
               selected={filtersByColumn['vulnerabilities.severity'] ?? []}
               onSelect={(value) =>
                 addFilter('vulnerabilities.severity', value, 'any')

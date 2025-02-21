@@ -8,7 +8,7 @@ export const classes = {
   headerRow: `${PREFIX}-headerRow`
 };
 
-export const StyledDialog = styled(Dialog)(({ theme }) => ({
+export const StyledDialog = styled(Dialog)(() => ({
   [`& .${classes.chip}`]: {
     backgroundColor: '#C4C4C4',
     color: 'white',

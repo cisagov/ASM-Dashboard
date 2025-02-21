@@ -17,13 +17,24 @@ class Notification(BaseModel):
     createdAt: datetime
     updatedAt: datetime
     startDatetime: Optional[datetime]
-    endDateTime: Optional[datetime]
+    endDatetime: Optional[datetime]
     maintenanceType: Optional[str]
+    updatedBy: Optional[str]
     status: Optional[str]
-    updatedBy: datetime
     message: Optional[str]
 
     class Config:
         """Config."""
 
         from_attributes = True
+
+
+class CreateNotificationSchema(BaseModel):
+    """Create notification schema."""
+
+    maintenanceType: str
+    status: str
+    updatedBy: str
+    message: str
+    startDatetime: datetime
+    endDatetime: datetime
