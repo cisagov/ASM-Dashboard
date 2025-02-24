@@ -28,6 +28,8 @@ import { getSeverityColor } from 'pages/Risk/utils';
 import { differenceInCalendarDays, parseISO } from 'date-fns';
 import { truncateString } from 'utils/dataTransformUtils';
 import { ORGANIZATION_EXCLUSIONS } from 'hooks/useUserTypeFilters';
+import ChecklistIcon from '@mui/icons-material/Checklist';
+import DynamicFeedIcon from '@mui/icons-material/DynamicFeed';
 
 export interface ApiResponse {
   result: Vulnerability[];
@@ -112,13 +114,15 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
       page,
       pageSize = PAGE_SIZE,
       doExport = false,
-      groupBy = undefined
+      groupBy = undefined,
+      showAll = false
     }: {
       filters: GridFilterItem[];
       page: number;
       pageSize?: number;
       doExport?: boolean;
       groupBy?: string;
+      showAll?: boolean;
     }): Promise<ApiResponse | undefined> => {
       try {
         const tableFilters: {
@@ -169,7 +173,8 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
               page,
               filters: tableFilters,
               pageSize,
-              groupBy
+              groupBy,
+              showAll
             }
           }
         );
@@ -189,7 +194,8 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
           filters: query.filters,
           page: query.page,
           pageSize: query.pageSize ?? PAGE_SIZE,
-          groupBy
+          groupBy,
+          showAll: query.showAll
         });
         if (!resp) return;
         const { result, count } = resp;
@@ -216,6 +222,7 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
   const history = useHistory();
   const location = useLocation();
   const state = location.state as LocationState;
+  const [onlyOpenVulns, setOnlyOpenVulns] = useState(true);
   const [initialFilters, setInitialFilters] = useState<GridFilterItem[]>(
     state?.title
       ? [
@@ -311,6 +318,43 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
     });
   }, [fetchVulnerabilities, initialFilters]);
 
+  const showAllVulnsButton = (
+    <Button
+      size="small"
+      sx={{ '& .MuiButton-startIcon': { mr: '2px', mb: '2px' } }}
+      startIcon={<DynamicFeedIcon />}
+      onClick={() => {
+        fetchVulnerabilities({
+          page: 1,
+          pageSize: 100,
+          filters: [...filters],
+          showAll: true
+        });
+        setOnlyOpenVulns(false);
+      }}
+    >
+      Show All Vulnerabilities
+    </Button>
+  );
+
+  const showOpenVulnsButton = (
+    <Button
+      size="small"
+      sx={{ '& .MuiButton-startIcon': { mr: '2px', mb: '2px' } }}
+      startIcon={<ChecklistIcon />}
+      onClick={() => {
+        fetchVulnerabilities({
+          page: 1,
+          pageSize: PAGE_SIZE,
+          filters: [...filters],
+          showAll: false
+        });
+        setOnlyOpenVulns(true);
+      }}
+    >
+      Show Open Vulnerabilities
+    </Button>
+  );
   const vulRows: VulnerabilityRow[] = vulnerabilities.map((vuln) => {
     //The following logic is to format irregular severity levels to match those used in VulnerabilityBarChart.tsx
 
@@ -376,6 +420,13 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
       headerName: 'Vulnerability',
       minWidth: 100,
       flex: 1.2,
+      sortComparator: (v1, v2, cellParams1, cellParams2) => {
+        const collator = new Intl.Collator(undefined, {
+          numeric: true,
+          sensitivity: 'base'
+        });
+        return collator.compare(cellParams1.value, cellParams2.value);
+      },
       renderCell: (cellValues: GridRenderCellParams) => {
         if (cellValues.row.title.startsWith('CVE')) {
           return (
@@ -606,6 +657,13 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
               rowCount={totalResults}
               columns={vulCols}
               slots={{ toolbar: CustomToolbar }}
+              slotProps={{
+                toolbar: {
+                  children: onlyOpenVulns
+                    ? showAllVulnsButton
+                    : showOpenVulnsButton
+                }
+              }}
               paginationMode="server"
               paginationModel={paginationModel}
               onPaginationModelChange={(model) => {

@@ -1,5 +1,6 @@
 """This module defines the API endpoints for the FastAPI application."""
 # Standard Python Libraries
+from datetime import datetime, timezone
 import os
 from typing import List, Optional
 from uuid import UUID
@@ -11,7 +12,6 @@ from redis import asyncio as aioredis
 
 # from .schemas import Cpe
 from .api_methods import api_key as api_key_methods
-from .api_methods import auth as auth_methods
 from .api_methods import notification as notification_methods
 from .api_methods import organization, proxy, scan, scan_tasks, user
 from .api_methods.cpe import get_cpes_by_id
@@ -43,17 +43,17 @@ from .api_methods.user import (
     get_users_by_region_id,
     get_users_by_state,
     get_users_v2,
-    update_user,
     update_user_v2,
 )
+from .api_methods.user_log_search import search_logs
 from .api_methods.vulnerability import (
     export_vulnerabilities,
     get_vulnerability_by_id,
     search_vulnerabilities,
     update_vulnerability,
 )
-from .auth import get_current_active_user
-from .login_gov import callback, login
+from .auth import get_current_active_user, handle_okta_callback
+from .login_gov import callback
 from .models import User
 from .schema_models import organization_schema as OrganizationSchema
 from .schema_models import scan as scanSchema
@@ -63,6 +63,7 @@ from .schema_models.api_key import ApiKey as ApiKeySchema
 from .schema_models.cpe import Cpe as CpeSchema
 from .schema_models.cve import Cve as CveSchema
 from .schema_models.domain import DomainSearch, DomainSearchResponse, GetDomainResponse
+from .schema_models.notification import CreateNotificationSchema
 from .schema_models.notification import Notification as NotificationSchema
 from .schema_models.saved_search import (
     SavedSearchCreate,
@@ -79,12 +80,19 @@ from .schema_models.user import (
 )
 from .schema_models.user import User as UserSchema
 from .schema_models.user import UserResponseV2, VersionModel
+from .schema_models.user_log_schema import LogSearch, LogSearchResponse
 from .schema_models.vulnerability import (
     VulnerabilitySearch,
     VulnerabilitySearchResponse,
 )
 from .schema_models.vulnerability import GetVulnerabilityResponse
 from .schema_models.vulnerability import Vulnerability as VulnerabilitySchema
+from .tools.serializers import serialize_organization, serialize_user
+from .tools.user_logger_decorator import (
+    get_organization_sync,
+    get_user_sync,
+    log_action,
+)
 
 # Define API router
 api_router = APIRouter()
@@ -171,7 +179,7 @@ async def create_api_key(current_user: User = Depends(get_current_active_user)):
 
 
 # DELETE
-@api_router.delete("/api-keys/{id}", tags=["API Keys"])
+@api_router.delete("/api-keys/{api_key_id}", tags=["API Keys"])
 async def delete_api_key(
     api_key_id: str, current_user: User = Depends(get_current_active_user)
 ):
@@ -187,7 +195,9 @@ async def get_all_api_keys(current_user: User = Depends(get_current_active_user)
 
 
 # GET BY ID
-@api_router.get("/api-keys/{id}", response_model=ApiKeySchema, tags=["API Keys"])
+@api_router.get(
+    "/api-keys/{api_key_id}", response_model=ApiKeySchema, tags=["API Keys"]
+)
 async def get_api_key(
     api_key_id: str, current_user: User = Depends(get_current_active_user)
 ):
@@ -204,14 +214,7 @@ async def get_api_key(
 @api_router.post("/auth/okta-callback", tags=["Auth"])
 async def okta_callback(request: Request):
     """Handle Okta Callback."""
-    return await auth_methods.handle_okta_callback(request)
-
-
-# Login
-@api_router.get("/login", tags=["Auth"])
-async def login_route():
-    """Handle V1 Login."""
-    return login()
+    return await handle_okta_callback(request)
 
 
 # V1 Callback
@@ -315,23 +318,49 @@ async def call_get_domain_by_id(domain_id: str):
 
 
 # ========================================
+#   Log Endpoints
+# ========================================
+
+
+@api_router.post(
+    "/logs/search",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=LogSearchResponse,
+    tags=["Logs"],
+)
+async def call_search_logs(
+    log_search: LogSearch, current_user: User = Depends(get_current_active_user)
+):
+    """Search log table."""
+    log_data, count = search_logs(log_search, current_user)
+    return LogSearchResponse(result=log_data, count=count)
+
+
+# ========================================
 #   Notification Endpoints
 # ========================================
 
 
 # POST
 @api_router.post(
-    "/notifications", response_model=NotificationSchema, tags=["Notifications"]
+    "/notifications",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=NotificationSchema,
+    tags=["Notifications"],
 )
-async def create_notification(current_user: User = Depends(get_current_active_user)):
+async def create_notification(
+    notification_data: CreateNotificationSchema,
+    current_user: User = Depends(get_current_active_user),
+):
     """Create notification key."""
-    # return notification_handler.post(current_user)
-    return []
+    return notification_methods.post(notification_data, current_user)
 
 
 # DELETE
 @api_router.delete(
-    "/notifications/{id}", response_model=NotificationSchema, tags=["Notifications"]
+    "/notifications/{notification_id}",
+    dependencies=[Depends(get_current_active_user)],
+    tags=["Notifications"],
 )
 async def delete_notification(
     notification_id: str, current_user: User = Depends(get_current_active_user)
@@ -351,7 +380,10 @@ async def get_all_notifications():
 
 # GET BY ID
 @api_router.get(
-    "/notifications/{id}", response_model=NotificationSchema, tags=["Notifications"]
+    "/notifications/{notification_id}",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=NotificationSchema,
+    tags=["Notifications"],
 )
 async def get_notification(
     notification_id: str, current_user: User = Depends(get_current_active_user)
@@ -361,12 +393,19 @@ async def get_notification(
 
 
 # UPDATE BY ID
-@api_router.put("/notifications/{id}", tags=["Notifications"])
+@api_router.put(
+    "/notifications/{notification_id}",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=NotificationSchema,
+    tags=["Notifications"],
+)
 async def update_notification(
-    notification_id: str, current_user: User = Depends(get_current_active_user)
+    notification_id: str,
+    notification_data: CreateNotificationSchema,
+    current_user: User = Depends(get_current_active_user),
 ):
     """Update notification key by id."""
-    return notification_methods.delete(notification_id, current_user)
+    return notification_methods.put(notification_id, notification_data, current_user)
 
 
 # TODO: Adding placeholder until we determine if we still need this.
@@ -504,6 +543,18 @@ async def delete_organization(
     dependencies=[Depends(get_current_active_user)],
     tags=["Organizations"],
 )
+@log_action(
+    action="USER ASSIGNED",
+    message_or_cb=lambda current_user, response, organization_id, user_data, **kwargs: {
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "userPerformedAssignment": serialize_user(current_user),
+        "organization": serialize_organization(get_organization_sync(organization_id)),
+        "role": user_data.role,
+        "user": serialize_user(get_user_sync(user_data.userId))
+        if user_data.userId
+        else None,
+    },
+)
 async def add_user_to_organization_v2(
     organization_id: str,
     user_data: OrganizationSchema.NewOrgUser,
@@ -531,8 +582,20 @@ async def approve_role(
 @api_router.post(
     "/organizations/{organization_id}/roles/{role_id}/remove",
     dependencies=[Depends(get_current_active_user)],
-    response_model=OrganizationSchema.GenericMessageResponseModel,
+    response_model=OrganizationSchema.RemoveRoleResponseModel,
     tags=["Organizations"],
+)
+@log_action(
+    action="USER ROLE REMOVED",
+    message_or_cb=lambda current_user, response, organization_id, role_id, **kwargs: {
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "userPerformedRemoval": serialize_user(current_user),
+        "fromOrganization": serialize_organization(
+            get_organization_sync(organization_id)
+        ),
+        "roleId": role_id,
+        "removalResult": response,
+    },
 )
 async def remove_role(
     organization_id: str,
@@ -1054,9 +1117,17 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 
 @api_router.delete(
     "/users/{userId}",
-    response_model=OrganizationSchema.GenericMessageResponseModel,
+    response_model=OrganizationSchema.DeleteUserResponseModel,
     dependencies=[Depends(get_current_active_user)],
     tags=["Users"],
+)
+@log_action(
+    action="USER DENY/REMOVE",
+    message_or_cb=lambda current_user, response, userId, **kwargs: {
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "userPerformedRemoval": serialize_user(current_user) if current_user else None,
+        "removalResult": response,
+    },
 )
 async def call_delete_user(
     userId: str, current_user: User = Depends(get_current_active_user)
@@ -1078,7 +1149,7 @@ async def call_get_users(current_user: User = Depends(get_current_active_user)):
 
 @api_router.get(
     "/users/regionId/{regionId}",
-    response_model=List[UserSchema],
+    response_model=List[UserResponseV2],
     dependencies=[Depends(get_current_active_user)],
     tags=["Users"],
 )
@@ -1091,7 +1162,7 @@ async def call_get_users_by_region_id(
 
 @api_router.get(
     "/users/state/{state}",
-    response_model=List[UserSchema],
+    response_model=List[UserResponseV2],
     dependencies=[Depends(get_current_active_user)],
     tags=["Users"],
 )
@@ -1133,19 +1204,20 @@ async def update_user_v2_view(
     return update_user_v2(user_id, user_data, current_user)
 
 
-@api_router.post("/users/{userId}", tags=["Users"])
-async def call_update_user(
-    userId, body, current_user: User = Depends(get_current_active_user)
-):
-    """Update a user by ID."""
-    return update_user(userId, body, current_user)
-
-
 @api_router.put(
     "/users/{user_id}/register/approve",
     dependencies=[Depends(get_current_active_user)],
     response_model=RegisterUserResponse,
     tags=["Users"],
+)
+@log_action(
+    action="USER APPROVE",
+    message_or_cb=lambda current_user, response, user_id, **kwargs: {
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "userPerformedApproval": serialize_user(current_user) if current_user else None,
+        "userToApprove": serialize_user(get_user_sync(user_id)) if user_id else None,
+        "approvalResult": response,
+    },
 )
 async def register_approve(
     user_id: str, current_user: User = Depends(get_current_active_user)
@@ -1172,6 +1244,15 @@ async def register_deny(
     dependencies=[Depends(get_current_active_user)],
     response_model=NewUserResponseModel,
     tags=["Users"],
+)
+@log_action(
+    action="USER INVITE",
+    message_or_cb=lambda current_user, response, new_user, **kwargs: {
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "userPerformedInvite": serialize_user(current_user) if current_user else None,
+        "invitePayload": new_user.dict() if new_user else None,
+        "createdUserRecord": response,
+    },
 )
 async def invite_user(
     new_user: NewUser, current_user: User = Depends(get_current_active_user)

@@ -27,7 +27,7 @@ resource "aws_ssm_parameter" "stage_api_domain" {
 }
 
 resource "aws_ssm_parameter" "stage_cd_api_domain" {
-  name      = "/crossfeed/staging/DOMAIN"
+  name      = "/crossfeed/staging-cd/DOMAIN"
   type      = "String"
   value     = "api.staging-cd.crossfeed.cyber.dhs.gov"
   overwrite = true
