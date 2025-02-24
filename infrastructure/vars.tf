@@ -832,7 +832,7 @@ variable "ssm_dmz_api_key" {
 }
 
 variable "ssm_dmz_sync_endpoint" {
-  description = "ssm_dmz_api_key"
+  description = "ssm_dmz_sync_endpoint"
   type        = string
   default     = "/crossfeed/staging/DMZ_SYNC_ENDPOINT"
 }
