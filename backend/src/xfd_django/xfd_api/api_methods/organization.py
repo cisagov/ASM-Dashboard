@@ -38,6 +38,9 @@ def is_valid_uuid(val: str) -> bool:
 def list_organizations(current_user):
     """List organizations that the user is a member of or has access to."""
     try:
+        if is_regional_admin(current_user):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
         # Check if user is GlobalViewAdmin or has memberships
         if not is_global_view_admin(current_user) and not get_org_memberships(
             current_user
@@ -990,6 +993,9 @@ def update_org_scan(organization_id: str, scan_id, scan_data, current_user):
 def list_organizations_v2(state, regionId, current_user):
     """List organizations that the user is a member of or has access to."""
     try:
+        if is_regional_admin(current_user):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
         # Check if user is GlobalViewAdmin or has memberships
         if not is_global_view_admin(current_user) and not get_org_memberships(
             current_user
