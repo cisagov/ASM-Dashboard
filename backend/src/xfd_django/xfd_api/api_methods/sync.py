@@ -12,7 +12,7 @@ from uuid import uuid4
 
 # Third-Party Libraries
 from django.db import transaction
-from fastapi import Request
+from fastapi import HTTPException, Request
 from xfd_api.tasks.vulnScanningSync import save_organization_to_mdl
 from xfd_mini_dl.models import Organization, Sector
 
@@ -26,10 +26,10 @@ async def sync_post(sync_body, request: Request):
     request_checksum = headers.get("x-checksum")
 
     if not request_checksum or not sync_body.data:
-        return {"status": 500}
+        raise HTTPException(status_code=500, detail="Missing checksum")
 
     if request_checksum != create_checksum(sync_body.data):
-        return {"status": 500}
+        raise HTTPException(status_code=500, detail="Missing checksum")
 
     # Use MinIO client to save CSV data to S3
     s3_client = S3Client()

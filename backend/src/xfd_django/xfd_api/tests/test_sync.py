@@ -41,7 +41,7 @@ def test_sync_invalid_checksum_should_return_500():
         createdAt=datetime.now(),
         updatedAt=datetime.now(),
     )
-    invalid_checksum = create_checksum(dummy_org_csv_data + "invalid")
+    invalid_checksum = create_checksum(dummy_org_csv_data) + "invstr"
     response = client.post(
         "/sync",
         json={"data": dummy_org_csv_data},
@@ -50,25 +50,42 @@ def test_sync_invalid_checksum_should_return_500():
             "Authorization": "Bearer {}".format(create_jwt_token(user)),
         },
     )
+    print("RESPONSE")
     assert response.status_code == 500
 
 
 # Test: post valid data with missing checksum should return 500
-# @pytest.mark.django_db(transaction=True)
-# def test_synd_missing_checksum_should_return_500():
-#     user = user = User.objects.create(
-#         firstName="first",
-#         lastName="last",
-#         email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
-#         userType=UserType.STANDARD,
-#         createdAt=datetime.now(),
-#         updatedAt=datetime.now(),
-#     )
-#     headers = {
-#         "Authorization": "Bearer {}".format(create_jwt_token(user))
-#     }
-#     response = client.post("/sync", json={"data": dummy_org_csv_data}, headers=headers)
-#     assert response.status_code == 500
+@pytest.mark.django_db(transaction=True)
+def test_sync_missing_checksum_should_return_500():
+    """Test sync with missing checksum."""
+    user = user = User.objects.create(
+        firstName="first",
+        lastName="last",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+    headers = {"Authorization": "Bearer {}".format(create_jwt_token(user))}
+    response = client.post("/sync", json={"data": dummy_org_csv_data}, headers=headers)
+    assert response.status_code == 500
 
 
 # Test: post empty data should return 500
+@pytest.mark.django_db(transaction=True)
+def test_sync_missing_data_should_return_422():
+    """Test sync with missing data."""
+    user = user = User.objects.create(
+        firstName="first",
+        lastName="last",
+        email="{}@crossfeed.cisa.gov".format(secrets.token_hex(4)),
+        userType=UserType.STANDARD,
+        createdAt=datetime.now(),
+        updatedAt=datetime.now(),
+    )
+    headers = {
+        "Authorization": "Bearer {}".format(create_jwt_token(user)),
+        "x-checksum": create_checksum(dummy_org_csv_data),
+    }
+    response = client.post("/sync", headers=headers)
+    assert response.status_code == 422
