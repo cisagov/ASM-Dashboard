@@ -112,7 +112,7 @@ services:
   #     LOGGING_QUIET: 'true'
 
   matomodb:
-    image: mariadb:11.4
+    image: mariadb:10.6
     command: --max-allowed-packet=64MB
     networks:
       - backend
@@ -122,11 +122,9 @@ services:
       - MYSQL_ROOT_PASSWORD=password
     logging:
       driver: none
-    ports:
-      - 3306:3306
 
   matomo:
-    image: matomo:5.2.1
+    image: matomo:3.14.1
     user: root
     networks:
       - backend
@@ -143,9 +141,6 @@ services:
       - MATOMO_GENERAL_ASSUME_SECURE_PROTOCOL=1
     logging:
       driver: none
-    ports:
-      - "8080:80"
-
   # rabbitmq:
   #   image: 'rabbitmq:3.8-management'
   #   ports:
@@ -158,6 +153,23 @@ services:
   #     RABBITMQ_DEFAULT_PASS: guest
   #   volumes:
   #     - rabbitmq-data:/var/lib/rabbitmq
+
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.41.2-jammy
+    working_dir: /workspace
+    volumes:
+      - ./playwright:/workspace
+      - ~/.cache:/root/.cache  # Cache Playwright browser downloads
+    environment:
+      - HOME=/root
+      - PW_XFD_2FA_ISSUER=${PW_XFD_2FA_ISSUER}
+      - PW_XFD_2FA_SECRET=${PW_XFD_2FA_SECRET}
+      - PW_XFD_PASSWORD=${PW_XFD_PASSWORD}
+      - PW_XFD_URL=${PW_XFD_URL}
+      - PW_XFD_USER_ROLE=${PW_XFD_USER_ROLE}
+      - PW_XFD_USERNAME=${PW_XFD_USERNAME}
+    command: >
+      /bin/bash -c "npm ci && npx playwright test"
 
 volumes:
   postgres-data:

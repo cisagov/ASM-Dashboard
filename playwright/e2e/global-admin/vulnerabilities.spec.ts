@@ -17,9 +17,7 @@ test.describe('Vulnerabilities', () => {
   test('Test vulnerabilities accessibility', async ({
     makeAxeBuilder
   }, testInfo) => {
-    await page.getByRole('link', { name: 'Inventory' }).click();
-    await page.getByRole('link', { name: 'All Vulnerabilities' }).click();
-    await expect(page).toHaveURL('/inventory/vulnerabilities');
+    await page.goto('/inventory/vulnerabilities');
 
     const accessibilityScanResults = await makeAxeBuilder().analyze();
 
