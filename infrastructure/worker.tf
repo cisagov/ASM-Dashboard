@@ -109,8 +109,8 @@ resource "aws_iam_role_policy" "worker_task_execution_role_policy" {
           "${data.aws_ssm_parameter.ssm_redshift_database.arn}",
           "${data.aws_ssm_parameter.ssm_redshift_user.arn}",
           "${data.aws_ssm_parameter.ssm_redshift_password.arn}",
-          "${data.aws_ssm_parameter.ssm_dmz_api_key}",
-          "${data.aws_ssm_parameter.ssm_dmz_sync_endpoint}"
+          "${data.aws_ssm_parameter.ssm_dmz_api_key.arn}",
+          "${data.aws_ssm_parameter.ssm_dmz_sync_endpoint.arn}"
         ]
     },
     {
