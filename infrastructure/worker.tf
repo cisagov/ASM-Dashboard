@@ -33,7 +33,7 @@ resource "aws_iam_role" "worker_task_execution_role" {
     }
   ]
 }
-  EOF
+EOF
 
   tags = {
     Project = var.project
@@ -110,7 +110,7 @@ resource "aws_iam_role_policy" "worker_task_execution_role_policy" {
           "${data.aws_ssm_parameter.ssm_redshift_user.arn}",
           "${data.aws_ssm_parameter.ssm_redshift_password.arn}",
           "${data.aws_ssm_parameter.ssm_dmz_api_key}",
-          "${data.aws_ssm_parameter.ssm_dmz_sync_endpoint}",
+          "${data.aws_ssm_parameter.ssm_dmz_sync_endpoint}"
         ]
     },
     {
@@ -128,19 +128,19 @@ EOF
 resource "aws_iam_role" "worker_task_role" {
   name               = "crossfeed-${var.stage}-worker-task"
   assume_role_policy = <<EOF
-{
-  "Version": "2008-10-17",
-  "Statement": [
-    {
-      "Sid": "",
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "ecs-tasks.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
+  {
+    "Version": "2008-10-17",
+    "Statement": [
+      {
+        "Sid": "",
+        "Effect": "Allow",
+        "Principal": {
+          "Service": "ecs-tasks.amazonaws.com"
+        },
+        "Action": "sts:AssumeRole"
+      }
+    ]
+  }
   EOF
 
   tags = {
@@ -378,7 +378,7 @@ resource "aws_ecs_task_definition" "worker" {
       {
         "name": "DMZ_SYNC_ENDPOINT",
         "valueFrom": "${data.aws_ssm_parameter.ssm_dmz_sync_endpoint.arn}"
-      },
+      }
     ]
   }
 ]
