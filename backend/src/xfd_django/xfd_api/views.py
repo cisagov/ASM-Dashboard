@@ -35,6 +35,7 @@ from .api_methods.stats import (
     stats_latest_vulns,
     stats_most_common_vulns,
 )
+from .api_methods.sync import sync_post
 from .api_methods.user import (
     accept_terms,
     delete_user,
@@ -72,6 +73,7 @@ from .schema_models.saved_search import (
 )
 from .schema_models.saved_search import SavedSearch as SavedSearchSchema
 from .schema_models.search import DomainSearchBody, SearchResponse
+from .schema_models.sync import SyncBody, SyncResponse
 from .schema_models.user import (
     NewUser,
     NewUserResponseModel,
@@ -910,6 +912,26 @@ async def get_scan_task_logs(
 # ========================================
 #   Search Endpoints
 # ========================================
+
+
+@api_router.post(
+    "/sync",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=SyncResponse,
+    tags=["Sync"],
+)
+async def sync(
+    sync_body: SyncBody,
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+):
+    """Post organizations for datalake sync."""
+    try:
+        return await sync_post(sync_body, request)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @api_router.post(
