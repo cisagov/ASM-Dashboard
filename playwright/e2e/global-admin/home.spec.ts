@@ -15,10 +15,7 @@ test.describe('home', () => {
   });
 
   test('Test homepage accessibility', async ({ makeAxeBuilder }, testInfo) => {
-    const accessibilityScanResults = await makeAxeBuilder()
-      .exclude('document-title') // Exclude the document-title rule
-      .exclude('html-has-lang') // Exclude the html-has-lang rule
-      .analyze();
+    const accessibilityScanResults = await makeAxeBuilder().analyze();
 
     await testInfo.attach('accessibility-scan-results', {
       body: JSON.stringify(accessibilityScanResults, null, 2),
