@@ -38,7 +38,6 @@ interface Props {
   removeFilter: ContextType['removeFilter'];
   filters: ContextType['filters'];
   facets: ContextType['facets'];
-  clearFilters: ContextType['clearFilters'];
   searchTerm: ContextType['searchTerm'];
   setSearchTerm: ContextType['setSearchTerm'];
   initialFilters: any[];
@@ -70,7 +69,7 @@ export const DrawerInterior: React.FC<Props> = (props) => {
     addFilter,
     removeFilter,
     facets,
-    clearFilters,
+    searchTerm,
     setSearchTerm,
     initialFilters
   } = props;
@@ -118,6 +117,19 @@ export const DrawerInterior: React.FC<Props> = (props) => {
       });
     });
   };
+
+  const clearFiltersAndSearch = () => {
+    setSearchTerm('', {
+      shouldClearFilters: true,
+      autocompleteResults: false
+    });
+    restoreInitialFilters();
+  };
+
+  const selectedFiltersAndSearch = filters.filter(
+    (filter) =>
+      !initialFilters.some((f) => f.field === filter.field) || searchTerm
+  );
 
   const revertSearch = () => {
     setSearchTerm('', {
@@ -244,17 +256,16 @@ export const DrawerInterior: React.FC<Props> = (props) => {
           <FilterAlt />
         </Stack>
       </Toolbar>
-      <Divider />
 
-      {clearFilters && (
-        <Box display="flex" width="100%" justifyContent="center">
-          <Button onClick={clearFilters}>Clear All Filters</Button>
-        </Box>
-      )}
+      {selectedFiltersAndSearch.length > 0 ? (
+        <>
+          <Divider />
+          <Box marginY={1} display="flex" width="100%" justifyContent="center">
+            <Button onClick={clearFiltersAndSearch}>Clear Filters</Button>
+          </Box>
+        </>
+      ) : null}
       <Accordion
-        sx={{
-          marginTop: 1
-        }}
         elevation={0}
         square
         classes={{

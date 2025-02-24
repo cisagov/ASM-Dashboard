@@ -395,7 +395,6 @@ export const RiskWithSearch = withSearch(
     removeFilter,
     filters,
     facets,
-    clearFilters,
     searchTerm,
     setSearchTerm
   }: ContextType) => ({
@@ -403,7 +402,6 @@ export const RiskWithSearch = withSearch(
     removeFilter,
     filters,
     facets,
-    clearFilters,
     searchTerm,
     setSearchTerm
   })
