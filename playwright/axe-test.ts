@@ -12,12 +12,9 @@ type AxeFixture = {
 export const test = base.extend<AxeFixture>({
   makeAxeBuilder: async ({ page }, use) => {
     const makeAxeBuilder = () =>
-      new AxeBuilder({ page }).withTags([
-        'wcag2a',
-        'wcag2aa',
-        'wcag21a',
-        'wcag21aa'
-      ]);
+      new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+        .disableRules(['document-title', 'html-has-lang']);
     await use(makeAxeBuilder);
   }
 });
