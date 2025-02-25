@@ -14,7 +14,7 @@ export const test = base.extend<AxeFixture>({
     const makeAxeBuilder = () =>
       new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-        .disableRules(['document-title', 'html-has-lang']);
+        .disableRules(['document-title', 'html-has-lang']); //TODO: Renable these rules when document-title, html language elements are fixed.
     await use(makeAxeBuilder);
   }
 });

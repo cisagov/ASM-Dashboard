@@ -37,7 +37,7 @@ test.describe('Inventory', () => {
     expect(accessibilityScanResults.violations).toHaveLength(0);
   });
 
-  // Skip this test until the domain table data is loaded in localhost.
+  // TODO: Skip this test until the domain table data is loaded in localhost.
   test.skip('Test domain details accessibility', async ({
     makeAxeBuilder
   }, testInfo) => {
@@ -63,7 +63,7 @@ test.describe('Inventory', () => {
     expect(accessibilityScanResults.violations).toHaveLength(0);
   });
 
-  // Skip this test until the domain table data is loaded in localhost.
+  // TODO: Skip this test until the domain table data is loaded in localhost.
   test.skip('Test domain table filter', async () => {
     await page.goto('/inventory/domains');
     await page.getByLabel('Show filters').click();

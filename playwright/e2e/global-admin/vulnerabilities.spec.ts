@@ -29,7 +29,7 @@ test.describe('Vulnerabilities', () => {
     expect(accessibilityScanResults.violations).toHaveLength(0);
   });
 
-  //Skip this test until the vulnerability table data is loaded in localhost.
+  //TODO: Skip this test until the vulnerability table data is loaded in localhost.
   test.skip('Test vulnerability details NIST link', async () => {
     await page.goto('/inventory/vulnerabilities');
     const newTabPromise = page.waitForEvent('popup');
@@ -42,13 +42,14 @@ test.describe('Vulnerabilities', () => {
     );
   });
 
-  //Skip this test until the vulnerability table data is loaded in localhost.
+  //TODO: Skip this test until the vulnerability table data is loaded in localhost.
   test.skip('Test domain details link', async () => {
     await page.goto('/inventory/vulnerabilities');
     await page.getByRole('row').nth(1).getByRole('cell').nth(3).click();
     await expect(page).toHaveURL(new RegExp('/inventory/domain/'));
   });
 
+  //TODO: Skip this test until the vulnerability table data is loaded in localhost.
   test.skip('Test vulnerability details accessibility', async ({
     makeAxeBuilder
   }, testInfo) => {
