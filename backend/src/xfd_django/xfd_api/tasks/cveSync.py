@@ -105,6 +105,10 @@ def fetch_cve_data_task(task_id):
         return None
 
 
+# TODO DRY the following three functions (save_to_db,
+# save_cpes_to_db,
+# save_cve_to_db), all save functions. Try to make a single function that can
+# be used for all save functions.
 def save_to_db(cve_array):
     """Save CVE and associated CPE data to the database using Django ORM."""
     for cve in cve_array:
@@ -132,7 +136,7 @@ def save_cpes_to_db(cpes):
     cpe_ids = []
     for cpe in cpes:
         try:
-            cpe_obj, created = Cpe.objects.update_or_create(
+            cpe_obj = Cpe.objects.update_or_create(
                 name=cpe.name,
                 version=cpe.version,
                 vendor=cpe.vendor,
@@ -147,7 +151,7 @@ def save_cpes_to_db(cpes):
 def save_cve_to_db(cve, cpe_ids):
     """Save CVE entry to the database and associate with CPEs using Django ORM."""
     try:
-        cve_obj, created = Cve.objects.update_or_create(
+        cve_obj = Cve.objects.update_or_create(
             name=cve["cve_name"],
             defaults={
                 "publishedAt": cve.get("published_date"),

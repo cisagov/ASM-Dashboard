@@ -112,28 +112,6 @@ class ESClient:
         ]
         self._bulk_update(actions)
 
-    def update_webpages(self, webpages):
-        """Update or insert webpages into Elasticsearch."""
-        actions = [
-            {
-                "_op_type": "update",
-                "_index": DOMAINS_INDEX,
-                "_id": "webpage_{}".format(webpage["webpage_id"]),
-                "routing": webpage["webpage_domainId"],
-                "doc": {
-                    **webpage,
-                    "suggest": [{"input": webpage["webpage_url"], "weight": 1}],
-                    "parent_join": {
-                        "name": "webpage",
-                        "parent": webpage["webpage_domainId"],
-                    },
-                },
-                "doc_as_upsert": True,
-            }
-            for webpage in webpages
-        ]
-        self._bulk_update(actions)
-
     def delete_all(self):
         """Delete all indices in Elasticsearch."""
         try:

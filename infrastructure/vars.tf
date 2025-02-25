@@ -545,6 +545,18 @@ variable "create_db_accessor_instance" {
   default     = false
 }
 
+variable "create_email_sender_instance" {
+  description = "Whether to create a email sending EC2 instance. This instance can be used to access AWS SES and is spun up in a private subnet. It can be accessed using AWS Systems Manager Session Manager."
+  type        = bool
+  default     = false
+}
+
+variable "email_sender_instance_type" {
+  description = "Instance type of the email sender instance."
+  type        = string
+  default     = false
+}
+
 variable "db_accessor_instance_class" {
   description = "db_accessor_instance_class"
   type        = string
@@ -711,6 +723,12 @@ variable "ssm_pe_api_key" {
   default     = "/crossfeed/staging/PE_API_KEY"
 }
 
+variable "ssm_pe_api_url" {
+  description = "ssm_pe_api_url"
+  type        = string
+  default     = "/crossfeed/staging/PE_API_URL"
+}
+
 variable "ssm_cf_api_key" {
   description = "ssm_cf_api_key"
   type        = string
@@ -814,7 +832,7 @@ variable "ssm_dmz_api_key" {
 }
 
 variable "ssm_dmz_sync_endpoint" {
-  description = "ssm_dmz_api_key"
+  description = "ssm_dmz_sync_endpoint"
   type        = string
   default     = "/crossfeed/staging/DMZ_SYNC_ENDPOINT"
 }
