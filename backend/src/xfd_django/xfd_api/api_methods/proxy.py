@@ -104,5 +104,4 @@ async def matomo_proxy_handler(
         request=request,
         target_url=MATOMO_URL,
         path=path,
-        cookie_name="MATOMO_SESSID",
     )
