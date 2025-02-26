@@ -19,7 +19,7 @@ def build_sort(sort_direction: str, sort_field: str) -> Optional[List[Dict[str, 
         return None
     if sort_field in NON_KEYWORD_FIELDS:
         return [{sort_field: {"order": sort_direction}}]
-    return [{f"{sort_field}.keyword": {"order": sort_direction}}]
+    return [{"{}.keyword".format(sort_field): {"order": sort_direction}}]
 
 
 def build_match(search_term: str) -> Dict[str, Any]:
@@ -44,8 +44,7 @@ def get_term_filter_value(field, field_value):
     """
     Determine the appropriate term filter value based on the field and its value.
 
-    Handles specific cases for boolean values, 'organization.regionId', numeric values,
-    and the 'name' field.
+    Handles specific cases for boolean values, 'organization.regionId', numeric values, the 'name' field, and 'vulnerabilities.severity'.
     """
     if field_value in ["false", "true"]:
         return {field: field_value == "true"}
@@ -54,8 +53,10 @@ def get_term_filter_value(field, field_value):
     if isinstance(field_value, (int, float)):
         return {field: field_value}
     if field == "name" and field_value and "*" not in field_value:
-        field_value = f"*{field_value}*"
-    return {f"{field}.keyword": field_value}
+        field_value = "*{}*".format(field_value)
+    if field == "vulnerabilities.severity":
+        return {field: field_value.lower()}
+    return {"{}.keyword".format(field): field_value}
 
 
 def get_term_filter(term_filter):
@@ -75,6 +76,28 @@ def get_term_filter(term_filter):
     elif term_filter["field"] == "organization.regionId":
         search_type = "terms"
 
+    reg_values = [
+        "Low",
+        "low",
+        "Medium",
+        "medium",
+        "High",
+        "high",
+        "Critical",
+        "critical",
+    ]
+    na_values = [
+        "N/A",
+        "n/a",
+        "Null",
+        "null",
+        "None",
+        "none",
+        "",
+        "Undefined",
+        "undefined",
+    ]
+
     if term_filter["type"] == "any":
         if term_filter["field"] == "organization.regionId" and term_filter["values"]:
             search = {
@@ -89,6 +112,61 @@ def get_term_filter(term_filter):
                     "minimum_should_match": 1,
                 }
             }
+
+        # Handle grouping of N/A values for 'vulnerabilities.severity' field. #
+
+        elif (
+            term_filter["field"] == "vulnerabilities.severity"
+            and "N/A" in term_filter["values"]
+        ):
+            search = {
+                "bool": {
+                    "should": [
+                        {"terms": {"vulnerabilities.severity.keyword": na_values}},
+                        {
+                            "bool": {
+                                "must_not": [
+                                    {
+                                        "exists": {
+                                            "field": "vulnerabilities.severity.keyword"
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                    ],
+                    "minimum_should_match": 1,
+                }
+            }
+        # Handle grouping of 'Other' values for 'vulnerabilities.severity' field. #
+        elif (
+            term_filter["field"] == "vulnerabilities.severity"
+            and "Other" in term_filter["values"]
+        ):
+            search = {
+                "bool": {
+                    "must_not": [
+                        {
+                            "terms": {
+                                "vulnerabilities.severity.keyword": reg_values
+                                + na_values
+                            }
+                        },
+                        {
+                            "bool": {
+                                "must_not": [
+                                    {
+                                        "exists": {
+                                            "field": "vulnerabilities.severity.keyword"
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                    ],
+                }
+            }
+
         else:
             search = {
                 "bool": {
@@ -230,7 +308,11 @@ def build_request(state, options: Dict[str, Any]) -> Dict[str, Any]:
                 "nested": {"path": "vulnerabilities"},
                 "aggs": {
                     "severity": {
-                        "terms": {"field": "vulnerabilities.severity.keyword"}
+                        "terms": {
+                            "field": "vulnerabilities.severity.keyword",
+                            "missing": "null",
+                            "size": 50,
+                        }
                     },
                     "cve": {"terms": {"field": "vulnerabilities.cve.keyword"}},
                 },

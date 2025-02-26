@@ -26,6 +26,7 @@ disable=C0103,  # Conforms to snake_case
         R0901,  # Too many ancestors
         R0902,  # Too many instance attributes
         R0903,  # Too few public methods
+        R0911,  # Too many return statements
         R0914,  # Too many local variables
         R0917,  # Too many positional arguments
         R1705,  # Unnecessary else

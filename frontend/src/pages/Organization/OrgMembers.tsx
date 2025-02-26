@@ -27,7 +27,7 @@ export const OrgMembers: React.FC<OrgMemberProps> = ({
   userRoles,
   setUserRoles
 }) => {
-  const { apiPost } = useAuthContext();
+  const { apiPost, user } = useAuthContext();
   const [removeUserDialogOpen, setRemoveUserDialogOpen] = React.useState(false);
   const [infoDialogOpen, setInfoDialogOpen] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState<Role>();
@@ -86,6 +86,7 @@ export const OrgMembers: React.FC<OrgMemberProps> = ({
                 setSelectedRow(userRole);
                 setRemoveUserDialogOpen(true);
               }}
+              disabled={user?.userType === 'globalView'}
             >
               <RemoveCircleOutline />
             </IconButton>
@@ -127,6 +128,7 @@ export const OrgMembers: React.FC<OrgMemberProps> = ({
             pagination: { paginationModel: { pageSize: 15 } }
           }}
           pageSizeOptions={[15, 30, 50, 100]}
+          disableRowSelectionOnClick={user?.userType === 'globalView'}
         />
       </Paper>
       <ConfirmDialog

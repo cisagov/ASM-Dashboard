@@ -65,6 +65,7 @@ MESSAGE_TAGS = {
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "xfd_api.apps.XfdApiConfig",
+    "xfd_mini_dl.apps.XfdMiniDlConfig",
 ]
 
 MIDDLEWARE = [
@@ -90,8 +91,21 @@ DATABASES = {
         "TEST": {
             "NAME": "crossfeed_test",  # Name of the test database
         },
-    }
+    },
+    "mini_data_lake": {
+        "ENGINE": "django.db.backends.postgresql_psycopg2",  # Replace with your database engine
+        "NAME": os.getenv("MDL_NAME"),
+        "USER": os.getenv("MDL_USERNAME"),
+        "PASSWORD": os.getenv("MDL_PASSWORD"),
+        "HOST": os.getenv("DB_HOST"),
+        "PORT": "5432",
+        "TEST": {
+            "NAME": "mini_data_lake_test",  # Name of the test database
+        },
+    },
 }
+
+DATABASE_ROUTERS = ["xfd_django.db_routers.MyAppRouter"]
 
 # ElastiCache AWS
 ELASTICACHE_ENDPOINT = os.getenv("ELASTICACHE_ENDPOINT")
@@ -136,6 +150,12 @@ CSRF_COOKIE_HTTPONLY = True
 # SameSite policy to prevent CSRF via cross-origin requests
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
+
+DMZ_API_HEADER = {
+    "X-API-KEY": os.getenv("CF_API_KEY"),
+    "access_token": os.getenv("PE_API_KEY"),
+    "Content-Type": "",
+}
 
 # SECURITY CONFIGURATION
 SECURE_HSTS_SECONDS = 31536000  # Enable HSTS for 1 year

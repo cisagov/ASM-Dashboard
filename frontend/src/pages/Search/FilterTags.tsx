@@ -39,6 +39,11 @@ const FIELD_TO_LABEL_MAP: FieldToLabelMap = {
       return 'Region';
     },
     filterValueAccssor: (t) => {
+      if (Array.isArray(t)) {
+        return t.sort((a: string, b: string) => {
+          return a.localeCompare(b);
+        });
+      }
       return t;
     },
     trimAfter: 10
@@ -48,14 +53,35 @@ const FIELD_TO_LABEL_MAP: FieldToLabelMap = {
       return 'Severity';
     },
     filterValueAccssor(t) {
+      const severityLevels = [
+        'N/A',
+        'Low',
+        'Medium',
+        'High',
+        'Critical',
+        'Other'
+      ];
+      if (Array.isArray(t)) {
+        return t.sort((a: string, b: string) => {
+          const aValue = severityLevels.indexOf(a);
+          const bValue = severityLevels.indexOf(b);
+          return aValue - bValue;
+        });
+      }
       return t;
-    }
+    },
+    trimAfter: 3
   },
   ip: {
     labelAccessor: (t) => {
       return 'IP';
     },
     filterValueAccssor(t) {
+      if (Array.isArray(t)) {
+        return t.sort((a: string, b: string) => {
+          return a.localeCompare(b);
+        });
+      }
       return t;
     }
   },
@@ -64,6 +90,11 @@ const FIELD_TO_LABEL_MAP: FieldToLabelMap = {
       return 'Name';
     },
     filterValueAccssor(t) {
+      if (Array.isArray(t)) {
+        return t.sort((a: string, b: string) => {
+          return a.localeCompare(b);
+        });
+      }
       return t;
     }
   },
@@ -72,6 +103,11 @@ const FIELD_TO_LABEL_MAP: FieldToLabelMap = {
       return 'Root Domain(s)';
     },
     filterValueAccssor(t) {
+      if (Array.isArray(t)) {
+        return t.sort((a: string, b: string) => {
+          return a.localeCompare(b);
+        });
+      }
       return t;
     }
   },
@@ -80,10 +116,18 @@ const FIELD_TO_LABEL_MAP: FieldToLabelMap = {
       return 'Organization';
     },
     filterValueAccssor: (t) => {
+      if (Array.isArray(t)) {
+        return t
+          .map((org) => org.name)
+          .sort((a: string, b: string) => {
+            return a.localeCompare(b);
+          });
+      }
       return t.name;
     },
-    trimAfter: 2
+    trimAfter: 3
   },
+
   query: {
     labelAccessor: (t) => {
       return 'Query';
@@ -96,7 +140,12 @@ const FIELD_TO_LABEL_MAP: FieldToLabelMap = {
     labelAccessor: (t) => {
       return 'Port';
     },
-    filterValueAccssor(t) {
+    filterValueAccssor: (t) => {
+      if (Array.isArray(t)) {
+        return t.sort((a: number, b: number) => {
+          return a - b;
+        });
+      }
       return t;
     },
     trimAfter: 6
@@ -106,9 +155,14 @@ const FIELD_TO_LABEL_MAP: FieldToLabelMap = {
       return 'CVE';
     },
     filterValueAccssor(t) {
+      if (Array.isArray(t)) {
+        return t.sort((a: string, b: string) => {
+          return a.localeCompare(b);
+        });
+      }
       return t;
     },
-    trimAfter: 3
+    trimAfter: 10
   }
 };
 
@@ -120,6 +174,23 @@ type FlatFilters = {
   values: any[];
   type: 'all' | 'none' | 'any';
 }[];
+
+const filterOrder = [
+  'Region',
+  'Organization',
+  'IP',
+  'Name',
+  'Root Domain(s)',
+  'Port',
+  'CVE',
+  'Severity'
+];
+
+const sortFiltersByOrder = (filters: FlatFilters) => {
+  return filters.sort((a, b) => {
+    return filterOrder.indexOf(a.label) - filterOrder.indexOf(b.label);
+  });
+};
 
 export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
   const { userLevel } = useUserLevel();
@@ -134,16 +205,17 @@ export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
   }, [userLevel]);
 
   const filtersByColumn: FlatFilters = useMemo(() => {
-    return filters.reduce((acc, nextFilter) => {
+    const processedFilters = filters.reduce((acc, nextFilter) => {
       const fieldAccessors = FIELD_TO_LABEL_MAP[nextFilter.field] ?? null;
+      const sortedValues = fieldAccessors
+        ? fieldAccessors.filterValueAccssor(nextFilter.values)
+        : nextFilter.values;
       const value = fieldAccessors
         ? ellipsisPastIndex(
-            nextFilter.values.map((item: any) =>
-              fieldAccessors.filterValueAccssor(item)
-            ),
+            sortedValues,
             fieldAccessors.trimAfter ? fieldAccessors.trimAfter - 1 : null
           ).join(', ')
-        : nextFilter.values.join(', ');
+        : sortedValues.join(', ');
       const label = fieldAccessors
         ? fieldAccessors.labelAccessor(nextFilter)
         : nextFilter.field.split('.').pop();
@@ -156,29 +228,35 @@ export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
         }
       ];
     }, []);
+    return sortFiltersByOrder(processedFilters);
   }, [filters]);
 
   return (
     <Root aria-live="polite" aria-atomic="true">
-      {filtersByColumn.map((filter, idx) => (
+      {filtersByColumn.length === 0 ? (
         <Chip
-          key={idx}
-          disabled={disabledFilters?.includes(filter.label)}
-          color={'primary'}
+          color="primary"
           classes={{ root: classes.chip }}
-          label={`${filter.label}: ${filter.value}`}
-          onDelete={() => {
-            if (filter.onClear) {
-              console.log('custom clear');
-              filter.onClear();
-              return;
-            }
-            filter.values.forEach((val) => {
-              removeFilter(filter.field, val, filter.type);
-            });
-          }}
+          label="No Filter(s) Applied"
         />
-      ))}
+      ) : (
+        filtersByColumn.map((filter, idx) => (
+          <Chip
+            key={idx}
+            disabled={disabledFilters?.includes(filter.label)}
+            color="primary"
+            classes={{ root: classes.chip }}
+            label={`${filter.label}: ${filter.value}`}
+            onDelete={() => {
+              filter.onClear
+                ? filter.onClear()
+                : filter.values.forEach((val) =>
+                    removeFilter(filter.field, val, filter.type)
+                  );
+            }}
+          />
+        ))
+      )}
     </Root>
   );
 };

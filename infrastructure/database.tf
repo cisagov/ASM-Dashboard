@@ -192,7 +192,7 @@ resource "aws_iam_role_policy" "sqs_send_message_policy" {
 
 resource "aws_instance" "db_accessor" {
   count                       = var.create_db_accessor_instance ? 1 : 0
-  ami                         = var.ami_id
+  ami                         = var.is_dmz ? data.aws_ami.ubuntu[0].id : var.ami_id
   instance_type               = var.db_accessor_instance_class
   associate_public_ip_address = false
 
@@ -442,4 +442,50 @@ resource "aws_s3_bucket_logging" "pe_db_backups_bucket" {
   bucket        = aws_s3_bucket.pe_db_backups_bucket.id
   target_bucket = aws_s3_bucket.logging_bucket.id
   target_prefix = "pe_db_backups_bucket/"
+}
+
+resource "aws_s3_bucket" "crossfeed-lz-sync" {
+  bucket = var.crossfeed-lz-sync_name
+  tags = {
+    Project = var.project
+    Stage   = var.stage
+  }
+}
+
+resource "aws_s3_bucket_policy" "crossfeed-lz-sync" {
+  bucket = var.crossfeed-lz-sync_name
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Sid" : "RequireSSLRequests",
+        "Action" : "s3:*",
+        "Effect" : "Deny",
+        "Principal" : "*",
+        "Resource" : [
+          aws_s3_bucket.crossfeed-lz-sync.arn,
+          "${aws_s3_bucket.crossfeed-lz-sync.arn}/*"
+        ],
+        "Condition" : {
+          "Bool" : {
+            "aws:SecureTransport" : "false"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_s3_bucket_acl" "crossfeed-lz-sync" {
+  bucket = aws_s3_bucket.crossfeed-lz-sync.id
+  acl    = "private"
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "crossfeed-lz-sync" {
+  bucket = aws_s3_bucket.crossfeed-lz-sync.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
 }

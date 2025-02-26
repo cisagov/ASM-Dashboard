@@ -22,7 +22,7 @@ async def get_stats(filter_data, current_user, redis_client, request: Request):
         try:
             return await fetch_fn(*args, **kwargs)
         except Exception as e:
-            print(f"Error fetching stats with {fetch_fn.__name__}: {e}")
+            print("Error fetching stats with {}: {}".format(fetch_fn.__name__, e))
             return []
 
     filtered_org_ids = get_stats_org_ids(current_user, filter_data)
@@ -98,7 +98,7 @@ async def get_stats(filter_data, current_user, redis_client, request: Request):
         }
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"An unexpected error occurred: {e}"
+            status_code=500, detail="An unexpected error occurred: {}".format(e)
         )
 
 
@@ -130,11 +130,13 @@ async def get_user_services_count(
         return services_data
 
     except aioredis.RedisError as redis_error:
-        raise HTTPException(status_code=500, detail=f"Redis error: {redis_error}")
+        raise HTTPException(
+            status_code=500, detail="Redis error: {}".format(redis_error)
+        )
 
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"An unexpected error occurred: {e}"
+            status_code=500, detail="An unexpected error occurred: {}".format(e)
         )
 
 
@@ -166,11 +168,13 @@ async def get_user_ports_count(
         return ports_data
 
     except aioredis.RedisError as redis_error:
-        raise HTTPException(status_code=500, detail=f"Redis error: {redis_error}")
+        raise HTTPException(
+            status_code=500, detail="Redis error: {}".format(redis_error)
+        )
 
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"An unexpected error occurred: {e}"
+            status_code=500, detail="An unexpected error occurred: {}".format(e)
         )
 
 
@@ -200,11 +204,13 @@ async def get_num_vulns(filter_data, current_user, redis_client, filtered_org_id
         return num_vulns_data
 
     except aioredis.RedisError as redis_error:
-        raise HTTPException(status_code=500, detail=f"Redis error: {redis_error}")
+        raise HTTPException(
+            status_code=500, detail="Redis error: {}".format(redis_error)
+        )
 
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"An unexpected error occurred: {e}"
+            status_code=500, detail="An unexpected error occurred: {}".format(e)
         )
 
 
@@ -236,11 +242,13 @@ async def get_severity_stats(
         return severity_data
 
     except aioredis.RedisError as redis_error:
-        raise HTTPException(status_code=500, detail=f"Redis error: {redis_error}")
+        raise HTTPException(
+            status_code=500, detail="Redis error: {}".format(redis_error)
+        )
 
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"An unexpected error occurred: {e}"
+            status_code=500, detail="An unexpected error occurred: {}".format(e)
         )
 
 
@@ -265,7 +273,9 @@ async def stats_latest_vulns(
                 )
 
         # Generate all Redis keys at once
-        redis_keys = [f"latest_vulnerabilities:{org_id}" for org_id in filtered_org_ids]
+        redis_keys = [
+            "latest_vulnerabilities:{}".format(org_id) for org_id in filtered_org_ids
+        ]
 
         # Use MGET to fetch all keys in a single operation
         results = await safe_redis_mget(
@@ -293,12 +303,14 @@ async def stats_latest_vulns(
         return vulnerabilities
 
     except aioredis.RedisError as redis_error:
-        raise HTTPException(status_code=500, detail=f"Redis error: {redis_error}")
+        raise HTTPException(
+            status_code=500, detail="Redis error: {}".format(redis_error)
+        )
 
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"An unexpected error occurred: {e}",
+            detail="An unexpected error occurred: {}".format(e),
         )
 
 
@@ -324,7 +336,8 @@ async def stats_most_common_vulns(
 
         # Generate all Redis keys at once
         redis_keys = [
-            f"most_common_vulnerabilities:{org_id}" for org_id in filtered_org_ids
+            "most_common_vulnerabilities:{}".format(org_id)
+            for org_id in filtered_org_ids
         ]
 
         # Use MGET to fetch all keys in a single operation
@@ -347,12 +360,14 @@ async def stats_most_common_vulns(
         return vulnerabilities
 
     except aioredis.RedisError as redis_error:
-        raise HTTPException(status_code=500, detail=f"Redis error: {redis_error}")
+        raise HTTPException(
+            status_code=500, detail="Redis error: {}".format(redis_error)
+        )
 
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"An unexpected error occurred: {e}",
+            detail="An unexpected error occurred: {}".format(e),
         )
 
 
@@ -376,7 +391,7 @@ async def get_by_org_stats(
 
         # Fetch data from Redis for each organization ID
         for org_id in filtered_org_ids:
-            redis_key = f"by_org_stats:{org_id}"
+            redis_key = "by_org_stats:{}".format(org_id)
             org_stats = await redis_client.get(redis_key)
             if org_stats:
                 by_org_data.append(
@@ -392,10 +407,12 @@ async def get_by_org_stats(
         return by_org_data
 
     except aioredis.RedisError as redis_error:
-        raise HTTPException(status_code=500, detail=f"Redis error: {redis_error}")
+        raise HTTPException(
+            status_code=500, detail="Redis error: {}".format(redis_error)
+        )
 
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"An unexpected error occurred: {e}",
+            detail="An unexpected error occurred: {}".format(e),
         )
