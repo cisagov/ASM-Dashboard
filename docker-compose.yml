@@ -124,6 +124,7 @@ services:
       driver: none
     ports:
       - 3306:3306
+
   matomo:
     image: matomo:5.2.1
     user: root
@@ -144,6 +145,7 @@ services:
       driver: none
     ports:
       - "8080:80"
+
   # rabbitmq:
   #   image: 'rabbitmq:3.8-management'
   #   ports:
