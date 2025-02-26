@@ -112,7 +112,7 @@ services:
   #     LOGGING_QUIET: 'true'
 
   matomodb:
-    image: mariadb:10.6
+    image: mariadb:11.4
     command: --max-allowed-packet=64MB
     networks:
       - backend
@@ -122,9 +122,10 @@ services:
       - MYSQL_ROOT_PASSWORD=password
     logging:
       driver: none
-
+    ports:
+      - 3306:3306
   matomo:
-    image: matomo:3.14.1
+    image: matomo:5.2.1
     user: root
     networks:
       - backend
@@ -141,6 +142,8 @@ services:
       - MATOMO_GENERAL_ASSUME_SECURE_PROTOCOL=1
     logging:
       driver: none
+    ports:
+      - "8080:80"
   # rabbitmq:
   #   image: 'rabbitmq:3.8-management'
   #   ports:
