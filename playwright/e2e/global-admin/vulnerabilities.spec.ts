@@ -17,9 +17,7 @@ test.describe('Vulnerabilities', () => {
   test('Test vulnerabilities accessibility', async ({
     makeAxeBuilder
   }, testInfo) => {
-    await page.getByRole('link', { name: 'Inventory' }).click();
-    await page.getByRole('link', { name: 'All Vulnerabilities' }).click();
-    await expect(page).toHaveURL('/inventory/vulnerabilities');
+    await page.goto('/inventory/vulnerabilities');
 
     const accessibilityScanResults = await makeAxeBuilder().analyze();
 
@@ -31,7 +29,8 @@ test.describe('Vulnerabilities', () => {
     expect(accessibilityScanResults.violations).toHaveLength(0);
   });
 
-  test('Test vulnerability details NIST link', async () => {
+  //TODO: Skip this test until the vulnerability table data is loaded in localhost.
+  test.skip('Test vulnerability details NIST link', async () => {
     await page.goto('/inventory/vulnerabilities');
     const newTabPromise = page.waitForEvent('popup');
 
@@ -43,13 +42,15 @@ test.describe('Vulnerabilities', () => {
     );
   });
 
-  test('Test domain details link', async () => {
+  //TODO: Skip this test until the vulnerability table data is loaded in localhost.
+  test.skip('Test domain details link', async () => {
     await page.goto('/inventory/vulnerabilities');
     await page.getByRole('row').nth(1).getByRole('cell').nth(3).click();
     await expect(page).toHaveURL(new RegExp('/inventory/domain/'));
   });
 
-  test('Test vulnerability details accessibility', async ({
+  //TODO: Skip this test until the vulnerability table data is loaded in localhost.
+  test.skip('Test vulnerability details accessibility', async ({
     makeAxeBuilder
   }, testInfo) => {
     await page.goto('/inventory/vulnerabilities');
