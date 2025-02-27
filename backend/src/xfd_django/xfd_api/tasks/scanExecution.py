@@ -51,7 +51,7 @@ def start_desired_tasks(scan_type, desired_count, shodan_api_keys=None):
     shodan_api_keys = shodan_api_keys or []
     queue_url = "{}{}-queue".format(QUEUE_URL, scan_type)
 
-    batch_size = 1 if scan_type == "shodan" else 10
+    batch_size = 1 if scan_type in ["shodan", "asmSync"] else 10
     remaining_count = desired_count
 
     while remaining_count > 0:
@@ -151,7 +151,7 @@ def handler(event, context):
             print("scanType must be provided.")
             return {"statusCode": 400, "body": "Failed: no scanType provided."}
 
-        if scan_type == "shodan":
+        if scan_type in ["shodan", "asmSync"]:
             api_key_list = event.get("apiKeyList", "")
             shodan_api_keys = (
                 [key.strip() for key in api_key_list.split(",")] if api_key_list else []

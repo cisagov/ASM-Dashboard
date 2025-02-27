@@ -52,21 +52,29 @@ while true; do
     ORG=$(echo "$MESSAGE" | jq -r '.Messages[0].Body | fromjson | .org')
   fi
 
-  if [[ "$SERVICE_TYPE" = *"shodan"* ]]; then
-    COMMAND="pe-source shodan --soc_med_included --org=$ORG"
+  # Run command for the specified script
+  if [[ "$SERVICE_TYPE" = *"asmSync"* ]]; then
+    COMMAND="pe-asm-sync asm-sqs --orgs=$ORG"
+  elif [[ "$SERVICE_TYPE" = *"cybersixgill-alerts"* ]]; then
+    COMMAND="pe-source cybersixgill --cybersix-methods=alerts --soc_med_included --orgs=$ORG"
+  elif [[ "$SERVICE_TYPE" = *"cybersixgill-credentials"* ]]; then
+    COMMAND="pe-source cybersixgill --cybersix-methods=credentials --soc_med_included --orgs=$ORG"
+  elif [[ "$SERVICE_TYPE" = *"cybersixgill-mentions"* ]]; then
+    COMMAND="pe-source cybersixgill --cybersix-methods=mentions --soc_med_included --orgs=$ORG"
+  elif [[ "$SERVICE_TYPE" = *"cybersixgill-topcves"* ]]; then
+    COMMAND="pe-source cybersixgill --cybersix-methods=topCVEs --soc_med_included"
+  elif [[ "$SERVICE_TYPE" = *"dnsmonitor"* ]]; then
+    COMMAND="pe-source dnsmonitor --orgs=$ORG"
   elif [[ "$SERVICE_TYPE" = *"dnstwist"* ]]; then
-    COMMAND="pe-source dnstwist --org=$ORG"
+    COMMAND="pe-source dnstwist --orgs=$ORG"
   elif [[ "$SERVICE_TYPE" = *"intelx"* ]]; then
-    COMMAND="pe-source intelx --org=$ORG --soc_med_included"
-  elif [[ "$SERVICE_TYPE" = *"cybersixgill"* ]]; then
-    COMMAND="pe-source cybersixgill --org=$ORG --soc_med_included"
-  elif [[ "$SERVICE_TYPE" = *"xpanse"* ]]; then
-    COMMAND="pe-source xpanse --org='$ORG'"
-  elif [[ "$SERVICE_TYPE" = *"asmSync"* ]]; then
-    COMMAND="pe-asm-sync asm-sqs --org='$ORG'"
+    COMMAND="pe-source intelx --orgs=$ORG"
   elif [[ "$SERVICE_TYPE" = *"qualys"* ]]; then
     COMMAND="pe-source was-report-pull --org='$ORG' && pe-source was-findings-sync --org='$ORG'"
-
+  elif [[ "$SERVICE_TYPE" = *"shodan"* ]]; then
+    COMMAND="pe-source shodan --soc_med_included --orgs=$ORG"
+  elif [[ "$SERVICE_TYPE" = *"xpanse"* ]]; then
+    COMMAND="pe-source xpanse --org='$ORG'"
   else
     echo "Unsupported SERVICE_TYPE: $SERVICE_TYPE"
     break
