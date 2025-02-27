@@ -575,4 +575,12 @@ def test_search_vulnerabilities_does_not_exist(user, vulnerability):
         headers={"Authorization": "Bearer " + create_jwt_token(user)},
     )
 
-    assert response.status_code == 404
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data is None, "Response is not empty"
+    assert "result" in data, "Response does not contain 'result' key"
+    assert len(data["result"]) == [], "Result is not an empty array"
+    assert "count" in data, "Response does not contain 'count' key"
+    assert data["count"] == 0, "Count is not 0"
