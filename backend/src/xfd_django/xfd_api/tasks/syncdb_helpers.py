@@ -479,10 +479,13 @@ def drop_all_tables(app_label=None):
 
 
 def chunked_iterable(iterable, size):
-    """Chunk an iterable."""
+    """Yield successive chunks of size `size` from `iterable`."""
     iterator = iter(iterable)
-    for first in iterator:
-        yield list(islice([first] + list(iterator), size - 1))
+    while True:
+        chunk = list(islice(iterator, size))
+        if not chunk:
+            break
+        yield chunk
 
 
 def update_organization_chunk(es_client, organizations):
