@@ -1816,9 +1816,9 @@ class Cidr(models.Model):
         null=True,
         help_text="Foreign key relationship to the data source that inserted the cidr object.",
     )
-
     organizations = models.ManyToManyField(
         Organization,
+        through="CidrOrgs",
         related_name="cidrs",
         blank=True,
         help_text="Foreign key relationship to the organization that owns the cidr object.",
@@ -1833,6 +1833,42 @@ class Cidr(models.Model):
         indexes = [models.Index(fields=["network"])]
 
 
+class CidrOrgs(models.Model):
+    """Define CidrOrgs model."""
+    
+    cidr_orgs_id = models.UUIDField(primary_key=True)
+    cidr = models.ForeignKey(
+        Cidr,
+        on_delete=models.CASCADE,
+        help_text="FK: Foreign key to the Cidr associated with the organization.",
+    )
+    organization = models.ForeignKey(
+        Organization,
+        on_delete=models.CASCADE,
+        help_text="FK: Foreign key to the Organization associated with the Cidr.",
+    )
+    first_seen = models.DateField(
+        blank=True,
+        null=True,
+        help_text="First date and time the cidr was associated with the organization.",
+        auto_now_add=True
+    )
+    last_seen = models.DateField(
+        blank=True,
+        null=True,
+        help_text="Last date and time the cidr was associated with the organization.",
+    )
+    current = models.BooleanField(
+        blank=True,
+        null=True,
+        help_text="Boolean field flagging if the cidr organization relationship has been recently seen",
+    )
+
+    class Meta:
+        """Set IpsSubs model metadata."""
+        managed = manage_db
+        db_table = 'cidr_orgs'
+        unique_together = (("cidr", "organization"),)
 class Location(models.Model):
     """The Location model."""
 
@@ -2092,9 +2128,6 @@ class Ip(models.Model):
         blank=True,
         help_text="A boolean field that marks if the IP was incorrectly attributed to the stakeholder.",
     )
-    from_cidr = models.BooleanField(
-        null=True, blank=True, help_text="The cidr block the IP originated from."
-    )
     retired = models.BooleanField(
         null=True,
         blank=True,
@@ -2110,18 +2143,16 @@ class Ip(models.Model):
         null=True,
         help_text="Boolean field that flags if the IP came from a stakeholder provided cidr.",
     )
-
-    # domains = models.ManyToManyField("SubDomains", related_name='ips', blank=True)
-    # host_scans = models.ManyToManyField("HostScan", related_name='ips', blank=True)
-    # hosts = models.ManyToManyField(Host, related_name='ips', blank=True)
-    # tickets = models.ManyToManyField("Ticket", related_name='ips', blank=True)
-    # vuln_scans = models.ManyToManyField(VulnScan, related_name='ips', blank=True)
-    # port_scans = models.ManyToManyField("PortScan", related_name='ips', blank=True)
+    # sub_domains = models.ManyToManyField(
+    #     "SubDomains",
+    #     related_name="ips",
+    #     blank=True,
+    #     help_text="Many to many relationship linking to sub domains that were seen running on the IP.",
+    # )
     sub_domains = models.ManyToManyField(
         "SubDomains",
-        related_name="ips",
-        blank=True,
-        help_text="Many to many relationship linking to sub domains that were seen running on the IP.",
+        through="IpsSubs",
+        help_text="Many to many linking ips to the sub domain table.",
     )
     has_shodan_results = models.BooleanField(
         blank=True,
@@ -2142,6 +2173,14 @@ class Ip(models.Model):
         help_text="A boolean field that flags if the IP is current.",
     )
 
+
+    # domains = models.ManyToManyField("SubDomains", related_name='ips', blank=True)
+    # host_scans = models.ManyToManyField("HostScan", related_name='ips', blank=True)
+    # hosts = models.ManyToManyField(Host, related_name='ips', blank=True)
+    # tickets = models.ManyToManyField("Ticket", related_name='ips', blank=True)
+    # vuln_scans = models.ManyToManyField(VulnScan, related_name='ips', blank=True)
+    # port_scans = models.ManyToManyField("PortScan", related_name='ips', blank=True)
+
     class Meta:
         """The Meta class for Ip."""
 
@@ -2151,7 +2190,36 @@ class Ip(models.Model):
         indexes = [models.Index(fields=["ip", "organization"])]
         unique_together = ["ip", "organization"]
 
+class IpsSubs(models.Model):
+    """Define IpsSubs model."""
 
+    ips_subs_uid = models.UUIDField(primary_key=True)
+    ip_hash = models.ForeignKey(Ip, on_delete=models.CASCADE, db_column="ip_hash")
+    sub_domain_uid = models.ForeignKey(
+        "SubDomains", on_delete=models.CASCADE, db_column="sub_domain_uid"
+    )
+    first_seen = models.DateField(
+        blank=True,
+        null=True,
+        help_text="First date and time the ip was associated with the subdomain.",
+    )
+    last_seen = models.DateField(
+        blank=True,
+        null=True,
+        help_text="Last date and time the ip was associated with the subdomain.",
+    )
+    current = models.BooleanField(
+        blank=True,
+        null=True,
+        help_text="Boolean field flagging if the ip subdomain relationship has been recently seen",
+    )
+
+    class Meta:
+        """Set IpsSubs model metadata."""
+
+        managed = manage_db
+        db_table = 'ips_subs'
+        unique_together = (("ip_hash", "sub_domain_uid"),)
 class Ticket(models.Model):
     """The Ticket model."""
 
@@ -4284,43 +4352,43 @@ class PeReportSummaryStats(models.Model):
         unique_together = (("organization", "start_date"),)
 
 
-class RootDomains(models.Model):
-    """Define RootDomains model."""
+# class RootDomains(models.Model):
+#     """Define RootDomains model."""
 
-    root_domain_uid = models.UUIDField(
-        primary_key=True,
-        default=uuid.uuid1,
-        help_text="PK: Unique identifier for root domains",
-    )
-    organization = models.ForeignKey(
-        Organization,
-        on_delete=models.CASCADE,
-        db_column="organization_uid",
-        help_text="FK: Foreign Key to organization",
-    )
-    root_domain = models.TextField(help_text="Root domain")
-    ip_address = models.TextField(
-        blank=True, null=True, help_text="IP address of root domain"
-    )
-    data_source = models.ForeignKey(
-        DataSource,
-        on_delete=models.CASCADE,
-        db_column="data_source_uid",
-        help_text="FK: Foreign Key to data_source",
-    )
-    enumerate_subs = models.BooleanField(
-        blank=True,
-        null=True,
-        help_text="T/F should we identify subdomains for this root domain? (We don't enumerate for Cloud provider roots)",
-    )
+#     root_domain_uid = models.UUIDField(
+#         primary_key=True,
+#         default=uuid.uuid1,
+#         help_text="PK: Unique identifier for root domains",
+#     )
+#     organization = models.ForeignKey(
+#         Organization,
+#         on_delete=models.CASCADE,
+#         db_column="organization_uid",
+#         help_text="FK: Foreign Key to organization",
+#     )
+#     root_domain = models.TextField(help_text="Root domain")
+#     ip_address = models.TextField(
+#         blank=True, null=True, help_text="IP address of root domain"
+#     )
+#     data_source = models.ForeignKey(
+#         DataSource,
+#         on_delete=models.CASCADE,
+#         db_column="data_source_uid",
+#         help_text="FK: Foreign Key to data_source",
+#     )
+#     enumerate_subs = models.BooleanField(
+#         blank=True,
+#         null=True,
+#         help_text="T/F should we identify subdomains for this root domain? (We don't enumerate for Cloud provider roots)",
+#     )
 
-    class Meta:
-        """Set RootDomains model metadata."""
+#     class Meta:
+#         """Set RootDomains model metadata."""
 
-        app_label = app_label_name
-        managed = manage_db
-        db_table = "root_domains"
-        unique_together = (("root_domain", "organization"),)
+#         app_label = app_label_name
+#         managed = manage_db
+#         db_table = "root_domains"
+#         unique_together = (("root_domain", "organization"),)
 
 
 class PeTeamMembers(models.Model):
@@ -4645,10 +4713,17 @@ class SubDomains(models.Model):
         help_text="Subdomain name"
     )  # Crossfeed Domains name field
     root_domain = models.ForeignKey(
-        RootDomains,
-        on_delete=models.CASCADE,
-        db_column="root_domain_uid",
+        "self",
+        on_delete=models.DO_NOTHING,
+        blank=True,
+        null=True,
+        db_column="root_domain_id",
         help_text="FK: Foreign Key to root domains",
+    )
+    is_root_domain = models.BooleanField(
+        blank=True,
+        null=True,
+        help_text="T/F: Boolean field flagging if the subdomain is a root.???",
     )
     data_source = models.ForeignKey(
         DataSource,
@@ -4708,6 +4783,11 @@ class SubDomains(models.Model):
         null=True,
         help_text="Root domain associated with the subdomain",
     )  # XFD column
+    enumerate_subs = models.BooleanField(
+        blank=True,
+        null=True,
+        help_text="T/F should we identify subdomains for this root domain? (We don't enumerate for Cloud provider roots)",
+    )
     subdomain_source = models.TextField(
         db_column="subdomain_source",
         max_length=255,
@@ -4773,7 +4853,7 @@ class SubDomains(models.Model):
         app_label = app_label_name
         managed = manage_db
         db_table = "sub_domains"
-        unique_together = (("sub_domain", "root_domain"),)
+        unique_together = (("sub_domain", "organization"),)
 
     def save(self, *args, **kwargs):
         """Format the model before saving."""
