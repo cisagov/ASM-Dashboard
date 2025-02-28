@@ -1,7 +1,7 @@
 """Validation utilities for syncing operations."""
 
 # Standard Python Libraries
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Third-Party Libraries
 from xfd_mini_dl.models import SyncChecksum
@@ -24,7 +24,7 @@ def save_validation_checksum(checksum: str, type: str) -> bool:
     """
     try:
         SyncChecksum.objects.create(
-            checksum=checksum, sync_type=type, sync_date=datetime.now()
+            checksum=checksum, sync_type=type, sync_date=datetime.now(timezone.utc)
         )
         return True
     except Exception as e:
