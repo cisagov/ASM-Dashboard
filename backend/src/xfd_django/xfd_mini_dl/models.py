@@ -1797,17 +1797,6 @@ class Cidr(models.Model):
         null=True,
         help_text="An alert message specifying any conflicts when inserting the cidr into the database.",
     )
-    first_seen = models.DateField(
-        blank=True, null=True, help_text="First time the cidr was seen."
-    )
-    last_seen = models.DateField(
-        blank=True, null=True, help_text="Last time the cidr was seen."
-    )
-    current = models.BooleanField(
-        blank=True,
-        null=True,
-        help_text="A boolean field flagging if the cidr is current. If it is False it should not be run through any scans.",
-    )
     data_source = models.ForeignKey(
         "DataSource",
         on_delete=models.CASCADE,

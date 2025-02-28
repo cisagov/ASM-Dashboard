@@ -494,7 +494,7 @@ def save_cidr_to_mdl(cidr_dict: dict, org: Organization, db_name="mini_data_lake
             if cidr_obj:
                 cidr_obj.start_ip = cidr_dict["start_ip"]
                 cidr_obj.end_ip = cidr_dict["end_ip"]
-                cidr_obj.last_seen = datetime.datetime.today().date()
+                cidr_obj.retired = False
                 cidr_obj.save(using=db_name)  # Save updates
 
             else:
@@ -503,8 +503,7 @@ def save_cidr_to_mdl(cidr_dict: dict, org: Organization, db_name="mini_data_lake
                     network=cidr_dict["network"],
                     start_ip=cidr_dict["start_ip"],
                     end_ip=cidr_dict["end_ip"],
-                    first_seen = datetime.datetime.today().date(),
-                    last_seen = datetime.datetime.today().date()
+                    retired=False
                 )
             # cidr_obj.organizations.add(org, through_defaults={})
             cidr_obj.save(using=db_name)
