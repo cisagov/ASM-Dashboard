@@ -512,7 +512,8 @@ def save_cidr_to_mdl(cidr_dict: dict, org: Organization, db_name="mini_data_lake
                 organization=org,
                 cidr=cidr_obj,
                 defaults={
-                    "last_seen":datetime.datetime.today().date()
+                    "last_seen":datetime.datetime.today().date(),
+                    "current":True
                 }
             )
     except IntegrityError as e:
