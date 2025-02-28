@@ -20,13 +20,17 @@ django.setup()
 # Initialize AWS clients
 
 SCAN_LIST = [
+    "asmSync",
+    "cybersixgill-alerts",
+    "cybersixgill-credentials",
+    "cybersixgill-mentions",
+    "cybersixgill-topcves",
+    "dnsmonitor",
     "dnstwist",
     "intelx",
-    "cybersixgill",
+    "qualys",
     "shodan",
     "xpanse",
-    "asmSync",
-    "qualys",
 ]
 QUEUE_URL = os.getenv("QUEUE_URL")
 
