@@ -181,11 +181,50 @@ resources:
             - ${self:provider.stage}
             - integration
   Resources:
-    ShodanQueue:
+    ASMSyncQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:provider.stage}-asmSync-queue
+        VisibilityTimeout: 18000  # 5 hours
+        MaximumMessageSize: 262144  # 256 KB
+        MessageRetentionPeriod: 604800  # 7 days
+    CybersixgillAlertsQueue:
       Type: AWS::SQS::Queue
       Condition: IsDMZ
       Properties:
-        QueueName: ${self:provider.stage}-shodan-queue
+        QueueName: ${self:provider.stage}-cybersixgill-alerts-queue
+        VisibilityTimeout: 18000  # 5 hours
+        MaximumMessageSize: 262144  # 256 KB
+        MessageRetentionPeriod: 604800  # 7 days
+    CybersixgillCredentialsQueue:
+      Type: AWS::SQS::Queue
+      Condition: IsDMZ
+      Properties:
+        QueueName: ${self:provider.stage}-cybersixgill-credentials-queue
+        VisibilityTimeout: 18000  # 5 hours
+        MaximumMessageSize: 262144  # 256 KB
+        MessageRetentionPeriod: 604800  # 7 days
+    CybersixgillMentionsQueue:
+      Type: AWS::SQS::Queue
+      Condition: IsDMZ
+      Properties:
+        QueueName: ${self:provider.stage}-cybersixgill-mentions-queue
+        VisibilityTimeout: 18000  # 5 hours
+        MaximumMessageSize: 262144  # 256 KB
+        MessageRetentionPeriod: 604800  # 7 days
+    CybersixgillTopcvesQueue:
+      Type: AWS::SQS::Queue
+      Condition: IsDMZ
+      Properties:
+        QueueName: ${self:provider.stage}-cybersixgill-topcves-queue
+        VisibilityTimeout: 18000  # 5 hours
+        MaximumMessageSize: 262144  # 256 KB
+        MessageRetentionPeriod: 604800  # 7 days
+    DnsmonitorQueue:
+      Type: AWS::SQS::Queue
+      Condition: IsDMZ
+      Properties:
+        QueueName: ${self:provider.stage}-dnsmonitor-queue
         VisibilityTimeout: 18000  # 5 hours
         MaximumMessageSize: 262144  # 256 KB
         MessageRetentionPeriod: 604800  # 7 days
@@ -205,11 +244,18 @@ resources:
         VisibilityTimeout: 18000  # 5 hours
         MaximumMessageSize: 262144  # 256 KB
         MessageRetentionPeriod: 604800  # 7 days
-    CybersixgillQueue:
+    QualysQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:provider.stage}-qualys-queue
+        VisibilityTimeout: 18000  # 5 hours
+        MaximumMessageSize: 262144  # 256 KB
+        MessageRetentionPeriod: 604800  # 7 days
+    ShodanQueue:
       Type: AWS::SQS::Queue
       Condition: IsDMZ
       Properties:
-        QueueName: ${self:provider.stage}-cybersixgill-queue
+        QueueName: ${self:provider.stage}-shodan-queue
         VisibilityTimeout: 18000  # 5 hours
         MaximumMessageSize: 262144  # 256 KB
         MessageRetentionPeriod: 604800  # 7 days
@@ -217,20 +263,6 @@ resources:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: ${self:provider.stage}-xpanse-queue
-        VisibilityTimeout: 18000  # 5 hours
-        MaximumMessageSize: 262144  # 256 KB
-        MessageRetentionPeriod: 604800  # 7 days
-    ASMSyncQueue:
-      Type: AWS::SQS::Queue
-      Properties:
-        QueueName: ${self:provider.stage}-asmSync-queue
-        VisibilityTimeout: 18000  # 5 hours
-        MaximumMessageSize: 262144  # 256 KB
-        MessageRetentionPeriod: 604800  # 7 days
-    QualysQueue:
-      Type: AWS::SQS::Queue
-      Properties:
-        QueueName: ${self:provider.stage}-qualys-queue
         VisibilityTimeout: 18000  # 5 hours
         MaximumMessageSize: 262144  # 256 KB
         MessageRetentionPeriod: 604800  # 7 days
