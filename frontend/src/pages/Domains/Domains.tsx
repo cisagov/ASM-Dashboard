@@ -10,6 +10,7 @@ import { Alert, Button, IconButton, Paper } from '@mui/material';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import CustomToolbar from 'components/DataGrid/CustomToolbar';
+import CustomNoRowsOverlay from 'components/DataGrid/CustomNoRowsOverlay';
 import { differenceInCalendarDays, parseISO } from 'date-fns';
 
 const PAGE_SIZE = 15;
@@ -49,7 +50,19 @@ export const Domains: React.FC = () => {
     async (q: Query<Domain>) => {
       try {
         const { domains, count } = await listDomains(q);
-        if (domains.length === 0) return;
+        if (domains.length === 0) {
+          setDomains([]);
+          setTotalResults(0);
+          setPaginationModel((prevState) => ({
+            ...prevState,
+            page: 0,
+            pageSize: PAGE_SIZE,
+            pageCount: 0,
+            filters: q.filters
+          }));
+          setLoadingError(false);
+          return;
+        }
         setDomains(domains);
         setTotalResults(count);
         setPaginationModel((prevState) => ({
@@ -147,6 +160,16 @@ export const Domains: React.FC = () => {
     }
   ];
 
+  const noRowsOverlay = (
+    <Box>
+      <Paper>
+        <Alert severity="warning">
+          No Results Found. Please adjust your filters.
+        </Alert>
+      </Paper>
+    </Box>
+  );
+
   return (
     <Box>
       <Subnav
@@ -176,12 +199,18 @@ export const Domains: React.FC = () => {
             </Button>
           </Stack>
         ) : isLoading === false && loadingError === false ? (
-          <Paper elevation={2} sx={{ width: '90%', minHeight: '200px' }}>
+          <Paper elevation={2} sx={{ width: '90%', minHeight: 500 }}>
             <DataGrid
               rows={domRows}
               rowCount={totalResults}
               columns={domCols}
-              slots={{ toolbar: CustomToolbar }}
+              slots={{
+                toolbar: CustomToolbar,
+                noRowsOverlay: CustomNoRowsOverlay
+              }}
+              slotProps={{
+                noRowsOverlay: { children: noRowsOverlay }
+              }}
               paginationMode="server"
               paginationModel={paginationModel}
               onPaginationModelChange={(model) => {

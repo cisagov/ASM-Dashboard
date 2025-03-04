@@ -3,7 +3,6 @@
 from django.db.models.query import Q, QuerySet
 from fastapi import HTTPException
 
-from ..models import Vulnerability
 from ..schema_models.vulnerability import VulnerabilityFilters
 
 # Define the severity levels
@@ -90,8 +89,14 @@ def apply_domain_filters(domains, filters):
     if filters.service:
         q &= Q(services__products__icontains=filters.service)
 
-    # Finally filter
-    return domains.filter(q)
+    # Apply the final Q object filter
+    filtered = domains.filter(q)
+
+    # If the queryset is empty, return an empty queryset
+    if not filtered.exists():
+        return filtered.none()
+
+    return filtered
 
 
 def apply_vuln_filters(
@@ -166,10 +171,8 @@ def apply_vuln_filters(
     # Apply the final Q object filter
     filtered = vulnerabilities.filter(q)
 
-    # If the queryset is empty, raise a not found exception (404)
+    # If the queryset is empty, return an empty queryset
     if not filtered.exists():
-        raise Vulnerability.DoesNotExist(
-            "No Vulnerabilities found with the provided filters."
-        )
+        return filtered.none()
 
     return filtered
