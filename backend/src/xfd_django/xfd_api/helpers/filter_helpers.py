@@ -89,8 +89,14 @@ def apply_domain_filters(domains, filters):
     if filters.service:
         q &= Q(services__products__icontains=filters.service)
 
-    # Finally filter
-    return domains.filter(q)
+    # Apply the final Q object filter
+    filtered = domains.filter(q)
+
+    # If the queryset is empty, return an empty queryset
+    if not filtered.exists():
+        return filtered.none()
+
+    return filtered
 
 
 def apply_vuln_filters(
