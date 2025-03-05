@@ -39,8 +39,12 @@ class S3Client:
     def save_csv(self, body, name=""):
         """Save a CSV file in S3 and returns a temporary URL for access."""
         try:
-            key = "{}/{}-{}.csv".format(
-                random.random(), name, datetime.utcnow().isoformat()
+            key = (
+                name
+                if name != ""
+                else "{}/{}-{}.csv".format(
+                    random.random(), name, datetime.utcnow().isoformat()
+                )
             )
             bucket = os.getenv("EXPORT_BUCKET_NAME")
 

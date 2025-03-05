@@ -159,6 +159,23 @@ services:
   #   volumes:
   #     - rabbitmq-data:/var/lib/rabbitmq
 
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.41.2-jammy
+    working_dir: /workspace
+    volumes:
+      - ./playwright:/workspace
+      - ~/.cache:/root/.cache  # Cache Playwright browser downloads
+    environment:
+      - HOME=/root
+      - PW_XFD_2FA_ISSUER=${PW_XFD_2FA_ISSUER}
+      - PW_XFD_2FA_SECRET=${PW_XFD_2FA_SECRET}
+      - PW_XFD_PASSWORD=${PW_XFD_PASSWORD}
+      - PW_XFD_URL=${PW_XFD_URL}
+      - PW_XFD_USER_ROLE=${PW_XFD_USER_ROLE}
+      - PW_XFD_USERNAME=${PW_XFD_USERNAME}
+    command: >
+      /bin/bash -c "npm ci && npx playwright test"
+
 volumes:
   postgres-data:
   es-data:
