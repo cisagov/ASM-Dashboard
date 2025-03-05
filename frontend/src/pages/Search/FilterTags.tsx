@@ -41,7 +41,9 @@ const FIELD_TO_LABEL_MAP: FieldToLabelMap = {
     filterValueAccssor: (t) => {
       if (Array.isArray(t)) {
         return t.sort((a: string, b: string) => {
-          return a.localeCompare(b);
+          const numA = parseInt(a, 10);
+          const numB = parseInt(b, 10);
+          return numA - numB;
         });
       }
       return t;
