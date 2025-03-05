@@ -32,11 +32,6 @@ async def proxy_request(
         if cookies:
             headers["Cookie"] = "{}={}".format(cookie_name, cookies)
 
-    if target_url:
-        print("target is : ", target_url)
-    else:
-        print("target is empty: ", target_url)
-
     print("This is the path: ", path)
     # Send the request to the target
     async with httpx.AsyncClient(timeout=httpx.Timeout(90.0)) as client:
@@ -47,32 +42,10 @@ async def proxy_request(
             params=request.query_params,
             content=await request.body(),
         )
-    
-
-    # # Capture and forward cookies from Matomo response
-    # set_cookie = proxy_response.headers.get("set-cookie")
-    # if set_cookie and cookie_name in set_cookie:
-    #     # Extract MATOMO_SESSID from set-cookie
-    #     from http.cookies import SimpleCookie
-    #     cookie = SimpleCookie()
-    #     cookie.load(set_cookie)
-    #     session_id = cookie[cookie_name].value
-        
-    #     # Set the cookie in the response header
-    #     proxy_response_headers = dict(proxy_response.headers)
-    #     proxy_response_headers["set-cookie"] = f"{cookie_name}={session_id}; Path=/; HttpOnly; Secure; SameSite=Lax"
-    # else:
-    #     proxy_response_headers = dict(proxy_response.headers)
-
     # Adjust response headers
     proxy_response_headers = dict(proxy_response.headers)
     for header in ["content-encoding", "transfer-encoding", "content-length"]:
         proxy_response_headers.pop(header, None)
-
-    print("Proxy response response: ", proxy_response)
-    print("Proxy params: ", request.query_params)
-    # print("Proxy response content: ", proxy_response.content)
-    print("Proxy response headers: ", proxy_response_headers)
 
     return Response(
         content=proxy_response.content,
