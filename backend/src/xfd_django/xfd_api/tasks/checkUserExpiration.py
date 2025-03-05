@@ -46,7 +46,7 @@ def check_user_expiration():
         your password will be reset, requiring action to reactivate your account.
 
         Thank you,
-        The Crossfeed Team
+        The CyHy Dashboard Team
         """.format(
             firstName=user.firstName, lastName=user.lastName
         )
@@ -68,7 +68,7 @@ def check_user_expiration():
         it will be removed, requiring action to recreate your account.
 
         Thank you,
-        The Crossfeed Team
+        The CyHy Dashboard Team
         """.format(
             firstName=user.firstName, lastName=user.lastName
         )
@@ -103,7 +103,7 @@ def check_user_expiration():
         You will need to recreate your account if you wish to use our services again.
 
         Thank you,
-        The Crossfeed Team
+        The CyHy Dashboard Team
         """.format(
             firstName=user.firstName, lastName=user.lastName
         )
