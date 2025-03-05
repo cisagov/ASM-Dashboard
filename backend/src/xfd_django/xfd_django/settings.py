@@ -147,6 +147,15 @@ CSRF_COOKIE_SECURE = not IS_LOCAL
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 
+MATOMO_CSP_POLICY = {
+    "default-src": ["*", "'unsafe-inline'", "'unsafe-eval'"],
+    "connect-src": ["*"],
+    "img-src": ["*"],
+    "style-src": ["*", "'unsafe-inline'"],
+    "frame-ancestors": ["*"],
+    "frame-src": ["*"]
+}
+
 # SameSite policy to prevent CSRF via cross-origin requests
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
@@ -164,6 +173,7 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_CACHE_CONTROL = "no-cache, no-store, must-revalidate"
+
 SECURE_CSP_POLICY = {
     "default-src": ["'self'"],
     "connect-src": [
@@ -189,8 +199,20 @@ SECURE_CSP_POLICY = {
         "https://www.ssa.gov/accessibility/andi/fandi.js",
         "https://www.ssa.gov/accessibility/andi/andi.js",
         "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js",
-        "'sha256-QOOQu4W1oxGqd2nbXbxiA1Di6OHQOLQD+o+G9oWL8YY='",
+        # "'sha256-QOOQu4W1oxGqd2nbXbxiA1Di6OHQOLQD+o+G9oWL8YY='",
+        # "'sha256-p57x2qMSd4s1Le3VZa2ByAVzyRcSTRmyB9TAUkFufYY='",  # Matomo index.php line 9 installation: true
+        # "'sha256-kCBd9ViSCY5dhY0h9BzUuOs5ZIrkIcDk7Ki9fRL+jKU='",  # Matomo index.php line 11  translations
+        # "'sha256-ZQKY8bme1Ci/F4M2VsXJqJRCWCyn6O9KRwsfV3+2PvU='",  # Matomo index.php line 27  LanguagesManager
+        # "'sha256-cMFhvMr9VZMyofVDhofNA/Gw43QHCsKRbY3RXddwxcQ='",  # Matomo index.php line 71  mod_security
+        # "'sha256-BmJUaKUUps41ALYSkU6pCANKULaBvQyhKK0XG0I2SBY='",  # Matomo index.php line 112 hasBlockedContent
+        # "'sha256-rw3fe1GUajodssUDjbePKLJuInil6YQFGlHtG3XvrHc='",  # Matomo login
+        # "'sha256-RS/lqtPWbLaHt5FrS6KwJHKCvzNKuU4zMBaXrffkiRQ='",  # Matomo login
+        # "'sha256-ehjSWnos9D9HCAOFq/Ezw6Q6aIv1v5qidmwe2ukK+EM='",  # Matomo login
+        # "'unsafe-eval'",  # TODO Remove this before merging with Development
+        # "'unsafe-inline'",
         "https://www.dhs.gov",
+        # "https://localhost:3000/matomo/",
+
     ],
     "style-src": [
         "'self'",
