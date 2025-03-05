@@ -100,7 +100,7 @@ DATABASES = {
         "HOST": os.getenv("DB_HOST"),
         "PORT": "5432",
         "TEST": {
-            "NAME": "mini_data_lake_test",  # Test database for mini_data_lake
+            "NAME": "mini_data_lake_test",  # Name of the test database
         },
     },
 }
@@ -159,6 +159,12 @@ MATOMO_CSP_POLICY = {
 # SameSite policy to prevent CSRF via cross-origin requests
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
+
+DMZ_API_HEADER = {
+    "X-API-KEY": os.getenv("CF_API_KEY"),
+    "access_token": os.getenv("PE_API_KEY"),
+    "Content-Type": "",
+}
 
 # SECURITY CONFIGURATION
 SECURE_HSTS_SECONDS = 31536000  # Enable HSTS for 1 year

@@ -35,6 +35,7 @@ class SearchResponse(BaseModel):
     timed_out: bool
     _shards: Any
     hits: Any
+    aggregations: Any
 
 
 class DomainSearchBody(BaseModel):

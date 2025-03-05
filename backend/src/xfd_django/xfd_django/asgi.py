@@ -63,7 +63,7 @@ def set_security_headers(response: Response, isMatomo: bool):
         print("Response within asgi.py: ", vars(response))
 
     # Set Strict-Transport-Security (HSTS)
-    hsts_value = f"max-age={settings.SECURE_HSTS_SECONDS}"
+    hsts_value = "max-age={}".format(settings.SECURE_HSTS_SECONDS)
     if settings.SECURE_HSTS_PRELOAD:
         hsts_value += "; preload"
     if settings.SECURE_HSTS_INCLUDE_SUBDOMAINS:

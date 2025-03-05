@@ -89,6 +89,10 @@ def populate_sample_data():
         # Create an API key for the user
         create_api_key_for_user(user)
 
+        test_user = create_test_user(org)
+
+        create_api_key_for_user(test_user)
+
 
 def create_sample_user(organization):
     """Create a sample user linked to an organization."""
@@ -103,6 +107,21 @@ def create_sample_user(organization):
     # Set user as the creator of the organization (optional)
     organization.createdBy = user
     organization.save()
+    return user
+
+
+def create_test_user(organization):
+    """Create a test user linked to an organization."""
+    user = User.objects.create(
+        firstName="Test",
+        lastName="User",
+        email=os.environ.get("PW_XFD_USERNAME"),
+        userType=UserType.GLOBAL_ADMIN,
+        state=random.choice(SAMPLE_STATES),
+        regionId=random.choice(SAMPLE_REGION_IDS),
+        organization=organization,
+    )
+
     return user
 
 
@@ -167,6 +186,7 @@ def create_sample_services_and_vulnerabilities(domain):
 
     # Add random vulnerabilities
     if random.random() < PROB_SAMPLE_VULNERABILITIES:
+        state = random.choice(["open", "closed"])
         Vulnerability.objects.create(
             title="Sample Vulnerability "
             + "".join(random.choices("ABCDEFGHIJKLMNOPQRSTUVWXYZ", k=3)),
@@ -197,9 +217,23 @@ def create_sample_services_and_vulnerabilities(domain):
                     "other",
                 ]
             ),
+            cve="CVE-"
+            + random.choice(
+                [
+                    "2024-47421",
+                    "2021-22501",
+                    "2024-53959",
+                    "2024-47422",
+                    "2024-47423",
+                    "2020-28163",
+                    "2020-29312",
+                ]
+            ),
             needsPopulation=True,
-            state="open",
-            substate="unconfirmed",
+            state=state,
+            substate=random.choice(["unconfirmed", "exploitable"])
+            if state == "open"
+            else random.choice(["false-positive", "accepted-risk", "remediated"]),
             source="sample_source",
             actions=[],
             structuredData={},
