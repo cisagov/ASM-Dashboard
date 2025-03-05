@@ -163,6 +163,5 @@
     "start": "react-scripts --max_old_space_size=8192 start",
     "test": "react-scripts test",
     "typecheck": "tsc --noEmit"
-  },
-  "version": "0.3.16"
+  }
 }
