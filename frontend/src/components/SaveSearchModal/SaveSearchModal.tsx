@@ -60,9 +60,9 @@ export const SaveSearchModal: React.FC<SaveSearchModalProps> = (props) => {
 
     try {
       if (activeSearch) {
-        await apiPut('/saved-searches/' + activeSearch.id, body);
+        await apiPut('/saved-searches' + activeSearch.id, body);
       } else {
-        await apiPost('/saved-searches/', body);
+        await apiPost('/saved-searches', body);
       }
       const updatedSearches = await apiGet('/saved-searches'); // Get current saved searches
       setSavedSearches(updatedSearches.result); // Update the saved searches
