@@ -6,6 +6,9 @@ data synchronization by interfacing with the data lake and database models.
 """
 
 # Standard Python Libraries
+import datetime
+import json
+import os
 from typing import Dict
 from uuid import uuid4
 
@@ -15,6 +18,7 @@ from django.db.models import Exists, OuterRef, Prefetch
 from django.db.utils import IntegrityError
 from xfd_mini_dl.models import (
     Cidr,
+    CidrOrgs,
     Cve,
     Host,
     Ip,
@@ -252,7 +256,7 @@ def save_ip_to_datalake(ip_obj):
     ]
     try:
         org_record = Organization.objects.get(id=str(organization["id"]))
-        with transaction.atomic(using="mini_data_lake"):
+        with transaction.atomic(using="mini_data_lake_lz"):
             if ip_updated_values:
                 # Upsert: Insert or update if a conflict occurs
                 ip_record, created = Ip.objects.update_or_create(
@@ -282,23 +286,27 @@ def save_ip_to_datalake(ip_obj):
 
 
 # Helper and utility functions
-def fetch_orgs_and_relations():
-    """Fetch organizations along with related sectors, CIDRs, and child organizations.
+def fetch_orgs_and_relations(db_name="mini_data_lake_lz"):
+    """Fetch organizations along with related sectors, CIDRs (via CidrOrgs), and child organizations.
 
     Returns:
         list: A list of dictionaries representing organizations and their relations.
     """
     sectors_prefetch = Prefetch("sectors")
-    cidrs_prefetch = Prefetch("cidrs")
-    children_prefetch = Prefetch(
-        "organization_set"  # Default reverse name for self-referential ForeignKey
+    cidr_orgs_prefetch = Prefetch(
+        "cidrorgs_set",  # Default reverse name for ForeignKey in Django
+        queryset=CidrOrgs.objects.using(db_name).select_related("cidr"),
     )
+    children_prefetch = Prefetch(
+        "organization_set"
+    )  # Reverse ForeignKey for children organizations
 
     # Annotate organizations to identify if their id exists in another record's parent_id
     organizations = (
         Organization.objects.annotate(
             is_p=Exists(Organization.objects.filter(parent_id=OuterRef("id")))
         )
+        .using(db_name)
         .select_related(
             "location",  # ForeignKey
             "parent",  # Self-referential ForeignKey for parent organization
@@ -306,15 +314,15 @@ def fetch_orgs_and_relations():
         )
         .prefetch_related(
             sectors_prefetch,  # ManyToManyField for sectors
-            cidrs_prefetch,  # ManyToManyField for CIDRs
+            cidr_orgs_prefetch,  # Fetch cidr_orgs and their related cidrs
             children_prefetch,  # Reverse ForeignKey for children organizations
         )
         .order_by(
-            "-is_p"  # Order by `is_parent` descending, so parent organizations come first
-        )
+            "-is_p"
+        )  # Order by `is_parent` descending, so parent organizations come first
     )
 
-    # Iterate through results and access related fields
+    # Iterate through results and shape the response
     shaped_orgs = []
     for org in organizations:
         shaped_orgs.append(organization_to_dict(org))
@@ -335,12 +343,12 @@ def organization_to_dict(org):
         "name": org.name,
         "acronym": org.acronym,
         "retired": org.retired,
-        "created_at": org.created_at,
-        "updated_at": org.updated_at,
+        "created_at": org.created_at.isoformat(),
+        "updated_at": org.updated_at.isoformat(),
         "type": org.type,
         "stakeholder": org.stakeholder,
-        "enrolled_in_vs_timestamp": org.enrolled_in_vs_timestamp,
-        "period_start_vs_timestamp": org.period_start_vs_timestamp,
+        "enrolled_in_vs_timestamp": org.enrolled_in_vs_timestamp.isoformat(),
+        "period_start_vs_timestamp": org.period_start_vs_timestamp.isoformat(),
         "report_types": org.report_types,
         "scan_types": org.scan_types,
         "location": {
@@ -373,18 +381,17 @@ def organization_to_dict(org):
         ],
         "cidrs": [
             {
-                "id": str(cidr.id),
-                "network": str(cidr.network),
-                "start_ip": str(cidr.start_ip),
-                "end_ip": str(cidr.end_ip),
+                "network": str(cidr_org.cidr.network),
+                "start_ip": str(cidr_org.cidr.start_ip),
+                "end_ip": str(cidr_org.cidr.end_ip),
             }
-            for cidr in org.cidrs.all()
+            for cidr_org in org.cidrorgs_set.all()
         ],
     }
 
 
 def save_organization_to_mdl(
-    org_dict, network_list, location, db_name="mini_data_lake"
+    org_dict, network_list, location, db_name="mini_data_lake_lz"
 ) -> Organization:
     """Save or update an organization in the specified database.
 
@@ -404,6 +411,7 @@ def save_organization_to_mdl(
     Returns:
         Organization: The created or updated organization instance.
     """
+    print("Saving Organization")
     location_obj = None
     if location:
         try:
@@ -474,7 +482,7 @@ def save_organization_to_mdl(
     return org_obj
 
 
-def save_cidr_to_mdl(cidr_dict: dict, org: Organization, db_name="mini_data_lake"):
+def save_cidr_to_mdl(cidr_dict: dict, org: Organization, db_name="mini_data_lake_lz"):
     """
     Create or update a CIDR record in the specified database, linking it to the provided organization.
 
@@ -492,18 +500,66 @@ def save_cidr_to_mdl(cidr_dict: dict, org: Organization, db_name="mini_data_lake
             if cidr_obj:
                 cidr_obj.start_ip = cidr_dict["start_ip"]
                 cidr_obj.end_ip = cidr_dict["end_ip"]
+                cidr_obj.retired = False
                 cidr_obj.save(using=db_name)  # Save updates
+
             else:
                 cidr_obj = Cidr.objects.using(db_name).create(
                     id=str(uuid4()),
                     network=cidr_dict["network"],
                     start_ip=cidr_dict["start_ip"],
                     end_ip=cidr_dict["end_ip"],
+                    retired=False,
                 )
-            cidr_obj.organizations.add(org, through_defaults={})
+            # cidr_obj.organizations.add(org, through_defaults={})
             cidr_obj.save(using=db_name)
+            CidrOrgs.objects.using(db_name).update_or_create(
+                organization=org,
+                cidr=cidr_obj,
+                defaults={
+                    "cidr_orgs_id": str(uuid4()),
+                    "last_seen": datetime.datetime.today().date(),
+                    "current": True,
+                },
+            )
     except IntegrityError as e:
         print("IntegrityError:", e)
     except Exception as e:
         print(type(e))
         print("Error occurred while creating or updating CIDR:", e)
+
+
+# Used for loading test data from file for vuln_scans, port_scans, hosts, tickets
+def load_test_data(data_set: str) -> list:
+    """Load test data from local files for scanning simulations.
+
+    Args:
+        data_set (str): The type of data set to load (e.g., "requests", "vuln_scan").
+
+    Returns:
+        list: The parsed JSON data from the file.
+
+    Raises:
+        ValueError: If an unknown data_set is provided.
+        FileNotFoundError: If the specified file does not exist.
+    """
+    file_paths = {
+        "requests": "~/Downloads/requests_full_redshift.json",
+        "vuln_scan": "~/Downloads/vuln_scan_sample.json",
+        "port_scans": "~/Downloads/port_scans_sample.json",
+        "hosts": "~/Downloads/hosts_sample.json",
+        "tickets": "~/Downloads/tickets_sample.json",
+    }
+
+    file_path = file_paths.get(data_set)
+
+    if file_path is None:
+        raise ValueError(f"Unknown data set: {data_set}")
+
+    expanded_path = os.path.expanduser(file_path)
+
+    if not os.path.exists(expanded_path):
+        raise FileNotFoundError(f"Test data file not found: {expanded_path}")
+
+    with open(expanded_path, encoding="utf-8") as file:
+        return json.load(file)
