@@ -413,6 +413,7 @@ class Scan(models.Model):
     )
     isSingleScan = models.BooleanField(db_column="isSingleScan", default=False)
     manualRunPending = models.BooleanField(db_column="manualRunPending", default=False)
+    concurrentTasks = models.IntegerField(db_column="concurrentTasks", default=1)
 
     createdBy = models.ForeignKey(
         "User", models.SET_NULL, db_column="createdById", blank=True, null=True

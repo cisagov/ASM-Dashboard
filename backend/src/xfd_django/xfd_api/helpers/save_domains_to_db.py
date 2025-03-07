@@ -1,18 +1,22 @@
 """Save domains to the database."""
+# Standard Python Libraries
+from uuid import UUID
+
+# Third-Party Libraries
 from django.utils.timezone import now
 from xfd_api.models import Domain
-from uuid import UUID
+
 
 def save_domains_to_db(domains):
     """Save or update a list of Domain instances in the database."""
-    
+
     for domain in domains:
         updated_values = {}
         for field in domain._meta.fields:
             field_name = field.name
             if field_name in ["name", "fromRootDomain", "discoveredBy_id"]:
                 continue
-            
+
             value = getattr(domain, field_name, None)
             if value is not None:
                 updated_values[field_name] = value
@@ -37,7 +41,7 @@ def save_domains_to_db(domains):
             if queryset.exists():  # ✅ QuerySet check before accessing first object
                 existing_domain = queryset.first()  # ✅ Now this is safe
                 print("EXISTING DOMAIN: {}".format(existing_domain))
-                
+
                 # Instead of save(), use .update() directly on QuerySet
                 queryset.update(**updated_values)  # ✅ Efficient DB update
             else:

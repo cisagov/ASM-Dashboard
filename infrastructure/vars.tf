@@ -848,3 +848,9 @@ variable "crossfeed-lz-sync_name" {
   description = "The name of the S3 bucket for Crossfeed LZ sync"
   default     = "crossfeed-lz-sync"
 }
+
+variable "ssm_sqs_url" {
+  type        = string
+  description = "ssm_sqs_url"
+  default     = "/crossfeed/staging/SQS_URL"
+}

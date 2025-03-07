@@ -23,6 +23,7 @@ export interface ScanFormValues {
   isGranular: boolean;
   isUserModifiable: boolean;
   isSingleScan: boolean;
+  concurrentTasks: number;
 }
 
 export const ScanForm: React.FC<{
@@ -53,7 +54,8 @@ export const ScanForm: React.FC<{
     isUserModifiable: scan ? scan.isUserModifiable : false,
     isSingleScan: scan ? scan.isSingleScan : false,
     organizations: scan ? propValues.organizations : [],
-    tags: scan ? propValues.tags : []
+    tags: scan ? propValues.tags : [],
+    concurrentTasks: scan ? scan.concurrentTasks : 1
   });
   const [organizationOptions, setOrganizationOptions] =
     useState<OrganizationOption[]>(organizationOption);
@@ -95,7 +97,8 @@ export const ScanForm: React.FC<{
           isUserModifiable: scan.isUserModifiable,
           isSingleScan: scan.isSingleScan,
           organizations: propValues.organizations,
-          tags: propValues.tags
+          tags: propValues.tags,
+          concurrentTasks: scan.concurrentTasks
         }));
       }
     } catch (e) {
@@ -130,7 +133,8 @@ export const ScanForm: React.FC<{
           frequencyUnit: values.frequencyUnit,
           isGranular: values.isGranular,
           isUserModifiable: values.isUserModifiable,
-          isSingleScan: values.isSingleScan
+          isSingleScan: values.isSingleScan,
+          concurrentTasks: values.concurrentTasks
         });
       }}
       className={classes.form}
@@ -259,6 +263,33 @@ export const ScanForm: React.FC<{
           </Dropdown>
         </div>
       )}
+      <div className="form-group">
+        <Label htmlFor="concurrentTasks">Number of Concurrent Tasks</Label>
+        <TextInput
+          id="concurrentTasks"
+          maxLength={250}
+          name="concurrentTasks"
+          type="number"
+          className={classes.textField}
+          style={{ width: '150px' }}
+          value={values.concurrentTasks}
+          onChange={(e) => {
+            onChange(e.target.name, Number(e.target.value));
+          }}
+        />
+        <span
+          className="usa-hint"
+          style={{ marginTop: '0.5rem', display: 'block' }}
+        >
+          {schemaUpdated
+            ? scanSchema[values.name].maxConcurrentTasks
+              ? `This scan allows a maximum of ${
+                  scanSchema[values.name].maxConcurrentTasks
+                } concurrent scans`
+              : 'This scan allows no limit of concurrent tasks'
+            : 'This scan allows a maximum of 10 concurrent scans'}
+        </span>
+      </div>
       <br />
       {type === 'edit' && (
         <Link to={`/admin-tools`}>

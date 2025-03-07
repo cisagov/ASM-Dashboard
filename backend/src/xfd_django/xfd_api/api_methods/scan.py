@@ -105,6 +105,13 @@ def create_scan(scan_data: NewScan, current_user):
         if scan_data.name not in SCAN_SCHEMA:
             raise HTTPException(status_code=400, detail="Invalid scan name")
 
+        # Check if number of concurrent tasks is allowed
+        if scan_data.concurrentTasks > SCAN_SCHEMA[scan_data.name].maxConcurrentTasks:
+            raise HTTPException(
+                status_code=400,
+                detail="Number of concurrent tasks exceeds the max for this scan.",
+            )
+
         # Create the scan instance
         scan_data_dict = scan_data.dict(
             exclude_unset=True, exclude={"organizations", "tags"}
@@ -131,6 +138,7 @@ def create_scan(scan_data: NewScan, current_user):
             "isGranular": scan.isGranular,
             "isUserModifiable": scan.isUserModifiable,
             "isSingleScan": scan.isSingleScan,
+            "concurrentTasks": scan.concurrentTasks,
             "createdBy": {"id": current_user.id, "name": current_user.fullName},
             "tags": list(scan.tags.values("id")),
             "organizations": list(scan.organizations.values("id")),
@@ -138,7 +146,6 @@ def create_scan(scan_data: NewScan, current_user):
 
     except HTTPException as http_exc:
         raise http_exc
-
     except Organization.DoesNotExist:
         raise HTTPException(status_code=404, detail="Organization not found")
     except OrganizationTag.DoesNotExist:

@@ -55,6 +55,8 @@ class ScanSchema(BaseModel):
     # chunkNumber and numChunks parameters specified in commandOptions.
     numChunks: Optional[int] = None
 
+    maxConcurrentTasks: Optional[int] = 500
+
 
 class GranularScan(BaseModel):
     """Granular scan model."""
@@ -96,6 +98,7 @@ class NewScan(BaseModel):
     isGranular: Optional[bool] = None
     isUserModifiable: Optional[bool] = None
     isSingleScan: Optional[bool] = None
+    concurrentTasks: Optional[int] = 1
 
 
 class CreateScanResponseModel(BaseModel):
@@ -111,6 +114,7 @@ class CreateScanResponseModel(BaseModel):
     createdBy: Optional[Any]
     tags: Optional[List[IdSchema]]
     organizations: Optional[List[IdSchema]]
+    concurrentTasks: Optional[int]
 
 
 class GetScanResponseModel(BaseModel):
@@ -140,6 +144,7 @@ SCAN_SCHEMA = {
         isPassive=True,
         global_scan=False,
         description="Passive discovery of subdomains from public certificates",
+        maxConcurrentTasks=5,
     ),
     "censysCertificates": ScanSchema(
         type="fargate",

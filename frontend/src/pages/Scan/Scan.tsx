@@ -37,7 +37,8 @@ const ScanComponent: React.FC = () => {
     isGranular: false,
     isUserModifiable: false,
     isSingleScan: false,
-    tags: []
+    tags: [],
+    concurrentTasks: 1
   });
 
   const fetchScan = useCallback(async () => {
@@ -108,7 +109,8 @@ const ScanComponent: React.FC = () => {
       frequency: scan.frequency,
       frequencyUnit: oldFrequencyUnit,
       isGranular: scan.isGranular,
-      isSingleScan: scan.isSingleScan
+      isSingleScan: scan.isSingleScan,
+      concurrentTasks: scan.concurrentTasks
     }));
 
     //retrieves the organizations that are currently

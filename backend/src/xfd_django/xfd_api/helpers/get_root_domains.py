@@ -1,5 +1,7 @@
 """Get root domain per organization."""
+# Third-Party Libraries
 from xfd_api.models import Organization
+
 
 def get_root_domains(organization_id):
     """Retrieve the list of root domains for the specified organization."""

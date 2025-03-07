@@ -1,13 +1,15 @@
 """Cesys scan."""
+# Standard Python Libraries
 import os
 import re
-import time
-import requests
 import socket
+import time
 
-from xfd_api.models import Domain, Scan
-from xfd_api.helpers.save_domains_to_db import save_domains_to_db
+# Third-Party Libraries
+import requests
 from xfd_api.helpers.get_root_domains import get_root_domains
+from xfd_api.helpers.save_domains_to_db import save_domains_to_db
+from xfd_api.models import Domain, Scan
 
 # Constants controlling pagination and rate limiting
 RESULT_LIMIT = 1000
@@ -48,9 +50,11 @@ def fetch_censys_data(root_domain):
     print("Fetching certificates for {}".format(root_domain))
     data = fetch_page(root_domain)
     total = data.get("result", {}).get("total", 0)
-    print("Censys found {} certificates for {}. Fetching {} of them...".format(
-        total, root_domain, min(total, RESULT_LIMIT)
-    ))
+    print(
+        "Censys found {} certificates for {}. Fetching {} of them...".format(
+            total, root_domain, min(total, RESULT_LIMIT)
+        )
+    )
     result_count = 0
     # Assume the API returns a "links" object with a "next" key for pagination
     next_token = data.get("result", {}).get("links", {}).get("next")
@@ -90,7 +94,6 @@ def handler(command_options):
         data = fetch_censys_data(root_domain)
         hits = data.get("result", {}).get("hits", [])
         for hit in hits:
-
             names = hit.get("names")
             if not names:
                 continue
@@ -98,15 +101,20 @@ def handler(command_options):
                 # Normalize the domain name: remove any "*." and a leading "www."
                 normalized_name = re.sub(r"\*\.", "", name)
                 normalized_name = re.sub(r"^www\.", "", normalized_name)
-                if normalized_name.endswith(root_domain) and normalized_name not in unique_names:
+                if (
+                    normalized_name.endswith(root_domain)
+                    and normalized_name not in unique_names
+                ):
                     unique_names.add(normalized_name)
-                    found_domains.append({
-                        "name": normalized_name,
-                        "organization_id": organization_id,
-                        "fromRootDomain": root_domain,
-                        "subdomainSource": "censys",
-                        "discoveredBy_id": scan_id,
-                    })
+                    found_domains.append(
+                        {
+                            "name": normalized_name,
+                            "organization_id": organization_id,
+                            "fromRootDomain": root_domain,
+                            "subdomainSource": "censys",
+                            "discoveredBy_id": scan_id,
+                        }
+                    )
         # Pause to respect rate limits
         time.sleep(1)
 
@@ -119,13 +127,15 @@ def handler(command_options):
             ip = socket.gethostbyname(domain_name)
         except (socket.gaierror, UnicodeError) as e:
             ip = None
-            
+
         domain_data["ip"] = ip
         domain_instance = Domain(**domain_data)
         domains_to_save.append(domain_instance)
 
     # Save or update the domains using a helper function that handles DB logic
     save_domains_to_db(domains_to_save)
-    print("Censys saved or updated {} subdomains for {}".format(
-        len(domains_to_save), organization_name
-    ))
+    print(
+        "Censys saved or updated {} subdomains for {}".format(
+            len(domains_to_save), organization_name
+        )
+    )

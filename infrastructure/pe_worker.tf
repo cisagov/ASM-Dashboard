@@ -181,6 +181,18 @@ resource "aws_ecs_task_definition" "pe_worker" {
       {
         "name": "QUALYS_PASSWORD",
         "valueFrom": "${data.aws_ssm_parameter.qualys_password.arn}"
+      },
+      {
+        "name": "SQS_URL",
+        "valueFrom": "${data.aws_ssm_parameter.ssm_sqs_url.arn}"
+      },
+      {
+        "name": "STAGE_NAME",
+        "value": "${var.stage}"
+      },
+      {
+        "name": "AWS_REGION",
+        "value": "${var.aws_region}"
       }
     ]
   }

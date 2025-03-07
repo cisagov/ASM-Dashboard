@@ -11,6 +11,7 @@ export interface Scan {
   isSingleScan: boolean;
   organizations: [];
   tags: OrganizationTag[];
+  concurrentTasks: number;
 }
 
 // ScanSchema. TODO: synchronize this with the ScanSchema type in the backend.
@@ -39,5 +40,8 @@ export interface ScanSchema {
     // Chunked scans can only be run on scans whose implementation takes into account the
     // chunkNumber and numChunks parameters specified in commandOptions.
     numChunks?: number;
+
+    // Maximum number of tasks that can run in parallel.
+    maxConcurrentTasks?: number;
   };
 }
