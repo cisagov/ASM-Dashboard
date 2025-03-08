@@ -4,6 +4,8 @@ import sys
 import json
 import importlib
 import time
+import boto3
+from datetime import datetime, timezone
 
 import django
 from xfd_api.schema_models.scan import SCAN_SCHEMA
@@ -11,8 +13,6 @@ from xfd_api.schema_models.scan import SCAN_SCHEMA
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 django.setup()
-
-import boto3
 
 # ElasticMQ/SQS Configuration
 QUEUE_URL = os.getenv("QUEUE_URL")
@@ -36,9 +36,7 @@ def get_message(queue_url):
     try:
         response = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1, WaitTimeSeconds=5)
         messages = response.get("Messages", [])
-        if not messages:
-            return None
-        return messages[0]
+        return messages[0] if messages else None
     except Exception as e:
         print("Error retrieving message: {}".format(e))
         return None
@@ -54,10 +52,9 @@ def delete_message(queue_url, receipt_handle):
 def process_message(message_data):
     """Extract and process the message data."""
     try:
-        message = json.loads(message_data.get("Body", "{}"))
+        return json.loads(message_data.get("Body", "{}"))
     except Exception:
-        message = {"org": message_data.get("Body")}
-    return message
+        return {"org": message_data.get("Body")}
 
 def main():
     """Main worker loop."""
@@ -75,19 +72,17 @@ def main():
         print("SERVICE_QUEUE_URL not set in command options. Exiting.")
         sys.exit(1)
 
-    # Detect if using ElasticMQ
     is_local = os.getenv("IS_LOCAL")
 
-    if is_local:
-        full_queue_path_name = "http://localhost:9324/000000000000/{}-{}-queue".format("dev", scan_name)
-    else:
-        full_queue_path_name = SERVICE_QUEUE_URL
+    full_queue_path_name = (
+        "http://localhost:9324/000000000000/{}-{}-queue".format("dev", scan_name)
+        if is_local else SERVICE_QUEUE_URL
+    )
 
     print("Polling queue: {}".format(full_queue_path_name))
 
-    # Import scan handler **once** before the loop
     try:
-        task_module = importlib.import_module(f"xfd_api.tasks.{scan_name}")
+        task_module = importlib.import_module("xfd_api.tasks.{}".format(scan_name))
         scan_fn = getattr(task_module, "handler", None)
         if not callable(scan_fn):
             raise ValueError("No handler function found for scan name: {}".format(scan_name))
@@ -101,41 +96,44 @@ def main():
     while True:
         message_data = get_message(full_queue_path_name)
         if not message_data:
-            print("No new messages in the queue. Exiting worker loop.")
+            print("No more messages in the queue.")
             break
 
         message = process_message(message_data)
         org = message.get("org")
         org_id = message.get("id")
+
         if not org:
-            print("No organization found in the message. Skipping.")
+            print("Invalid message format. Skipping.")
+            success = False
             continue
 
         print("Processing organization: {}".format(org))
 
-        # Ensure `scan_fn` is still valid
-        if not callable(scan_fn):
-            raise ValueError("scan_fn is no longer callable. Something went wrong.")
+        try:
+            task_options = dict(command_options)
+            if not getattr(scan_schema, "global_scan", False):
+                task_options.update({
+                    "organizationName": org,
+                    "organizationId": org_id,
+                    "organizations": []
+                })
 
-        task_options = dict(command_options)
-        if not getattr(scan_schema, "global_scan", False):
-            task_options.update({
-                "organizationName": org,
-                "organizationId": org_id,
-                "organizations": []
-            })
+            scan_fn(task_options)
 
-        scan_fn(task_options)  # No more `await`
+            # Delete message after processing
+            receipt_handle = message_data.get("ReceiptHandle")
+            if receipt_handle:
+                delete_message(full_queue_path_name, receipt_handle)
+            else:
+                print("No ReceiptHandle found; cannot delete message.")
 
-        receipt_handle = message_data.get("ReceiptHandle")
-        if receipt_handle:
-            delete_message(full_queue_path_name, receipt_handle)
-        else:
-            print("No ReceiptHandle found; cannot delete message.")
+        except Exception as e:
+            print("Error processing {}: {}".format(org, e))
+            success = False
 
-        time.sleep(1)  # Pause before fetching next message
+        time.sleep(1)
 
-    print("Worker finished successfully.")
 
 if __name__ == "__main__":
     main()

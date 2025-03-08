@@ -9,7 +9,6 @@ import json
 import django
 from django.utils import timezone
 import boto3
-import pika
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
@@ -22,28 +21,69 @@ from xfd_api.schema_models.scan import SCAN_SCHEMA
 from xfd_api.tasks.scanExecution import handler as scan_execution_handler
 
 
-# -----------------------------------------------------------------------------
-# Scheduler Class
-# -----------------------------------------------------------------------------
 class Scheduler:
-    """
-    Scheduler for invoking scanExecution via queue messaging and Lambda.
-    Organizations are determined either from scan tags/organizations (if granular)
-    or from self.organizations.
-    """
+    """Scheduler for executing scans by managing ScanTask records and invoking execution."""
 
     def __init__(self):
         """Initialize."""
         self.scans = []
         self.organizations = []
 
-    def initialize(self, scans, organizations, queued_scan_tasks, orgs_per_scan_task):
-        """
-        Initialize the scheduler with scans and organizations.
-        Note: queued_scan_tasks and orgs_per_scan_task are no longer used.
-        """
+    def initialize(self, scans, organizations):
+        """Initialize the scheduler with scans and organizations."""
         self.scans = scans
         self.organizations = organizations
+
+    def launch_scan_execution(self, scan):
+        """Prepare and send scan execution request."""
+        queue_name = "{}-{}-queue".format(os.getenv("STAGE"), scan.name)
+        base_queue_url = os.getenv("QUEUE_URL").rstrip("/")
+        is_local = os.getenv("IS_LOCAL")
+
+        sqs = boto3.client(
+            "sqs",
+            region_name=os.getenv("AWS_REGION", "us-east-1"),
+            endpoint_url=base_queue_url if is_local else None,
+        )
+
+        response = sqs.create_queue(
+            QueueName=queue_name,
+            Attributes={
+                "VisibilityTimeout": "18000",
+                "MaximumMessageSize": "262144",
+                "MessageRetentionPeriod": "604800"
+            }
+        )
+
+        queue_url = response["QueueUrl"]
+        print("Queue URL: {}".format(queue_url))
+
+        # Get relevant organizations
+        orgs = get_scan_organizations(scan) if scan.isGranular else self.organizations
+        filtered_orgs = [org for org in orgs if self.should_run_scan(scan, org)]
+
+        for org in filtered_orgs:
+            message_body = json.dumps({"org": org.name, "id": str(org.id)})
+            try:
+                resp = sqs.send_message(QueueUrl=queue_url, MessageBody=message_body)
+                print("Message sent to queue with MessageId: {}".format(resp.get("MessageId")))
+            except Exception as e:
+                print("Error sending message for org {}: {}".format(org.name, e))
+
+        # Now pass organizations to scanExecution
+        event_payload = {
+            "scanId": str(scan.id),
+            "scanType": scan.name,
+            "desiredCount": scan.concurrentTasks,
+            "organizations": list(filtered_orgs),  # Pass orgs to scanExecution
+            "isPe": False,
+        }
+
+        try:
+            response = scan_execution_handler(event_payload, None)
+            print("scanExecution handler response: {}".format(response))
+        except Exception as e:
+            print("Error invoking scanExecution: {}".format(e))
 
     def should_run_scan(self, scan, organization=None):
         """
@@ -76,8 +116,7 @@ class Scheduler:
         def filter_scan_tasks(tasks):
             if global_scan:
                 return tasks.filter(scan=scan)
-            else:
-                return tasks.filter(scan=scan).filter(organizations=organization) | tasks.filter(organizations__id=organization.id)
+            return tasks.filter(scan=scan).filter(organizations=organization) | tasks.filter(organizations__id=organization.id)
 
         last_running_scan_task = filter_scan_tasks(
             ScanTask.objects.filter(status__in=["created", "queued", "requested", "started"]).order_by("-createdAt")
@@ -101,76 +140,11 @@ class Scheduler:
 
         return True
 
-    def launch_scan_execution(self, scan):
-        """
-        Create (or get) a queue, send a message for each organization, and invoke scanExecution handler.
-        """
-
-        # Build queue name dynamically
-        queue_name = "{}-{}-queue".format(os.getenv("STAGE"), scan.name)
-        base_queue_url = os.getenv("QUEUE_URL").rstrip("/")  # Ensure no trailing `/`
-        is_local = os.getenv("IS_LOCAL")
-        
-        # Create SQS client (for both ElasticMQ and AWS SQS)
-        sqs = boto3.client(
-            "sqs",
-            region_name=os.getenv("AWS_REGION", "us-east-1"),
-            endpoint_url=base_queue_url if is_local else None  # Use ElasticMQ locally
-        )
-
-        response = sqs.create_queue(
-            QueueName=queue_name,
-            Attributes={
-                "VisibilityTimeout": "18000",
-                "MaximumMessageSize": "262144",
-                "MessageRetentionPeriod": "604800"
-            }
-        )
-        print("CREATE QUEUE RESPONSE")
-        print(response)
-
-        queue_url = response["QueueUrl"]
-
-        print("Queue URL: {}".format(queue_url))
-
-        # Get the organizations for the scan
-        orgs = get_scan_organizations(scan) if scan.isGranular else self.organizations
-        filtered_orgs = [org for org in orgs if self.should_run_scan(scan, org)]
-        
-        print("Number of organizations: {}".format(len(filtered_orgs)))
-
-        # Send messages to the queue
-        for org in filtered_orgs:
-            message_body = json.dumps({"org": org.name, "id": str(org.id)})
-            try:
-                resp = sqs.send_message(QueueUrl=queue_url, MessageBody=message_body)
-                print("Message sent to queue with MessageId: {}".format(resp.get("MessageId")))
-            except Exception as e:
-                print("Error sending message for organization {}: {}".format(org.name, e))
-                raise
-
-        event_payload = {
-            "scanId": str(scan.id),
-            "scanType": scan.name,
-            "desiredCount": scan.concurrentTasks,
-            "isPe": False,
-        }
-
-        try:
-            response = scan_execution_handler(event_payload, None)
-            print("scanExecution handler response: {}".format(response))
-        except Exception as e:
-            print("Error invoking scanExecution handler: {}".format(e))
-            raise
-
     def run(self):
-        """
-        For each scan in self.scans that has a nonzero concurrentTasks field, launch the scanExecution process.
-        """
+        """Execute scans based on their configurations."""
         for scan in self.scans:
+            print("Running on scan")
             print(scan)
-            print(scan.name)
-            print(scan.concurrentTasks)
             if getattr(scan, "concurrentTasks", 0):
                 self.launch_scan_execution(scan)
 
@@ -179,10 +153,7 @@ class Scheduler:
 # Lambda Handler
 # -----------------------------------------------------------------------------
 def handler(event, context):
-    """
-    Handler for invoking the scheduler to run scans.
-    Expects 'scanIds' or 'scanId' in the event.
-    """
+    """Handler for invoking the scheduler to run scans."""
     print("Running scheduler...")
 
     scan_ids = event.get("scanIds", [])
@@ -204,7 +175,7 @@ def handler(event, context):
         organizations = Organization.objects.all()
 
     scheduler = Scheduler()
-    scheduler.initialize(scans, organizations, None, None)
+    scheduler.initialize(scans, organizations)
     scheduler.run()
 
     print("Finished running scheduler.")

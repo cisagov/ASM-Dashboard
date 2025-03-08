@@ -18,6 +18,7 @@ os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 django.setup()
 
 from xfd_api.tasks.ecs_client import ECSClient
+from xfd_api.models import ScanTask
 
 
 # Initialize AWS clients
@@ -49,8 +50,22 @@ def to_snake_case(input_string):
     """Convert a string to snake-case."""
     return re.sub(r"\s+", "-", input_string)
 
+def create_scan_task(scan_id, scan_type, organizations, fargate_task_arn=None):
+    """Create a ScanTask for each launched task and assign the correct fargateTaskArn."""
+    scan_task = ScanTask.objects.create(
+        scan_id=scan_id,
+        type="fargate",
+        status="created",
+        fargateTaskArn=fargate_task_arn  # Assign if available
+    )
 
-def start_desired_tasks(scan_type, desired_count, scan_id, shodan_api_keys=None, is_pe=True):
+    if organizations:
+        scan_task.organizations.set(organizations)
+
+    scan_task.save()
+    return scan_task
+
+def start_desired_tasks(scan_type, desired_count, scan_id, organizations, is_pe=False, shodan_api_keys=[]):
     """Start the desired number of tasks on AWS ECS or local Docker based on configuration."""
     print("Starting desired tasks")
     shodan_api_keys = shodan_api_keys or []
@@ -58,7 +73,6 @@ def start_desired_tasks(scan_type, desired_count, scan_id, shodan_api_keys=None,
 
     batch_size = 1 if scan_type == "shodan" else 10
     remaining_count = desired_count
-
     while remaining_count > 0:
         current_batch_count = min(remaining_count, batch_size)
         shodan_api_key = shodan_api_keys[remaining_count - 1] if shodan_api_keys else ""
@@ -101,8 +115,8 @@ def start_desired_tasks(scan_type, desired_count, scan_id, shodan_api_keys=None,
                     print("Error starting PE tasks: {}".format(e))
                     raise e
         else:
-            print("In the Non P&E section")
-            # New method: Build command options including the current batch count.
+            print("Running ECS task")
+            ecs = ECSClient()
             command_options = {
                 "scanId": scan_id,
                 "scanName": scan_type,
@@ -110,14 +124,18 @@ def start_desired_tasks(scan_type, desired_count, scan_id, shodan_api_keys=None,
                 "SERVICE_TYPE": scan_type,
                 "count": current_batch_count
             }
-            print("Command options: {}".format(command_options))
-            ecs = ECSClient()
+
             result = ecs.run_command(command_options)
+
             if not result.get("tasks"):
-                print("Failed to start new-method ECS task for scan {}".format(scan_type))
+                print("Failed to start ECS task for scan {}".format(scan_type))
                 raise Exception("Failed to start ECS task for scan {}".format(scan_type))
-            print("Successfully started new-method ECS task for scan {}: {}".format(scan_type, result["tasks"][0]["taskArn"]))
-            
+
+            for task in result["tasks"]:
+                task_arn = task["taskArn"]
+                scan_task = create_scan_task(scan_id, scan_type, organizations, fargate_task_arn=task_arn)
+                print("Started ECS task: {}".format(task_arn))
+
         remaining_count -= current_batch_count
 
 def start_local_containers(count, scan_type, queue_url, shodan_api_key=""):
@@ -164,10 +182,7 @@ def handler(event, context):
         scan_type = event.get("scanType")
         is_pe = event.get("isPe", True)
         scan_id = event.get("scanId", "")
-        print(desired_count)
-        print(scan_type)
-        print(is_pe)
-        print(scan_id)
+        organizations = event.get("organizations", [])
 
         if not scan_type:
             print("scanType must be provided.")
@@ -186,10 +201,10 @@ def handler(event, context):
                     "body": "Failed: insufficient API keys for Shodan.",
                 }
 
-            start_desired_tasks(scan_type, desired_count, shodan_api_keys, scan_id, is_pe=is_pe)
+            start_desired_tasks(scan_type, desired_count, scan_id, organizations, is_pe=is_pe, shodan_api_keys=[])
         
         elif scan_type in SCAN_LIST:
-            start_desired_tasks(scan_type, desired_count, scan_id, is_pe=is_pe)
+            start_desired_tasks(scan_type, desired_count, scan_id, organizations, is_pe=is_pe)
         else:
             print("Invalid scanType. Must be one of: {}".format(", ".join(SCAN_LIST)))
             return {"statusCode": 400, "body": "Invalid scanType provided."}

@@ -12,6 +12,7 @@ import asyncio
 from asyncio import Semaphore
 import os
 import threading
+import functools
 
 # Third-Party Libraries
 import django
@@ -24,6 +25,8 @@ from redis import asyncio as aioredis
 from xfd_api.tasks.scheduler import handler as scheduler_handler
 from xfd_django.docker_events import listen_for_docker_events
 from xfd_django.middleware.middleware import LoggingMiddleware
+
+print = functools.partial(print, flush=True)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
