@@ -728,7 +728,6 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
             />
           </Paper>
         ) : null}
-        {/* <NoResultsMessage open /> */}
       </Box>
     </Box>
   );
