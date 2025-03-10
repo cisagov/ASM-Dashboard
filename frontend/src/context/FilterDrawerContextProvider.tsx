@@ -1,6 +1,5 @@
 import React from 'react';
 import { FilterDrawerContext } from 'context/FilterDrawerContext';
-import { useFilterDrawerContext } from 'context/FilterDrawerContext';
 import { usePersistentState } from 'hooks';
 
 interface FilterDrawerContextProviderProps {
