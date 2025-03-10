@@ -92,6 +92,7 @@ class ECSClient:
                         "SIXGILL_CLIENT_ID": os.getenv("SIXGILL_CLIENT_ID"),
                         "SIXGILL_CLIENT_SECRET": os.getenv("SIXGILL_CLIENT_SECRET"),
                         "PE_SHODAN_API_KEYS": os.getenv("PE_SHODAN_API_KEYS"),
+                        "WHOIS_XML_KEY": os.getenv("WHOIS_XML_KEY"),
                         "WORKER_SIGNATURE_PUBLIC_KEY": os.getenv(
                             "WORKER_SIGNATURE_PUBLIC_KEY"
                         ),

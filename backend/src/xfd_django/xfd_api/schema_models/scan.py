@@ -333,4 +333,12 @@ SCAN_SCHEMA = {
         memory="8192",
         description="Pull in Xpanse alert data from commercial mdl",
     ),
+    "asm_sync": ScanSchema(
+        type="fargate",
+        isPassive=True,
+        global_scan=True,
+        cpu="1024",
+        memory="8192",
+        description="Enumerate and sync org assets.",
+    ),
 }
