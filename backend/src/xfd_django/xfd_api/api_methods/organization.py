@@ -11,6 +11,7 @@ from fastapi import HTTPException
 
 from ..auth import (
     get_org_memberships,
+    is_analytics_admin,
     is_global_view_admin,
     is_global_write_admin,
     is_org_admin,
@@ -334,7 +335,7 @@ def get_all_regions(current_user):
     """Get all regions."""
     try:
         # Check if user is GlobalViewAdmin or has memberships
-        if not is_global_view_admin(current_user):
+        if not is_global_view_admin(current_user) and not is_analytics_admin(current_user):
             raise HTTPException(status_code=403, detail="Unauthorized")
 
         # Fetch distinct regionId values

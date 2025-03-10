@@ -283,6 +283,11 @@ def is_regional_admin(current_user) -> bool:
     """Check if the user has regional admin permissions."""
     return current_user and current_user.userType in ["regionalAdmin", "globalAdmin"]
 
+def is_analytics_admin (current_user) -> bool:
+    """Check if the user has analytics permissions."""
+    print("Inside is_analytics_admin")
+    print("current_user.userType: ", current_user.userType)
+    return current_user and current_user.userType in ["analytics", "globalAdmin"]
 
 def is_org_admin(current_user, organization_id) -> bool:
     """Check if the user is an admin of the given organization."""

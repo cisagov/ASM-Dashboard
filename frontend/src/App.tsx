@@ -208,6 +208,7 @@ const App: React.FC = () => (
                         path="/settings"
                         component={Settings}
                         permissions={[
+                          'analytics',
                           'globalView',
                           'regionalAdmin',
                           'standard'
