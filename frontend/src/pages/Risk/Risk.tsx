@@ -15,7 +15,7 @@ import TopVulnerableDomains from './TopVulnerableDomains';
 import VulnerabilityBarChart from './VulnerabilityBarChart';
 import * as RiskStyles from './style';
 import { getSeverityColor, offsets, severities } from './utils';
-import { ContextType, useAuthContext } from 'context';
+import { ContextType, useAuthContext, useFilterDrawerContext } from 'context';
 import { geoCentroid } from 'd3-geo';
 import {
   ComposableMap,
@@ -53,6 +53,11 @@ interface VulnerabilityCount extends Vulnerability {
   count: number;
 }
 
+// interface RiskProps {
+//   isFilterDrawerOpen: boolean;
+//   setIsFilterDrawerOpen: (isFilterDrawerOpen: boolean) => void;
+// }
+
 export interface VulnSeverities {
   label: string;
   sevList: string[];
@@ -65,13 +70,15 @@ let colorScale = scaleLinear<string>()
   .domain([0, 1])
   .range(['#c7e8ff', '#135787']);
 
-const Risk: React.FC<ContextType & {}> = ({
+const Risk: React.FC<ContextType> = ({
   filters,
   removeFilter,
   searchTerm,
   setSearchTerm
 }) => {
   const { showMaps, user, apiPost } = useAuthContext();
+  const { isFilterDrawerOpen, setIsFilterDrawerOpen } =
+    useFilterDrawerContext();
 
   const [stats, setStats] = useState<Stats | undefined>(undefined);
   const [isUpdateStateFormOpen, setIsUpdateStateFormOpen] = useState(false);
@@ -408,7 +415,7 @@ const Risk: React.FC<ContextType & {}> = ({
                     variant="contained"
                     color="primary"
                     sx={{ width: 'fit-content' }}
-                    // onClick={() => fetchStats()}
+                    onClick={() => setIsFilterDrawerOpen(!isFilterDrawerOpen)}
                   >
                     Adjust Filters
                   </Button>

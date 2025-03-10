@@ -16,12 +16,12 @@ import { CrossfeedFooter } from './Footer';
 import { SkipToMainContent } from './SkipToMainContent/index';
 import { matchPath } from 'utils/matchPath';
 import { drawerWidth, FilterDrawerV2 } from './FilterDrawerV2';
-import { usePersistentState } from 'hooks';
 import { useTheme } from '@mui/system';
 import { withSearch } from '@elastic/react-search-ui';
 import { ContextType } from 'context';
 import { useUserTypeFilters } from 'hooks/useUserTypeFilters';
 import { useStaticsContext } from 'context/StaticsContext';
+import { useFilterDrawerContext } from 'context/FilterDrawerContext';
 
 const GLOBAL_ADMIN = 3;
 const REGIONAL_ADMIN = 2;
@@ -78,10 +78,9 @@ export const Layout: React.FC<PropsWithChildren<ContextType>> = ({
   const [initialFilters, setInitialFilters] = useState<any[]>([]);
 
   const theme = useTheme();
-  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = usePersistentState(
-    'isFilterDrawerOpen',
-    false
-  );
+
+  const { isFilterDrawerOpen, setIsFilterDrawerOpen } =
+    useFilterDrawerContext();
 
   const userLevel = useMemo(() => {
     if (user && user.isRegistered) {
