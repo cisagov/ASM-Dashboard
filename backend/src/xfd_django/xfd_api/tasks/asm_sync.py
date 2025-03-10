@@ -33,6 +33,14 @@ headers = settings.DMZ_API_HEADER
 def handler(event):
     """Enumerate and identify assets belonging to each stakeholder."""
     try:
+        is_dmz = os.getenv("IS_DMZ", "0") == "1"
+        is_local = os.getenv("IS_LOCAL", "1") == "1"
+        if not is_dmz or not is_local:
+            LOGGER.warning('Scan can only be run in the DMZ or locally. Exitting now.')
+            return {
+                "statusCode": 200,
+                "body": "DMZ Shodan Vulnerabilities and Asset cannot run outside the DMZ.",
+            }
         main()
         return {
             "statusCode": 200,
@@ -67,7 +75,7 @@ def main():
         LOGGER.info("Finished running Shodan dedupe")
     except Exception as e:
         LOGGER.warning('Error running ASM {error_msg}'.format(error_msg=e))
-    quit()
+    # quit()
     
 
     
