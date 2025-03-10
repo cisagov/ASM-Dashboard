@@ -1,13 +1,21 @@
 import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import classes from './Risk.module.scss';
-import { Box, Card, CardContent, Grid, Paper, Typography } from '@mui/material';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Grid,
+  Paper,
+  Typography
+} from '@mui/material';
 import VulnerabilityCard from './VulnerabilityCard';
 import TopVulnerablePorts from './TopVulnerablePorts';
 import TopVulnerableDomains from './TopVulnerableDomains';
 import VulnerabilityBarChart from './VulnerabilityBarChart';
 import * as RiskStyles from './style';
 import { getSeverityColor, offsets, severities } from './utils';
-import { ContextType, useAuthContext } from 'context';
+import { ContextType, useAuthContext, useFilterDrawerContext } from 'context';
 import { geoCentroid } from 'd3-geo';
 import {
   ComposableMap,
@@ -19,6 +27,7 @@ import {
 } from 'react-simple-maps';
 import { scaleLinear } from 'd3-scale';
 import { Stats, Vulnerability } from 'types';
+import { NoResults } from 'components/NoResults';
 import { UpdateStateForm } from 'components/Register';
 import {
   ORGANIZATION_FILTER_KEY,
@@ -28,6 +37,7 @@ import {
 import { withSearch } from '@elastic/react-search-ui';
 import { FilterTags } from 'pages/Search/FilterTags';
 import { useLocation } from 'react-router-dom';
+import { Stack } from '@mui/system';
 
 export interface Point {
   id: string;
@@ -43,6 +53,11 @@ interface VulnerabilityCount extends Vulnerability {
   count: number;
 }
 
+// interface RiskProps {
+//   isFilterDrawerOpen: boolean;
+//   setIsFilterDrawerOpen: (isFilterDrawerOpen: boolean) => void;
+// }
+
 export interface VulnSeverities {
   label: string;
   sevList: string[];
@@ -55,13 +70,15 @@ let colorScale = scaleLinear<string>()
   .domain([0, 1])
   .range(['#c7e8ff', '#135787']);
 
-const Risk: React.FC<ContextType & {}> = ({
+const Risk: React.FC<ContextType> = ({
   filters,
   removeFilter,
   searchTerm,
   setSearchTerm
 }) => {
   const { showMaps, user, apiPost } = useAuthContext();
+  const { isFilterDrawerOpen, setIsFilterDrawerOpen } =
+    useFilterDrawerContext();
 
   const [stats, setStats] = useState<Stats | undefined>(undefined);
   const [isUpdateStateFormOpen, setIsUpdateStateFormOpen] = useState(false);
@@ -303,7 +320,7 @@ const Risk: React.FC<ContextType & {}> = ({
                 removeFilter={removeFilter}
               />
             </Box>
-            {stats && (
+            {stats ? (
               <Grid container>
                 <Grid item xs={12} sm={12} md={12} lg={6} xl={6} mb={-4}>
                   <div className={content}>
@@ -380,6 +397,30 @@ const Risk: React.FC<ContextType & {}> = ({
                   </div>
                 </Grid>
               </Grid>
+            ) : (
+              <Box
+                display="flex"
+                flex="1"
+                alignItems="center"
+                justifyContent="center"
+                height="100%"
+              >
+                <Stack spacing={2} direction={'column'} alignItems={'center'}>
+                  <NoResults
+                    message={
+                      "We don't see any results that match your criteria."
+                    }
+                  ></NoResults>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    sx={{ width: 'fit-content' }}
+                    onClick={() => setIsFilterDrawerOpen(!isFilterDrawerOpen)}
+                  >
+                    Adjust Filters
+                  </Button>
+                </Stack>
+              </Box>
             )}
           </div>
         </RiskRoot>
