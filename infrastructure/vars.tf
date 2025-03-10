@@ -848,3 +848,9 @@ variable "crossfeed-lz-sync_name" {
   description = "The name of the S3 bucket for Crossfeed LZ sync"
   default     = "crossfeed-lz-sync"
 }
+
+variable "image_tag" {
+  description = "The tag for the image in ECR"
+  type        = string
+  default     = "latest"
+}
