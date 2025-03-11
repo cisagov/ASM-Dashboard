@@ -18,20 +18,22 @@ from xfd_mini_dl.models import Organization, Sector
 
 from ..helpers.s3_client import S3Client
 from ..utils.csv_utils import convert_csv_to_json, create_checksum
+from ..utils.validation import save_validation_checksum
 
 
 async def sync_post(sync_body, request: Request):
     """Ingest and persist organization data to the data lake."""
     headers = request.headers
     request_checksum = headers.get("x-checksum")
-
+    generated_checksum = create_checksum(sync_body.data)
     if not request_checksum or not sync_body.data:
         raise HTTPException(status_code=500, detail="Missing checksum")
 
-    if request_checksum != create_checksum(sync_body.data):
+    if request_checksum != generated_checksum:
         raise HTTPException(status_code=500, detail="Missing checksum")
 
     # Use MinIO client to save CSV data to S3
+    save_validation_checksum(generated_checksum, "DMZ INGEST")
     s3_client = S3Client()
     start_bound, end_bound = parse_cursor(headers.get("x-cursor"))
     file_name = generate_s3_filename(start_bound, end_bound)

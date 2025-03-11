@@ -6,23 +6,23 @@ and write CSV data to files.
 
 # Standard Python Libraries
 import csv
-from hashlib import sha256
 from io import StringIO
 import json
 from typing import Any, Dict, List
+import zlib
 
 
 def create_checksum(data: str) -> str:
-    """Generate a SHA-256 checksum for a given string.
+    """Generate a CRC32 checksum for a given string.
 
     Args:
         data (str): The input string.
 
     Returns:
-        str: The SHA-256 hash of the input string.
+        str: The CRC32 hash of the input string as a hex string.
     """
-    hash_object = sha256(data.encode("utf-8"))
-    return hash_object.hexdigest()
+    crc = zlib.crc32(data.encode("utf-8"))
+    return format(crc & 0xFFFFFFFF, "08x")
 
 
 def json_to_csv(json_array: List[Dict[str, Any]]) -> str:
