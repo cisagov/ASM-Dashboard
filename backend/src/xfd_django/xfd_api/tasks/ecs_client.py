@@ -73,6 +73,7 @@ class ECSClient:
                         "DB_DIALECT": os.getenv("DB_DIALECT"),
                         "DB_HOST": os.getenv("DB_HOST"),
                         "IS_LOCAL": "true",
+                        "IS_DMZ": os.getenv("IS_DMZ"),
                         "DB_PORT": os.getenv("DB_PORT"),
                         "DB_NAME": os.getenv("DB_NAME"),
                         "DB_USERNAME": os.getenv("DB_USERNAME"),
