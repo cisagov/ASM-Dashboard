@@ -22,6 +22,7 @@ import {
   GridRenderCellParams
 } from '@mui/x-data-grid';
 import CustomToolbar from 'components/DataGrid/CustomToolbar';
+import CustomNoRowsOverlay from 'components/DataGrid/CustomNoRowsOverlay';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { getSeverityColor } from 'pages/Risk/utils';
@@ -199,7 +200,19 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
         });
         if (!resp) return;
         const { result, count } = resp;
-        if (result.length === 0) return;
+        if (result.length === 0) {
+          setVulnerabilities([]);
+          setTotalResults(0);
+          setPaginationModel((prevState) => ({
+            ...prevState,
+            page: 0,
+            pageSize: PAGE_SIZE,
+            pageCount: 0,
+            filters: []
+          }));
+          setLoadingError(false);
+          return;
+        }
         setVulnerabilities(result);
         setTotalResults(count);
         setPaginationModel((prevState) => ({
@@ -356,6 +369,19 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
       Show Open Vulnerabilities
     </Button>
   );
+
+  const noRowsOverlay = (
+    <Box>
+      <Stack direction="row" alignItems="center" spacing={2}>
+        <Paper elevation={1}>
+          <Alert severity="warning">
+            No Results Found. Please adjust your filters.
+          </Alert>
+        </Paper>
+      </Stack>
+    </Box>
+  );
+
   const vulRows: VulnerabilityRow[] = vulnerabilities.map((vuln) => {
     //The following logic is to format irregular severity levels to match those used in VulnerabilityBarChart.tsx
 
@@ -652,18 +678,22 @@ export const Vulnerabilities: React.FC<{ groupBy?: string }> = ({
             </Button>
           </Stack>
         ) : isLoading === false && loadingError === false ? (
-          <Paper elevation={2} sx={{ width: '90%', minHeight: '200px' }}>
+          <Paper elevation={2} sx={{ width: '90%', minHeight: 500 }}>
             <DataGrid
               rows={vulRows}
               rowCount={totalResults}
               columns={vulCols}
-              slots={{ toolbar: CustomToolbar }}
+              slots={{
+                toolbar: CustomToolbar,
+                noRowsOverlay: CustomNoRowsOverlay
+              }}
               slotProps={{
                 toolbar: {
                   children: onlyOpenVulns
                     ? showAllVulnsButton
                     : showOpenVulnsButton
-                }
+                },
+                noRowsOverlay: { children: noRowsOverlay }
               }}
               paginationMode="server"
               paginationModel={paginationModel}

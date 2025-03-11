@@ -131,6 +131,8 @@ def search_domains(domain_search: DomainSearch, current_user):
         page_obj = paginator.get_page(domain_search.page)
         return list(page_obj), paginator.count
 
+    except HTTPException as he:
+        raise he
     except Domain.DoesNotExist as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
