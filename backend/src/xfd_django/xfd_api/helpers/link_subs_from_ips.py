@@ -42,36 +42,26 @@ def process_ips(thread_id, org, cidr, ip_gen):
             try:
                 domain_list, failed_ips = search_whois_for_domains(ip, failed_ips)
             except Exception as e:
-                LOGGER.error(
-                    "Thread {thread_id}: Error identifying domains: {error}".format(
-                        thread_id=thread_id, error=e
-                    )
-                )
+                LOGGER.error("Thread %s: Error identifying domains: %s", thread_id, e)
+
                 failed_ips.append(ip)
                 continue
             if domain_list:
                 LOGGER.warning(
-                    "Found {domain_count} domains associated with {ip}".format(
-                        domain_count=len(domain_list), ip=ip
-                    )
+                    "Found %d domains associated with %s", len(domain_list), ip
                 )
                 save_and_link_ip_and_subdomain(ip, cidr, org, domain_list)
             # print(f"Thread {thread_id} processing IP: {ip}")
         except StopIteration:
             # Stop when the generator is exhausted
             LOGGER.warning(
-                "Thread {thread_id} has completed. Processed {count} ips in {dur} seconds.".format(
-                    thread_id=thread_id,
-                    count=count,
-                    dur=round(time.time() - chunk_start, 2),
-                )
+                "Thread %s has completed. Processed %d ips in %s seconds.",
+                thread_id,
+                count,
+                round(time.time() - chunk_start, 2),
             )
             if len(failed_ips) > 0:
-                LOGGER.warning(
-                    "{fail_count} IPs failed to process".format(
-                        fail_count=len(failed_ips)
-                    )
-                )
+                LOGGER.warning("%d IPs failed to process", len(failed_ips))
             break
 
 
@@ -97,20 +87,26 @@ def search_whois_for_domains(ip, failed_ips):
     )
     payload = {}
     headers = {}
-    response = requests.request("GET", url, headers=headers, data=payload)
+    response = requests.request("GET", url, headers=headers, data=payload, timeout=20)
 
     # Retry clause
     retry_count, max_retries, time_delay = 1, 3, 3
     while response.status_code != 200 and retry_count <= max_retries:
         LOGGER.warning(
-            f"Retrying WhoisXML API endpoint (code {response.status_code}), attempt {retry_count} of {max_retries} (url: {url})"
+            "Retrying WhoisXML API endpoint (code %s), attempt %d of %s (url: %s)",
+            response.status_code,
+            retry_count,
+            max_retries,
+            url,
         )
         time.sleep(time_delay)
-        response = requests.request("GET", url, headers=headers, data=payload)
+        response = requests.request(
+            "GET", url, headers=headers, data=payload, timeout=20
+        )
         retry_count += 1
     # If API call still unsuccessful
     if response.status_code != 200:
-        LOGGER.error("Max retries reached for {ip}, labeling as failed".format(ip=ip))
+        LOGGER.error("Max retries reached for %s, labeling as failed", ip)
         failed_ips.append(ip)
     response = response.json()
     try:
@@ -140,13 +136,10 @@ def connect_subs_from_ips(orgs: list[Organization]):
         org_uid = org.id
         # ips_df = query_ips(org_uid, conn)
         cidrs = query_cidrs_by_org(org_uid)
-        LOGGER.warning(
-            "identified {cidr_count} cidrs for {acronym}".format(
-                cidr_count=len(cidrs), acronym=org.acronym
-            )
-        )
+        LOGGER.warning("identified %d cidrs for %s", len(cidrs), org.acronym)
+
         for cidr_row in cidrs:
-            LOGGER.warning("Running {cidr}".format(cidr=cidr_row.network))
+            LOGGER.warning("Running %s", cidr_row.network)
             process_cidr(cidr_row, org)
 
 
@@ -161,7 +154,7 @@ def query_cidrs_by_org(org_id):
 
 def save_and_link_ip_and_subdomain(ip, cidr, org, domains):
     """Save an IP and associated Subdomains."""
-    LOGGER.info("linking {domains} to {ip}".format(domains=domains, ip=ip))
+    LOGGER.info("linking %s to %s", domains, ip)
     ip_object = create_or_update_ip(
         {
             "ip": ip,
@@ -235,8 +228,8 @@ def save_and_link_ip_and_subdomain(ip, cidr, org, domains):
             )
 
         except KeyError as ke:
-            LOGGER.warning("Key error: {error}".format(error=ke))
+            LOGGER.warning("Key error: %s", ke)
             continue
         except Exception as e:
-            LOGGER.warning("Unknown error: {error}".format(error=e))
+            LOGGER.warning("Unknown error: %s", error=e)
             continue

@@ -83,7 +83,7 @@ def main(event):
         dedupe(orgs_to_sync)
         LOGGER.info("Finished running Shodan dedupe")
     except Exception as e:
-        LOGGER.warning("Error running ASM {error_msg}".format(error_msg=e))
+        LOGGER.warning("Error running ASM %s", e)
     # quit()
 
 
@@ -156,21 +156,22 @@ def enumerate_roots(root_domain):
         }
     )
     headers = {"Content-Type": "application/json"}
-    response = requests.request("POST", url, headers=headers, data=payload)
+    response = requests.request("POST", url, headers=headers, data=payload, timeout=20)
     LOGGER.info(response.json())
     LOGGER.info(response.text)
     retry_count, max_retries, time_delay = 1, 10, 5
     while response.status_code != 200 and retry_count <= max_retries:
         LOGGER.info(
-            "Retrying WhoisXML API endpoint (code {code}), attempt {retry_count} of {max_retries} (url: {url})".format(
-                code=response.status_code,
-                retry_count=retry_count,
-                max_retries=max_retries,
-                url=url,
-            )
+            "Retrying WhoisXML API endpoint (code %s), attempt %d of %d (url: %s)",
+            response.status_code,
+            retry_count,
+            max_retries,
+            url,
         )
         time.sleep(time_delay)
-        response = requests.request("POST", url, headers=headers, data=payload)
+        response = requests.request(
+            "POST", url, headers=headers, data=payload, timeout=20
+        )
         retry_count += 1
 
     data = response.json()

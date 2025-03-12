@@ -6,7 +6,7 @@ import socket
 
 # Third-Party Libraries
 from xfd_api.helpers.asset_inserts import create_or_update_ip
-from xfd_mini_dl.models import SubDomains
+from xfd_mini_dl.models import Organization, SubDomains
 
 LOGGER = logging.getLogger(__name__)
 DATE = datetime.datetime.now(datetime.timezone.utc)
@@ -38,11 +38,7 @@ def get_ips_and_type(subdomain):
             ip_info.append((ip_address, ip_type))
 
     except socket.gaierror as e:
-        LOGGER.warning(
-            "Error resolving the subdomain {sub}: {error}".format(
-                sub=subdomain, error=e
-            )
-        )
+        LOGGER.warning("Error resolving the subdomain %s: %s", subdomain, e)
 
     return ip_info
 
@@ -72,7 +68,7 @@ def link_ip_from_domain(sub, org):
     return 1
 
 
-def connect_ips_from_subs(orgs_list=[]):
+def connect_ips_from_subs(orgs_list=list[Organization]):
     """For each org, find all ips associated with its sub_domains and link them in the ips_subs table."""
     # Get P&E organizations DataFram
     LOGGER.info("Linking Ips from subdomains")

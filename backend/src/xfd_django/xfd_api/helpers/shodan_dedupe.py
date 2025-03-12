@@ -148,6 +148,7 @@ def connect_to_shodan():
         return api
     except Exception:
         LOGGER.error("Invalid Shodan API key")
+        return 0
 
 
 def cidr_dedupe(cidrs, api, org):
@@ -160,7 +161,7 @@ def cidr_dedupe(cidrs, api, org):
         if result:
             results.append(result)
     found = len([i for i in results if i != 0])
-    LOGGER.warning("CIDRs with IPs found: {found}".format(found=found))
+    LOGGER.warning("CIDRs with IPs found: %d", found)
 
     if len(ip_obj) > 0:
         update_shodan_ips(ip_obj, org)
@@ -191,27 +192,9 @@ def update_shodan_ips(ip_list, org):
                     update_default["origin_cidr"] = ip.get("origin_cidr")
                     update_default["from_cidr"] = True
                 create_or_update_ip(create_default, update_default, linked_sub=None)
-                # ip_obj, created = Ip.objects.get_or_create(
-                #     ip_hash=ip.get('ip_hash'),
-                #     defaults={
-                #         'ip':ip.get('ip'),
-                #         'origin_cidr':ip.get('origin_cidr'),
-                #         "has_shodan_results": True,
-                #         "current": True,
-                #         "from_cidr":True if ip.get('origin_cidr') else False,
-                #         "last_seen_timestamp":datetime.datetime.now(datetime.timezone.utc)
-                #     }
-                # )
-                # if not created:
-                #     ip_obj.has_shodan_results=True
-                #     ip_obj.current=True
-                #     ip_obj.last_seen_timestamp=datetime.datetime.now(datetime.timezone.utc)
-                #     if ip.get('origin_cidr'):
-                #         ip_obj.origin_cidr=ip.get('origin_cidr')
-                #         ip_obj.from_cidr=True
-                #     ip_obj.save()
+
         except Exception as e:
-            LOGGER.warning("Error saving the IP to the db: {error}".format(error=e))
+            LOGGER.warning("Error saving the IP to the db: %s", e)
 
 
 def ip_dedupe(api, ips, org):
@@ -229,10 +212,10 @@ def ip_dedupe(api, ips, org):
                     time.sleep(2)
                     hosts = api.host(ips[i * 100 : len(ips)])
                 except Exception:
-                    LOGGER.error("{i} failed again".format(i=i))
+                    LOGGER.error("%s failed again", i)
                     continue
             except shodan.APIError as e:
-                LOGGER.error("Error: {}".format(e))
+                LOGGER.error("Error: %s", e)
         else:
             try:
                 hosts = api.host(ips[i * 100 : (i + 1) * 100])
@@ -241,7 +224,7 @@ def ip_dedupe(api, ips, org):
                 try:
                     hosts = api.host(ips[i * 100 : (i + 1) * 100])
                 except shodan.APIError as err:
-                    LOGGER.error("Error: {err}".format(err=err))
+                    LOGGER.error("Error: %s", err)
                     continue
         if isinstance(hosts, list):
             for h in hosts:
@@ -285,7 +268,6 @@ def search(api, query, ip_obj, cidr, org_type):
     """Search Shodan API using query and add IPs to set."""
     # Wrap the request in a try/ except block to catch errors
     try:
-        # LOGGER.info(query)
         # Search Shodan
         try:
             results = api.search(query)
@@ -348,13 +330,13 @@ def search(api, query, ip_obj, cidr, org_type):
                         )
                 i = i + 1
             except shodan.APIError as e:
-                LOGGER.error("Error: {}".format(e))
+                LOGGER.error("Error: %s", e)
                 LOGGER.error(query)
                 results = {"total": 0}
     except shodan.APIError as e:
-        LOGGER.error("Error: {}".format(e))
+        LOGGER.error("Error: %s", e)
         # IF it breaks to here it fails
-        LOGGER.error("Failed on {query}".format(query=query))
+        LOGGER.error("Failed on %s", query)
         return 0
     return results["total"]
 
@@ -378,7 +360,7 @@ def dedupe(orgs_obj_list=None):
         )
         # Query CIDRS
         cidrs = Cidr.objects.filter(cidrorgs__organization=org, cidrorgs__current=True)
-        LOGGER.info("{num} CIDRs found".format(num=len(cidrs)))
+        LOGGER.info("%d CIDRs found", len(cidrs))
         # Run cidr dedupe if there are CIDRs
         if len(cidrs) > 0:
             cidr_dedupe(cidrs, api, org)

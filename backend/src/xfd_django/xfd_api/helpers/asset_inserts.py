@@ -41,33 +41,31 @@ def create_or_update_ip(create_defaults, update_dict, linked_sub=None):
             if key == "origin_cidr":
                 if value.id == ip_object.origin_cidr.id:
                     continue
-                elif ip_object.origin_cidr.retired is True:
+                if ip_object.origin_cidr.retired is True:
                     ip_object.origin_cidr = value
                     continue
-                else:
-                    result = find_smaller_cidr(
-                        ip_object.origin_cidr.network, value.network
+
+                result = find_smaller_cidr(ip_object.origin_cidr.network, value.network)
+                if result == "og":
+                    continue
+                if result == "new":
+                    current_alerts = set(ip_object.conflict_alerts)
+                    current_alerts.add(
+                        "IP also associated with larger cidr {cidr}, cidr_id:{id}".format(
+                            cidr=ip_object.origin_cidr.network,
+                            id=ip_object.origin_cidr.id,
+                        )
                     )
-                    if result == "og":
-                        continue
-                    elif result == "new":
-                        current_alerts = set(ip_object.conflict_alerts)
-                        current_alerts.add(
-                            "IP also associated with larger cidr {cidr}, cidr_id:{id}".format(
-                                cidr=ip_object.origin_cidr.network,
-                                id=ip_object.origin_cidr.id,
-                            )
+                    ip_object.conflict_alerts = list(current_alerts)
+                    ip_object.origin_cidr = value
+                else:
+                    current_alerts = set(ip_object.conflict_alerts)
+                    current_alerts.add(
+                        "IP also associated with same sized cidr {cidr}, cidr_id:{id}".format(
+                            cidr=value.network, id=value.id
                         )
-                        ip_object.conflict_alerts = list(current_alerts)
-                        ip_object.origin_cidr = value
-                    else:
-                        current_alerts = set(ip_object.conflict_alerts)
-                        current_alerts.add(
-                            "IP also associated with same sized cidr {cidr}, cidr_id:{id}".format(
-                                cidr=value.network, id=value.id
-                            )
-                        )
-                        ip_object.conflict_alerts = list(current_alerts)
+                    )
+                    ip_object.conflict_alerts = list(current_alerts)
             else:
                 setattr(ip_object, key, value)
         ip_object.save()
