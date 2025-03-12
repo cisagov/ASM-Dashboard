@@ -1,21 +1,13 @@
 import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import classes from './Risk.module.scss';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Grid,
-  Paper,
-  Typography
-} from '@mui/material';
+import { Box, Card, CardContent, Grid, Paper, Typography } from '@mui/material';
 import VulnerabilityCard from './VulnerabilityCard';
 import TopVulnerablePorts from './TopVulnerablePorts';
 import TopVulnerableDomains from './TopVulnerableDomains';
 import VulnerabilityBarChart from './VulnerabilityBarChart';
 import * as RiskStyles from './style';
 import { getSeverityColor, offsets, severities } from './utils';
-import { ContextType, useAuthContext, useFilterDrawerContext } from 'context';
+import { ContextType, useAuthContext } from 'context';
 import { geoCentroid } from 'd3-geo';
 import {
   ComposableMap,
@@ -27,7 +19,6 @@ import {
 } from 'react-simple-maps';
 import { scaleLinear } from 'd3-scale';
 import { Stats, Vulnerability } from 'types';
-import { NoResults } from 'components/NoResults';
 import { UpdateStateForm } from 'components/Register';
 import {
   ORGANIZATION_FILTER_KEY,
@@ -37,7 +28,8 @@ import {
 import { withSearch } from '@elastic/react-search-ui';
 import { FilterTags } from 'pages/Search/FilterTags';
 import { useLocation } from 'react-router-dom';
-import { Stack } from '@mui/system';
+import { useUserTypeFilters } from 'hooks/useUserTypeFilters';
+import { useStaticsContext } from 'context/StaticsContext';
 
 export interface Point {
   id: string;
@@ -53,17 +45,16 @@ interface VulnerabilityCount extends Vulnerability {
   count: number;
 }
 
-// interface RiskProps {
-//   isFilterDrawerOpen: boolean;
-//   setIsFilterDrawerOpen: (isFilterDrawerOpen: boolean) => void;
-// }
-
 export interface VulnSeverities {
   label: string;
   sevList: string[];
   disable?: boolean;
   amount?: number;
 }
+
+const GLOBAL_ADMIN = 3;
+const REGIONAL_ADMIN = 2;
+const STANDARD_USER = 1;
 
 // Color Scale used for map
 let colorScale = scaleLinear<string>()
@@ -73,12 +64,11 @@ let colorScale = scaleLinear<string>()
 const Risk: React.FC<ContextType> = ({
   filters,
   removeFilter,
+  addFilter,
   searchTerm,
   setSearchTerm
 }) => {
   const { showMaps, user, apiPost } = useAuthContext();
-  const { isFilterDrawerOpen, setIsFilterDrawerOpen } =
-    useFilterDrawerContext();
 
   const [stats, setStats] = useState<Stats | undefined>(undefined);
   const [isUpdateStateFormOpen, setIsUpdateStateFormOpen] = useState(false);
@@ -113,6 +103,7 @@ const Risk: React.FC<ContextType> = ({
   }, [filters]);
 
   const { pathname } = useLocation();
+
   const filtersToDisplay = useMemo(() => {
     if (searchTerm !== '') {
       return [
@@ -126,6 +117,26 @@ const Risk: React.FC<ContextType> = ({
     }
     return filters;
   }, [filters, searchTerm, setSearchTerm]);
+
+  const userLevel = useMemo(() => {
+    if (user && user.isRegistered) {
+      if (user.userType === 'standard') {
+        return STANDARD_USER;
+      } else if (user.userType === 'globalAdmin') {
+        return GLOBAL_ADMIN;
+      } else if (
+        user.userType === 'regionalAdmin' ||
+        user.userType === 'globalView'
+      ) {
+        return REGIONAL_ADMIN;
+      }
+      return 0;
+    }
+    return 0;
+  }, [user]);
+
+  const { regions } = useStaticsContext();
+  const initialFiltersForUser = useUserTypeFilters(regions, user, userLevel);
 
   const fetchStats = useCallback(
     async (orgId?: string) => {
@@ -165,7 +176,21 @@ const Risk: React.FC<ContextType> = ({
         removeFilter(filter.field, filter.values[0], filter.type);
       }
     });
-  }, [pathname, removeFilter, filters]);
+    if (filters.length === 0) {
+      initialFiltersForUser.forEach((filter) => {
+        filter.values.forEach((val) => {
+          addFilter(filter.field, val, filter.type);
+        });
+      });
+    }
+  }, [
+    pathname,
+    removeFilter,
+    filters,
+    addFilter,
+    riskFilters,
+    initialFiltersForUser
+  ]);
 
   const MapCard = ({
     title,
@@ -320,7 +345,7 @@ const Risk: React.FC<ContextType> = ({
                 removeFilter={removeFilter}
               />
             </Box>
-            {stats ? (
+            {stats && (
               <Grid container>
                 <Grid item xs={12} sm={12} md={12} lg={6} xl={6} mb={-4}>
                   <div className={content}>
@@ -397,30 +422,6 @@ const Risk: React.FC<ContextType> = ({
                   </div>
                 </Grid>
               </Grid>
-            ) : (
-              <Box
-                display="flex"
-                flex="1"
-                alignItems="center"
-                justifyContent="center"
-                height="100%"
-              >
-                <Stack spacing={2} direction={'column'} alignItems={'center'}>
-                  <NoResults
-                    message={
-                      "We don't see any results that match your criteria."
-                    }
-                  ></NoResults>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    sx={{ width: 'fit-content' }}
-                    onClick={() => setIsFilterDrawerOpen(!isFilterDrawerOpen)}
-                  >
-                    Adjust Filters
-                  </Button>
-                </Stack>
-              </Box>
             )}
           </div>
         </RiskRoot>

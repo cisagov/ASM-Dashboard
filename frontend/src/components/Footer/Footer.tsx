@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Grid, Link, Typography } from '@mui/material';
+import { Link } from 'react-router-dom';
+import { Box, Grid, Link as MuiLink, Typography } from '@mui/material';
 import { useAuthContext } from 'context';
 import logo from '../../assets/cyhydashboard.svg';
 import * as FooterStyles from './styleFooter';
@@ -19,7 +20,7 @@ export const CrossfeedFooter: React.FC = (props) => {
           <Grid className={footerClasses.footerLogo} item xs={12} sm={3}>
             <Stack direction="row" spacing={1}>
               <Link
-                href="/"
+                to="/"
                 aria-label={`CyHy Dashboard version ${versionNumber}`}
               >
                 <img src={logo} alt="CyHy Dashboard Icon Navigate Home" />
@@ -33,7 +34,11 @@ export const CrossfeedFooter: React.FC = (props) => {
           </Grid>
           {user && (
             <Grid className={footerClasses.footerNavItem} item xs={12} sm={2}>
-              <Link className={footerClasses.footerNavLink} href="/">
+              <Link
+                className={footerClasses.footerNavLink}
+                to="/"
+                style={{ textDecoration: 'none' }}
+              >
                 Home
               </Link>
             </Grid>
@@ -51,24 +56,24 @@ export const CrossfeedFooter: React.FC = (props) => {
           </Grid> */}
           <Grid className={footerClasses.footerNavItem} item xs={12} sm={2}>
             <p>
-              <Link
+              <MuiLink
                 className={footerClasses.footerNavLink}
                 href="https://www.cisa.gov"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 CISA Homepage
-              </Link>
+              </MuiLink>
             </p>
           </Grid>
           <Grid className={footerClasses.footerNavItem} item xs={12} sm={2}>
             <p>
-              <Link
+              <MuiLink
                 className={footerClasses.footerNavLink}
                 href="mailto:vulnerability@cisa.dhs.gov"
               >
                 Contact Us
-              </Link>
+              </MuiLink>
             </p>
           </Grid>
           {user && (
@@ -76,8 +81,9 @@ export const CrossfeedFooter: React.FC = (props) => {
               <p>
                 <Link
                   className={footerClasses.footerNavLink}
-                  href="/"
+                  to="/"
                   onClick={logout}
+                  style={{ textDecoration: 'none' }}
                 >
                   Logout
                 </Link>
