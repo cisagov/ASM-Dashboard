@@ -15,6 +15,8 @@ from xfd_mini_dl.models import (
     CredentialExposures,
     DataSource,
     Organization,
+    RootDomains,
+    SubDomains,
 )
 
 # Django setup
@@ -227,12 +229,14 @@ def save_findings_to_db(cred_exposures_array, cred_breaches_array, org):
     if cred_exposures_array:
         for exposure in cred_exposures_array:
             try:
+                root_domain, created = RootDomains.objects.get_or_create()
+                sub_domain, created = SubDomains.objects.get_or_create()
                 CredentialExposures.objects.update_or_create(
                     breach_name=exposure.get("breach_name"),
                     email=exposure.get("email"),
                     defaults={
                         "root_domain": exposure.get("root_domain"),
-                        "sub_domain": exposure.get("sub_domain"),
+                        "sub_domain_string": exposure.get("sub_domain"),
                         "modified_date": exposure.get("modified_date"),
                         "name": exposure.get("name"),
                         "login_id": exposure.get("login_id"),
@@ -245,6 +249,7 @@ def save_findings_to_db(cred_exposures_array, cred_breaches_array, org):
                         "data_source": data_source_dict[
                             exposure.get("data_source_name", "unknown")
                         ],
+                        "sub_domain": sub_domain,
                     },
                 )
             except Exception as e:

@@ -6,6 +6,7 @@ data synchronization by interfacing with the data lake and database models.
 """
 
 # Standard Python Libraries
+import datetime
 from typing import Dict
 from uuid import uuid4
 
@@ -15,6 +16,7 @@ from django.db.models import Exists, OuterRef, Prefetch
 from django.db.utils import IntegrityError
 from xfd_mini_dl.models import (
     Cidr,
+    CidrOrgs,
     Cve,
     Host,
     Ip,
@@ -492,16 +494,27 @@ def save_cidr_to_mdl(cidr_dict: dict, org: Organization, db_name="mini_data_lake
             if cidr_obj:
                 cidr_obj.start_ip = cidr_dict["start_ip"]
                 cidr_obj.end_ip = cidr_dict["end_ip"]
+                cidr_obj.retired = False
                 cidr_obj.save(using=db_name)  # Save updates
+
             else:
                 cidr_obj = Cidr.objects.using(db_name).create(
                     id=str(uuid4()),
                     network=cidr_dict["network"],
                     start_ip=cidr_dict["start_ip"],
                     end_ip=cidr_dict["end_ip"],
+                    retired=False,
                 )
-            cidr_obj.organizations.add(org, through_defaults={})
+            # cidr_obj.organizations.add(org, through_defaults={})
             cidr_obj.save(using=db_name)
+            CidrOrgs.objects.update_or_create(
+                organization=org,
+                cidr=cidr_obj,
+                defaults={
+                    "last_seen": datetime.datetime.today().date(),
+                    "current": True,
+                },
+            )
     except IntegrityError as e:
         print("IntegrityError:", e)
     except Exception as e:
