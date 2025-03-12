@@ -6,9 +6,9 @@ data synchronization by interfacing with the data lake and database models.
 """
 
 # Standard Python Libraries
+import datetime
 from typing import Dict
 from uuid import uuid4
-import datetime
 
 # Third-Party Libraries
 from django.db import transaction
@@ -503,7 +503,7 @@ def save_cidr_to_mdl(cidr_dict: dict, org: Organization, db_name="mini_data_lake
                     network=cidr_dict["network"],
                     start_ip=cidr_dict["start_ip"],
                     end_ip=cidr_dict["end_ip"],
-                    retired=False
+                    retired=False,
                 )
             # cidr_obj.organizations.add(org, through_defaults={})
             cidr_obj.save(using=db_name)
@@ -511,9 +511,9 @@ def save_cidr_to_mdl(cidr_dict: dict, org: Organization, db_name="mini_data_lake
                 organization=org,
                 cidr=cidr_obj,
                 defaults={
-                    "last_seen":datetime.datetime.today().date(),
-                    "current":True
-                }
+                    "last_seen": datetime.datetime.today().date(),
+                    "current": True,
+                },
             )
     except IntegrityError as e:
         print("IntegrityError:", e)

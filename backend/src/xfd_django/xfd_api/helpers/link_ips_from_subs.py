@@ -1,40 +1,31 @@
 """Link sub-domains and IPs from sub-domain lookups."""
 # Standard Python Libraries
 import datetime
-import hashlib
 import logging
 import socket
 
-from django.utils import timezone
-
-from xfd_mini_dl.models import DataSource, SubDomains, Ip, IpsSubs
+# Third-Party Libraries
 from xfd_api.helpers.asset_inserts import create_or_update_ip
-
+from xfd_mini_dl.models import SubDomains
 
 LOGGER = logging.getLogger(__name__)
 DATE = datetime.datetime.now(datetime.timezone.utc)
 
-whois_datasource, created = DataSource.objects.get_or_create(
-    name="WhoisXML",
-    defaults={
-        "description": "Enterprise Grade solution to search for and monitor domain data.",
-        "last_run": timezone.now().date(),  # Sets the current date and time
-    },
-)
 
 def get_ips_and_type(subdomain):
+    """Get Ips associated with a provided sub-domain."""
     # Initialize an empty list to store results
     ip_info = []
 
     try:
         # Get address information for the subdomain
         results = socket.getaddrinfo(subdomain, None)
-        
+
         # Iterate over the results and classify each IP
         for result in results:
             family, socktype, proto, canonname, sockaddr = result
             ip_address = sockaddr[0]
-            
+
             # Check if the address family is AF_INET (IPv4) or AF_INET6 (IPv6)
             if family == socket.AF_INET:
                 ip_type = "IPv4"
@@ -47,7 +38,11 @@ def get_ips_and_type(subdomain):
             ip_info.append((ip_address, ip_type))
 
     except socket.gaierror as e:
-        LOGGER.warning(f"Error resolving the subdomain {subdomain}: {e}")
+        LOGGER.warning(
+            "Error resolving the subdomain {sub}: {error}".format(
+                sub=subdomain, error=e
+            )
+        )
 
     return ip_info
 
@@ -60,56 +55,27 @@ def link_ip_from_domain(sub, org):
     for ip, ip_type in ips:
         create_or_update_ip(
             {
-                'ip':str(ip),
-                'organization': org,
-                'ip_version': ip_type,
-                'last_seen_timestamp':datetime.datetime.now(datetime.timezone.utc),
-                'current': True,
-                'from_cidr': False,
+                "ip": str(ip),
+                "organization": org,
+                "ip_version": ip_type,
+                "last_seen_timestamp": datetime.datetime.now(datetime.timezone.utc),
+                "current": True,
+                "from_cidr": False,
             },
             {
-                "last_seen_timestamp":datetime.datetime.now(datetime.timezone.utc),
-                'current': True,
+                "last_seen_timestamp": datetime.datetime.now(datetime.timezone.utc),
+                "current": True,
             },
-            sub
+            sub,
         )
 
-            
     return 1
 
-# def save_ip_and_link_to_subdomain(ip, sub_domain):
-#     """Save an IP and link to Subdomains"""
-#     ip_object, created = Ip.objects.get_or_create(
-#         ip_hash=hashlib.sha256(str(ip).encode("utf-8")).hexdigest(),
-#         defaults={
-#             'ip':str(ip),
-#             'last_seen_timestamp':datetime.datetime.now(datetime.timezone.utc),
-#             'current': True,
-#             'from_cidr': False,
-#         }
-#     )
-#     if not created:
-#         ip_object.last_seen_timestamp = datetime.datetime.now(datetime.timezone.utc)
-#         ip_object.current = True
-#         ip_object.save()
-    
 
-#     IpsSubs.objects.update_or_create(
-#         ip = ip_object,
-#         sub_domain = sub_domain,
-#         defaults = {
-#             "last_seen":datetime.datetime.now(datetime.timezone.utc),
-#             "current":True,
-#         }
-#     )
-            
-    
-
-
-def connect_ips_from_subs(orgs_list = []):
+def connect_ips_from_subs(orgs_list=[]):
     """For each org, find all ips associated with its sub_domains and link them in the ips_subs table."""
     # Get P&E organizations DataFram
-    LOGGER.info('Linking Ips from subdomains')
+    LOGGER.info("Linking Ips from subdomains")
     num_orgs = len(orgs_list)
 
     # Loop through orgs

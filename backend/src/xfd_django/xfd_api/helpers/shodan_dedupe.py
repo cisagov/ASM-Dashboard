@@ -1,19 +1,20 @@
 #!/usr/bin/env python
 """Shodan dedupe script."""
 # Standard Python Libraries
+import datetime
 import hashlib
 import logging
-import time
 import os
-import datetime
+import time
 
 # Third-Party Libraries
 import shodan
 
-API_KEY = os.getenv('SHODAN_API_KEY')
+API_KEY = os.getenv("SHODAN_API_KEY")
 
-from xfd_mini_dl.models import Organization, Cidr, Ip
+# Third-Party Libraries
 from xfd_api.helpers.asset_inserts import create_or_update_ip
+from xfd_mini_dl.models import Cidr, Ip, Organization
 
 LOGGER = logging.getLogger(__name__)
 
@@ -137,6 +138,7 @@ def state_check(host_org):
                 return state
     return found
 
+
 def connect_to_shodan():
     """Create shodan connection."""
     try:
@@ -146,52 +148,49 @@ def connect_to_shodan():
         return api
     except Exception:
         LOGGER.error("Invalid Shodan API key")
-        
+
 
 def cidr_dedupe(cidrs, api, org):
     """Dedupe CIDR."""
     ip_obj = []
     results = []
     for cidr in cidrs:
-        query = f"net:{cidr.network}"
+        query = "net:{cidr}".format(cidr=cidr.network)
         result = search(api, query, ip_obj, cidr, org.type)
         if result:
             results.append(result)
     found = len([i for i in results if i != 0])
-    LOGGER.warning(f"CIDRs with IPs found: {found}")
-    
+    LOGGER.warning("CIDRs with IPs found: {found}".format(found=found))
+
     if len(ip_obj) > 0:
         update_shodan_ips(ip_obj, org)
+
 
 def update_shodan_ips(ip_list, org):
     """Update if an IP is a shodan IP."""
     ip_set = set()
     for ip in ip_list:
         try:
-            if ip.get('ip') not in ip_set:
-                ip_set.add(ip.get('ip'))
+            if ip.get("ip") not in ip_set:
+                ip_set.add(ip.get("ip"))
                 create_default = {
-                    'ip':ip.get('ip'),
-                    'organization': org,
-                    'origin_cidr':ip.get('origin_cidr'),
+                    "ip": ip.get("ip"),
+                    "organization": org,
+                    "origin_cidr": ip.get("origin_cidr"),
                     "has_shodan_results": True,
                     "current": True,
-                    "from_cidr":True if ip.get('origin_cidr') else False,
-                    "last_seen_timestamp":datetime.datetime.now(datetime.timezone.utc)
+                    "from_cidr": True if ip.get("origin_cidr") else False,
+                    "last_seen_timestamp": datetime.datetime.now(datetime.timezone.utc),
                 }
                 update_default = {
-                    "has_shodan_results":True,
-                    "current":True,
-                    "last_seen_timestamp":datetime.datetime.now(datetime.timezone.utc)
+                    "has_shodan_results": True,
+                    "current": True,
+                    "last_seen_timestamp": datetime.datetime.now(datetime.timezone.utc),
                 }
-                if ip.get('origin_cidr'):
-                    update_default['origin_cidr'] = ip.get('origin_cidr')
-                    update_default['from_cidr'] = True
-                create_or_update_ip(
-                    create_default, 
-                    update_default,
-                    linked_sub=None
-                )
+                if ip.get("origin_cidr"):
+                    update_default["origin_cidr"] = ip.get("origin_cidr")
+                    update_default["from_cidr"] = True
+                create_or_update_ip(create_default, update_default, linked_sub=None)
                 # ip_obj, created = Ip.objects.get_or_create(
                 #     ip_hash=ip.get('ip_hash'),
                 #     defaults={
@@ -212,7 +211,7 @@ def update_shodan_ips(ip_list, org):
                 #         ip_obj.from_cidr=True
                 #     ip_obj.save()
         except Exception as e:
-            LOGGER.warning('Error saving the IP to the db: {error}'.format(error=e))
+            LOGGER.warning("Error saving the IP to the db: {error}".format(error=e))
 
 
 def ip_dedupe(api, ips, org):
@@ -230,7 +229,7 @@ def ip_dedupe(api, ips, org):
                     time.sleep(2)
                     hosts = api.host(ips[i * 100 : len(ips)])
                 except Exception:
-                    LOGGER.error(f"{i} failed again")
+                    LOGGER.error("{i} failed again".format(i=i))
                     continue
             except shodan.APIError as e:
                 LOGGER.error("Error: {}".format(e))
@@ -242,7 +241,7 @@ def ip_dedupe(api, ips, org):
                 try:
                     hosts = api.host(ips[i * 100 : (i + 1) * 100])
                 except shodan.APIError as err:
-                    LOGGER.error(f"Error: {err}")
+                    LOGGER.error("Error: {err}".format(err=err))
                     continue
         if isinstance(hosts, list):
             for h in hosts:
@@ -355,17 +354,16 @@ def search(api, query, ip_obj, cidr, org_type):
     except shodan.APIError as e:
         LOGGER.error("Error: {}".format(e))
         # IF it breaks to here it fails
-        LOGGER.error(f"Failed on {query}")
+        LOGGER.error("Failed on {query}".format(query=query))
         return 0
     return results["total"]
 
 
 def dedupe(orgs_obj_list=None):
     """Check list of IPs, CIDRs, ASNS, and FQDNs in Shodan and output set of IPs."""
-
     # Get P&E organizations DataFrame
     if not orgs_obj_list:
-        orgs_to_sync = Organization.objects.all()
+        orgs_obj_list = Organization.objects.all()
     num_orgs = len(orgs_obj_list)
     api = connect_to_shodan()
     # Loop through orgs
@@ -380,20 +378,24 @@ def dedupe(orgs_obj_list=None):
         )
         # Query CIDRS
         cidrs = Cidr.objects.filter(cidrorgs__organization=org, cidrorgs__current=True)
-        LOGGER.info(f"{len(cidrs)} CIDRs found")
+        LOGGER.info("{num} CIDRs found".format(num=len(cidrs)))
         # Run cidr dedupe if there are CIDRs
         if len(cidrs) > 0:
             cidr_dedupe(cidrs, api, org)
 
         # Get IPs related to current sub-domains
         LOGGER.info("Retrieving floating IPs")
-        ips = Ip.objects.filter(
-            origin_cidr__isnull=True,          # No origin_cidr linked
-            current=True,                      # Ip must be marked as current
-            sub_domains__current=True,       # The related subdomains must be current
-            sub_domains__organization=org,
-            ipssubs__current=True             # The linking table IpsSubs must have current=True
-        ).distinct().values_list('ip', flat=True)
+        ips = (
+            Ip.objects.filter(
+                origin_cidr__isnull=True,  # No origin_cidr linked
+                current=True,  # Ip must be marked as current
+                sub_domains__current=True,  # The related subdomains must be current
+                sub_domains__organization=org,
+                ipssubs__current=True,  # The linking table IpsSubs must have current=True
+            )
+            .distinct()
+            .values_list("ip", flat=True)
+        )
         LOGGER.info("Floating IPs retrieved")
         if len(ips) > 0:
             LOGGER.info("Running dedupe on IPs")

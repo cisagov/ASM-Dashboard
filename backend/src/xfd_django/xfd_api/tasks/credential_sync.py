@@ -16,7 +16,7 @@ from xfd_mini_dl.models import (
     DataSource,
     Organization,
     RootDomains,
-    SubDomains
+    SubDomains,
 )
 
 # Django setup
@@ -249,7 +249,7 @@ def save_findings_to_db(cred_exposures_array, cred_breaches_array, org):
                         "data_source": data_source_dict[
                             exposure.get("data_source_name", "unknown")
                         ],
-                        "sub_domain": sub_domain
+                        "sub_domain": sub_domain,
                     },
                 )
             except Exception as e:
