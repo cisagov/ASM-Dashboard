@@ -1,6 +1,6 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Box, Grid, Link as MuiLink, Typography } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
+import { Box, Grid, Link, Typography } from '@mui/material';
 import { useAuthContext } from 'context';
 import logo from '../../assets/cyhydashboard.svg';
 import * as FooterStyles from './styleFooter';
@@ -22,6 +22,7 @@ export const CrossfeedFooter: React.FC = (props) => {
               <Link
                 to="/"
                 aria-label={`CyHy Dashboard version ${versionNumber}`}
+                component={RouterLink}
               >
                 <img src={logo} alt="CyHy Dashboard Icon Navigate Home" />
               </Link>
@@ -37,7 +38,7 @@ export const CrossfeedFooter: React.FC = (props) => {
               <Link
                 className={footerClasses.footerNavLink}
                 to="/"
-                style={{ textDecoration: 'none' }}
+                component={RouterLink}
               >
                 Home
               </Link>
@@ -56,24 +57,24 @@ export const CrossfeedFooter: React.FC = (props) => {
           </Grid> */}
           <Grid className={footerClasses.footerNavItem} item xs={12} sm={2}>
             <p>
-              <MuiLink
+              <Link
                 className={footerClasses.footerNavLink}
                 href="https://www.cisa.gov"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 CISA Homepage
-              </MuiLink>
+              </Link>
             </p>
           </Grid>
           <Grid className={footerClasses.footerNavItem} item xs={12} sm={2}>
             <p>
-              <MuiLink
+              <Link
                 className={footerClasses.footerNavLink}
                 href="mailto:vulnerability@cisa.dhs.gov"
               >
                 Contact Us
-              </MuiLink>
+              </Link>
             </p>
           </Grid>
           {user && (
@@ -83,7 +84,7 @@ export const CrossfeedFooter: React.FC = (props) => {
                   className={footerClasses.footerNavLink}
                   to="/"
                   onClick={logout}
-                  style={{ textDecoration: 'none' }}
+                  component={RouterLink}
                 >
                   Logout
                 </Link>

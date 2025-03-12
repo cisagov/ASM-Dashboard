@@ -298,6 +298,7 @@ exports[`Layout component matches snapshot 1`] = `
                   >
                     <a
                       aria-label="CyHy Dashboard version 0.3.16"
+                      class="MuiTypography-root MuiTypography-inherit MuiLink-root MuiLink-underlineAlways css-smdm7r-MuiTypography-root-MuiLink-root"
                       href="/"
                     >
                       <img
@@ -317,9 +318,8 @@ exports[`Layout component matches snapshot 1`] = `
                   class="MuiGrid-root MuiGrid-item MuiGrid-grid-xs-12 MuiGrid-grid-sm-2 Footer-footerNavItem css-2shs9e-MuiGrid-root"
                 >
                   <a
-                    class="Footer-footerNavLink"
+                    class="MuiTypography-root MuiTypography-inherit MuiLink-root MuiLink-underlineAlways Footer-footerNavLink css-smdm7r-MuiTypography-root-MuiLink-root"
                     href="/"
-                    style="text-decoration: none;"
                   >
                     Home
                   </a>
@@ -355,9 +355,8 @@ exports[`Layout component matches snapshot 1`] = `
                 >
                   <p>
                     <a
-                      class="Footer-footerNavLink"
+                      class="MuiTypography-root MuiTypography-inherit MuiLink-root MuiLink-underlineAlways Footer-footerNavLink css-smdm7r-MuiTypography-root-MuiLink-root"
                       href="/"
-                      style="text-decoration: none;"
                     >
                       Logout
                     </a>
