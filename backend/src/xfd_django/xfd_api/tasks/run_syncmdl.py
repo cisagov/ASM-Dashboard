@@ -18,6 +18,10 @@ def handler(event, context):
     """Trigger syncmdl."""
     dangerouslyforce = event.get("dangerouslyforce", False)
 
+    # Ensure values are strictly boolean (prevents injection risks)
+    if not isinstance(dangerouslyforce, bool):
+        return {"statusCode": 400, "body": "Invalid input. Parameters must be boolean."}
+
     try:
         call_command("syncmdl", dangerouslyforce=dangerouslyforce)
         return {
