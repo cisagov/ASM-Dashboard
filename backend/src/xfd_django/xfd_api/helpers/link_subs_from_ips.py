@@ -111,8 +111,13 @@ def search_whois_for_domains(ip, failed_ips):
     response = response.json()
     try:
         # If there is a response, save domain
+        domains = []
         if response["size"] > 0:
-            return response["result"], failed_ips
+            fifteen_days_back = time.time() - (15 * 24 * 60 * 60)
+            for domain in response["result"]:
+                if domain["last_visit"] >= fifteen_days_back:
+                    domains.append(domain["name"])
+            return domains, failed_ips
         else:
             return [], failed_ips
     except Exception as e:
@@ -177,7 +182,7 @@ def save_and_link_ip_and_subdomain(ip, cidr, org, domains):
     for domain in domains:
         try:
             root_domain, created = SubDomains.objects.get_or_create(
-                sub_domain=".".join(domain["name"].rsplit(".")[-2:]),
+                sub_domain=".".join(domain.rsplit(".")[-2:]),
                 organization=org,
                 defaults={
                     "data_source": whois_datasource,
@@ -195,9 +200,9 @@ def save_and_link_ip_and_subdomain(ip, cidr, org, domains):
                 root_domain.current = True
                 root_domain.save()
 
-            if domain["name"] != root_domain.sub_domain:
+            if domain != root_domain.sub_domain:
                 sub_domain, created = SubDomains.objects.get_or_create(
-                    sub_domain=domain["name"],
+                    sub_domain=domain,
                     organization=org,
                     defaults={
                         "data_source": whois_datasource,

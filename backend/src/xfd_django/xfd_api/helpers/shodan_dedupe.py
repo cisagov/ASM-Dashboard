@@ -272,8 +272,7 @@ def search(api, query, ip_obj, cidr, org_type):
         except shodan.exception.APIError:
             time.sleep(2)
             results = api.search(query)
-        # Show the results
-        LOGGER.warning(results)
+
         for result in results["matches"]:
             # if ":" in result["ip_str"]:
             #     print("ipv6 found ", result["ip_str"])
@@ -351,7 +350,7 @@ def dedupe(orgs_obj_list=None):
     for org in orgs_obj_list:
         # Connect to database
         LOGGER.info(
-            "Running on %s, %d/%d",
+            "Running Shodan dedupe on %s, %d/%d",
             org.acronym,
             org_count,
             num_orgs,
