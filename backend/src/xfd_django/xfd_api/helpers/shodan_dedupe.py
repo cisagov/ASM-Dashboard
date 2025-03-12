@@ -180,7 +180,7 @@ def update_shodan_ips(ip_list, org):
                     "origin_cidr": ip.get("origin_cidr"),
                     "has_shodan_results": True,
                     "current": True,
-                    "from_cidr": True if ip.get("origin_cidr") else False,
+                    "from_cidr": bool(ip.get("origin_cidr")),
                     "last_seen_timestamp": datetime.datetime.now(datetime.timezone.utc),
                 }
                 update_default = {
@@ -214,8 +214,6 @@ def ip_dedupe(api, ips, org):
                 except Exception:
                     LOGGER.error("%s failed again", i)
                     continue
-            except shodan.APIError as e:
-                LOGGER.error("Error: %s", e)
         else:
             try:
                 hosts = api.host(ips[i * 100 : (i + 1) * 100])
@@ -233,32 +231,32 @@ def ip_dedupe(api, ips, org):
                 ip_hash = hash_object.hexdigest()
                 if state and org.type == "FEDERAL":
                     continue
-                else:
-                    float_ips.append(
-                        {
-                            "ip_hash": ip_hash,
-                            "ip": h["ip_str"],
-                            "shodan_results": True,
-                            "origin_cidr": None,
-                            "current": True,
-                        }
-                    )
+
+                float_ips.append(
+                    {
+                        "ip_hash": ip_hash,
+                        "ip": h["ip_str"],
+                        "shodan_results": True,
+                        "origin_cidr": None,
+                        "current": True,
+                    }
+                )
         else:
             state = state_check(hosts["org"])
             hash_object = hashlib.sha256(str(hosts["ip_str"]).encode("utf-8"))
             ip_hash = hash_object.hexdigest()
             if state and org.type == "FEDERAL":
                 continue
-            else:
-                float_ips.append(
-                    {
-                        "ip_hash": ip_hash,
-                        "ip": hosts["ip_str"],
-                        "shodan_results": True,
-                        "origin_cidr": None,
-                        "current": True,
-                    }
-                )
+
+            float_ips.append(
+                {
+                    "ip_hash": ip_hash,
+                    "ip": hosts["ip_str"],
+                    "shodan_results": True,
+                    "origin_cidr": None,
+                    "current": True,
+                }
+            )
         matched = matched + len(hosts)
     if len(float_ips) > 0:
         update_shodan_ips(float_ips, org)
@@ -287,16 +285,16 @@ def search(api, query, ip_obj, cidr, org_type):
             ip_hash = hash_object.hexdigest()
             if state and org_type == "FEDERAL":
                 continue
-            else:
-                ip_obj.append(
-                    {
-                        "ip_hash": ip_hash,
-                        "ip": result["ip_str"],
-                        "shodan_results": True,
-                        "origin_cidr": cidr,
-                        "current": True,
-                    }
-                )
+
+            ip_obj.append(
+                {
+                    "ip_hash": ip_hash,
+                    "ip": result["ip_str"],
+                    "shodan_results": True,
+                    "origin_cidr": cidr,
+                    "current": True,
+                }
+            )
         i = 1
         while i < results["total"] / 100:
             try:
@@ -318,16 +316,16 @@ def search(api, query, ip_obj, cidr, org_type):
                     ip_hash = hash_object.hexdigest()
                     if state and org_type == "FEDERAL":
                         continue
-                    else:
-                        ip_obj.append(
-                            {
-                                "ip_hash": ip_hash,
-                                "ip": result["ip_str"],
-                                "shodan_results": True,
-                                "origin_cidr": cidr,
-                                "current": True,
-                            }
-                        )
+
+                    ip_obj.append(
+                        {
+                            "ip_hash": ip_hash,
+                            "ip": result["ip_str"],
+                            "shodan_results": True,
+                            "origin_cidr": cidr,
+                            "current": True,
+                        }
+                    )
                 i = i + 1
             except shodan.APIError as e:
                 LOGGER.error("Error: %s", e)
