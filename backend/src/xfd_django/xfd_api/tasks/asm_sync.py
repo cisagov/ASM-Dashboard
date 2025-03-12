@@ -64,6 +64,12 @@ def main(event):
         flag_cidr_changes()
 
         # Query orgs to run on
+        # org_ids = event.get("organizationIds", [])
+        # if org_ids:
+        #     orgs_to_sync = Organization.objects.filter(id__in=org_ids)
+        # else:
+        #     orgs_to_sync = Organization.objects.all()
+
         # orgs_to_sync = Organization.objects.all()
         orgs_to_sync = Organization.objects.filter(acronym__in=["USAGM", "DHS"])
         # orgs_to_sync = Organization.objects.filter(acronym__in=event.organization.id)
@@ -93,7 +99,9 @@ def flag_asset_changes():
         days=15
     )
 
-    SubDomains.objects.filter(Q(last_seen__lt=cutoff_date)).update(current=False)
+    SubDomains.objects.filter(Q(last_seen__lt=cutoff_date)).exclude(
+        Q(is_root_domain=True) & Q(identified=False)
+    ).update(current=False)
 
     IpsSubs.objects.filter(last_seen__lt=cutoff_date).update(current=False)
 
