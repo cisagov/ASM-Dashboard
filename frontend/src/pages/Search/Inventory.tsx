@@ -21,6 +21,9 @@ import { FilterTags } from './FilterTags';
 import { NoResults } from 'components/NoResults';
 import { exportCSV } from 'components/ImportExport';
 import { SaveSearchModal } from 'components/SaveSearchModal/SaveSearchModal';
+import { useStaticsContext } from 'context/StaticsContext';
+import { useUserLevel } from 'hooks/useUserLevel';
+import { useUserTypeFilters } from 'hooks/useUserTypeFilters';
 
 export const DashboardUI: React.FC<ContextType & { location: any }> = (
   props
@@ -31,6 +34,7 @@ export const DashboardUI: React.FC<ContextType & { location: any }> = (
     resultsPerPage,
     setResultsPerPage,
     filters,
+    addFilter,
     removeFilter,
     results,
     sortDirection,
@@ -45,8 +49,13 @@ export const DashboardUI: React.FC<ContextType & { location: any }> = (
 
   const [selectedDomain, setSelectedDomain] = useState('');
   const [resultsScrolled] = useState(false);
-  const { apiPost, setLoading, showAllOrganizations, currentOrganization } =
-    useAuthContext();
+  const {
+    apiPost,
+    setLoading,
+    showAllOrganizations,
+    currentOrganization,
+    user
+  } = useAuthContext();
 
   const advanceFiltersReq = filters.length > 1 || searchTerm !== ''; //Prevents a user from saving a search without advanced filters
 
@@ -88,6 +97,11 @@ export const DashboardUI: React.FC<ContextType & { location: any }> = (
     }
     return filters;
   }, [filters, searchTerm, setSearchTerm]);
+
+  const userLevel = useUserLevel().userLevel;
+
+  const { regions } = useStaticsContext();
+  const initialFiltersForUser = useUserTypeFilters(regions, user, userLevel);
 
   return (
     <Root className={classes.root}>
@@ -155,9 +169,26 @@ export const DashboardUI: React.FC<ContextType & { location: any }> = (
                 justifyContent="center"
                 height="100%"
               >
-                <NoResults
-                  message={"We don't see any results that match your criteria."}
-                ></NoResults>
+                <Stack spacing={2} alignItems="center" direction={'column'}>
+                  <NoResults
+                    message={
+                      "We don't see any results that match your criteria."
+                    }
+                  ></NoResults>
+                  <Button
+                    variant="contained"
+                    onClick={() =>
+                      initialFiltersForUser.forEach((filter) => {
+                        filter.values.forEach((value) => {
+                          addFilter(filter.field, value, filter.type);
+                        });
+                      })
+                    }
+                  >
+                    {' '}
+                    Reset Filters
+                  </Button>
+                </Stack>
               </Box>
             ) : (
               results.map((result) => (
