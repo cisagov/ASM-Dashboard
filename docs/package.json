@@ -4,8 +4,7 @@
     "clipboardy": "^3.0.0",
     "cross-spawn": "^7.0.6",
     "nanoid": "^5.0.9",
-    "resolve-url-loader": "^5.0.0",
-    "swagger-jsdoc": "^5.0.1"
+    "resolve-url-loader": "^5.0.0"
   },
   "description": "Crossfeed Documentation",
   "devDependencies": {
@@ -43,7 +42,6 @@
     "react-helmet": "^6.1.0",
     "rimraf": "^3.0.2",
     "sass": "^1.61.0",
-    "swagger-ui-react": "^5.20.1",
     "uswds": "^2.13.3"
   },
   "engineStrict": true,
@@ -73,11 +71,9 @@
   "scripts": {
     "build": "gatsby build",
     "clean": "rimraf .cache public _site",
-    "codegen": "swagger-jsdoc -d ./src/swaggerDef.js -o ./src/generated/swagger.json",
     "develop": "gatsby develop",
     "format": "prettier --write \"**/*.{js,jsx,json,md}\"",
     "lint": "prettier --check \"**/*.{js,jsx,json,md}\"",
-    "postinstall": "npm run codegen",
     "reset": "npx rimraf .git",
     "serve": "gatsby serve",
     "start": "npm run develop"
