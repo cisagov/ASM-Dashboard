@@ -16,6 +16,10 @@ from uuid import uuid4
 from django.db import transaction
 from django.db.models import Exists, OuterRef, Prefetch
 from django.db.utils import IntegrityError
+from xfd_api.models import Domain as XFDDomain
+from xfd_api.models import Organization as XFDOrganization
+from xfd_api.models import Service as XFDService
+from xfd_api.models import Vulnerability as XFDVulnerability
 from xfd_mini_dl.models import (
     Cidr,
     CidrOrgs,
@@ -244,9 +248,6 @@ def save_ip_to_datalake(ip_obj):
     """
     ip_address = ip_obj.get("ip")
     organization = ip_obj.get("organization")
-
-    print(f"Starting to save IP to datalake: {ip_address}")
-    print(organization["id"])
 
     # Determine fields to update
     ip_updated_values = [
@@ -563,3 +564,70 @@ def load_test_data(data_set: str) -> list:
 
     with open(expanded_path, encoding="utf-8") as file:
         return json.load(file)
+
+
+def map_severity(severity):
+    """Map a severity score to a severity level."""
+    if severity == 0 or severity is None:
+        return "None"
+    if severity < 4:
+        return "Low"
+    if severity < 7:
+        return "Medium"
+    if severity < 9:
+        return "High"
+    return "Critical"
+
+
+def save_vuln_scan_to_xfd_db(vuln):
+    """Save a vulnerability scan record to the XFD database."""
+    owner_acronym = vuln.get("owner")
+    vuln_title = vuln.get("cve") if vuln.get("cve") else vuln.get("description")
+    xfd_org_record = None
+    xfd_domain_record = None
+    try:
+        # Fetch the organization record from the XFD database
+        xfd_org_record = XFDOrganization.objects.get(acronym=owner_acronym)
+    except XFDOrganization.DoesNotExist:
+        # If the organization record does not exist, stop execution
+        return
+    try:
+        xfd_domain_record = XFDDomain.objects.get(
+            name=vuln.get("ip"), organization=xfd_org_record
+        )
+    except XFDDomain.DoesNotExist:
+        xfd_domain_record = XFDDomain.objects.create(
+            ip=vuln.get("ip"),
+            ipOnly=True,
+            name=vuln.get("ip"),
+            organization=xfd_org_record,
+        )
+        print(f"Created domain: {xfd_domain_record} for organization: {xfd_org_record}")
+    try:
+        xfd_service_record = XFDService.objects.get(
+            domain=xfd_domain_record, port=vuln.get("port")
+        )
+    except XFDService.DoesNotExist:
+        xfd_service_record = XFDService.objects.create(
+            createdAt=datetime.datetime.now(datetime.timezone.utc),
+            updatedAt=datetime.datetime.now(datetime.timezone.utc),
+            domain=xfd_domain_record,
+            port=vuln.get("port"),
+            service=vuln.get("service"),
+        )
+    try:
+        XFDVulnerability.objects.get(domain=xfd_domain_record, title=vuln_title)
+    except XFDVulnerability.DoesNotExist:
+        XFDVulnerability.objects.update_or_create(
+            title=vuln_title,  # Fields to match an existing record
+            domain=xfd_domain_record,  # Fields to match an existing record
+            defaults={  # Fields to update or insert if the record doesn't exist
+                "description": vuln.get("description"),
+                "createdAt": datetime.datetime.now(datetime.timezone.utc),
+                "updatedAt": datetime.datetime.now(datetime.timezone.utc),
+                "severity": map_severity(vuln.get("severity")),
+                "cvss": vuln.get("cvss3_base_score"),
+                "source": vuln.get("source"),
+                "service": xfd_service_record,
+            },
+        )

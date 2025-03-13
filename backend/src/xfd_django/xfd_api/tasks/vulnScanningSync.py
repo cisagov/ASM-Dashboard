@@ -27,6 +27,7 @@ from xfd_api.utils.scan_utils.vuln_scanning_sync_utils import (
     save_port_scan_to_datalake,
     save_ticket_to_datalake,
     save_vuln_scan,
+    save_vuln_scan_to_xfd_db,
 )
 from xfd_mini_dl.models import Organization, Sector
 
@@ -76,13 +77,8 @@ def query_redshift(query, params=None):
 def main():
     """Execute the vulnerability scanning synchronization task."""
     print("Starting VS Sync scan")
-
-    # Load request data
     request_list = fetch_from_redshift("SELECT * FROM vmtableau.requests;")
-
-    org_id_dict = process_orgs(request_list)
-
-    # Process Organizations & Relations
+    org_id_dict = process_orgs(request_list[:10])
     process_organizations_and_relations()
 
     # Process Vulnerability Scans
@@ -118,6 +114,8 @@ def main():
 
 def detect_data_set(query):
     """Detect the data set from the query."""
+    if "requests" in query:
+        return "requests"
     if "vulns_scans" in query:
         return "vuln_scan"
     if "hosts" in query:
@@ -222,6 +220,8 @@ def process_vulnerability_scans(vuln_scans, org_id_dict):
             save_vuln_scan(vuln_scan_dict)
         except Exception as e:
             print(f"Error processing vulnerability scan: {e}")
+    for vuln in vuln_scans:
+        save_vuln_scan_to_xfd_db(vuln)
 
 
 def build_vuln_scan_dict(vuln, owner_id, ip_id, cve_id):
