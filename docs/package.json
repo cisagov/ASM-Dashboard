@@ -5,7 +5,7 @@
     "cross-spawn": "^7.0.6",
     "nanoid": "^5.0.9",
     "resolve-url-loader": "^5.0.0",
-    "swagger-jsdoc": "^6.2.8"
+    "swagger-jsdoc": "^5.0.1"
   },
   "description": "Crossfeed Documentation",
   "devDependencies": {
