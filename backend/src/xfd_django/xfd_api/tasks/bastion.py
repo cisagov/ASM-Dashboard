@@ -30,7 +30,7 @@ def handler(event, context):
 
 
 def handle_db_query(query):
-    """Handles only read-only SELECT queries safely using parameterized execution."""
+    """Handle only read-only SELECT queries safely using parameterized execution."""
     # Only allow SELECT queries
     if not is_safe_select_query(query):
         return {"statusCode": 403, "body": "Only SELECT queries are allowed."}
