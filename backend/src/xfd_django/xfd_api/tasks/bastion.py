@@ -1,11 +1,10 @@
-"""Run bastion."""
+"""Run bastion (Read-Only)."""
 # Standard Python Libraries
 import os
 
 # Third-Party Libraries
 import django
 from django.db import connection
-from xfd_api.tasks.es_client import ESClient
 
 # Django setup
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "xfd_django.settings")
@@ -14,7 +13,7 @@ django.setup()
 
 
 def handler(event, context):
-    """Execute database queries or managing Elasticsearch indices."""
+    """Execute database queries or manage Elasticsearch indices (Read-Only)."""
     mode = event.get("mode")
     query = event.get("query")
 
@@ -24,33 +23,49 @@ def handler(event, context):
     try:
         if mode == "db":
             return handle_db_query(query)
-        elif mode == "es":
-            return handle_es_query(query)
         else:
             return {"statusCode": 400, "body": "Unsupported mode: {}".format(mode)}
     except Exception as e:
-        return {"statusCode": 500, "body": str(e)}
+        return {"statusCode": 500, "body": "Error: {}".format(str(e))}
 
 
 def handle_db_query(query):
-    """Handle the 'db' mode: executes a raw SQL query on the database."""
-    with connection.cursor() as cursor:
-        cursor.execute(query)
-        result = cursor.fetchall()
+    """Handle only read-only SELECT queries safely using parameterized execution."""
+    # Only allow SELECT queries
+    if not is_safe_select_query(query):
+        return {"statusCode": 403, "body": "Only SELECT queries are allowed."}
 
-    print(str(result))
-    return {"statusCode": 200, "body": str(result)}
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(query)
+            result = cursor.fetchall()
+
+        return {"statusCode": 200, "body": str(result)}
+    except Exception as e:
+        return {"statusCode": 500, "body": "Database error: {}".format(str(e))}
 
 
-def handle_es_query(query):
-    """Handle the 'es' mode: interacts with Elasticsearch."""
-    client = ESClient()
+def is_safe_select_query(query):
+    """
+    Validate that the query is a safe, read-only SELECT statement.
 
-    if query == "delete":
-        client.delete_all()
-        return {"statusCode": 200, "body": "Index successfully deleted."}
-    else:
-        return {
-            "statusCode": 400,
-            "body": "Unsupported Elasticsearch query: {}".format(query),
-        }
+    Ensures no modifications, UNION injections, or dangerous clauses.
+    """
+    query = query.strip().lower()
+
+    # Reject any queries that do not start with SELECT
+    if not query.startswith("select"):
+        return False
+
+    # Prevent UNION-based injection
+    if "union" in query:
+        return False
+
+    # Prevent subqueries modifying data
+    if any(
+        kw in query
+        for kw in ["insert", "update", "delete", "drop", "alter", "truncate", "exec"]
+    ):
+        return False
+
+    return True

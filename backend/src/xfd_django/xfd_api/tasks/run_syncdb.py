@@ -19,6 +19,10 @@ def handler(event, context):
     dangerouslyforce = event.get("dangerouslyforce", False)
     populate = event.get("populate", False)
 
+    # Ensure values are strictly boolean (prevents injection risks)
+    if not isinstance(dangerouslyforce, bool) or not isinstance(populate, bool):
+        return {"statusCode": 400, "body": "Invalid input. Parameters must be boolean."}
+
     try:
         call_command("syncdb", dangerouslyforce=dangerouslyforce, populate=populate)
         return {
