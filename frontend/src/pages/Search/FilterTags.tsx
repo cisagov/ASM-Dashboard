@@ -5,6 +5,7 @@ import { Chip } from '@mui/material';
 import { REGIONAL_ADMIN, useUserLevel } from 'hooks/useUserLevel';
 import { STANDARD_USER } from 'context/userStateUtils';
 import { REGIONAL_USER_CAN_SEARCH_OTHER_REGIONS } from 'hooks/useUserTypeFilters';
+import { useLocation } from 'react-router-dom';
 
 interface Props {
   filters: ContextType['filters'];
@@ -193,6 +194,8 @@ const sortFiltersByOrder = (filters: FlatFilters) => {
 };
 
 export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
+  const { pathname } = useLocation();
+
   const { userLevel } = useUserLevel();
 
   const disabledFilters = useMemo(() => {
@@ -233,7 +236,7 @@ export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
 
   return (
     <Root aria-live="polite" aria-atomic="true">
-      {filtersByColumn.length === 0 ? (
+      {filtersByColumn.length === 0 && pathname === '/inventory' ? (
         <Chip
           color="primary"
           classes={{ root: classes.chip }}
@@ -247,13 +250,17 @@ export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
             color="primary"
             classes={{ root: classes.chip }}
             label={`${filter.label}: ${filter.value}`}
-            onDelete={() => {
-              filter.onClear
-                ? filter.onClear()
-                : filter.values.forEach((val) =>
-                    removeFilter(filter.field, val, filter.type)
-                  );
-            }}
+            onDelete={
+              !disabledFilters?.includes(filter.label)
+                ? () => {
+                    filter.onClear
+                      ? filter.onClear()
+                      : filter.values.forEach((val) =>
+                          removeFilter(filter.field, val, filter.type)
+                        );
+                  }
+                : undefined
+            }
           />
         ))
       )}

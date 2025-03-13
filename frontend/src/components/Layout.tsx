@@ -2,7 +2,6 @@ import React, {
   PropsWithChildren,
   useCallback,
   useEffect,
-  useMemo,
   useState
 } from 'react';
 import { styled } from '@mui/material/styles';
@@ -16,16 +15,13 @@ import { CrossfeedFooter } from './Footer';
 import { SkipToMainContent } from './SkipToMainContent/index';
 import { matchPath } from 'utils/matchPath';
 import { drawerWidth, FilterDrawerV2 } from './FilterDrawerV2';
-import { usePersistentState } from 'hooks';
 import { useTheme } from '@mui/system';
 import { withSearch } from '@elastic/react-search-ui';
 import { ContextType } from 'context';
 import { useUserTypeFilters } from 'hooks/useUserTypeFilters';
 import { useStaticsContext } from 'context/StaticsContext';
-
-const GLOBAL_ADMIN = 3;
-const REGIONAL_ADMIN = 2;
-const STANDARD_USER = 1;
+import { useFilterDrawerContext } from 'context/FilterDrawerContext';
+import { useUserLevel } from 'hooks/useUserLevel';
 
 const Main = styled('main', {
   shouldForwardProp: (prop) => prop !== 'open' && prop !== 'user'
@@ -78,27 +74,11 @@ export const Layout: React.FC<PropsWithChildren<ContextType>> = ({
   const [initialFilters, setInitialFilters] = useState<any[]>([]);
 
   const theme = useTheme();
-  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = usePersistentState(
-    'isFilterDrawerOpen',
-    false
-  );
 
-  const userLevel = useMemo(() => {
-    if (user && user.isRegistered) {
-      if (user.userType === 'standard') {
-        return STANDARD_USER;
-      } else if (user.userType === 'globalAdmin') {
-        return GLOBAL_ADMIN;
-      } else if (
-        user.userType === 'regionalAdmin' ||
-        user.userType === 'globalView'
-      ) {
-        return REGIONAL_ADMIN;
-      }
-      return 0;
-    }
-    return 0;
-  }, [user]);
+  const { isFilterDrawerOpen, setIsFilterDrawerOpen } =
+    useFilterDrawerContext();
+
+  const userLevel = useUserLevel().userLevel;
 
   const [loggedIn, setLoggedIn] = useState<boolean>(
     user !== null && user !== undefined ? true : false
