@@ -250,13 +250,17 @@ export const FilterTags: React.FC<Props> = ({ filters, removeFilter }) => {
             color="primary"
             classes={{ root: classes.chip }}
             label={`${filter.label}: ${filter.value}`}
-            onDelete={() => {
-              filter.onClear
-                ? filter.onClear()
-                : filter.values.forEach((val) =>
-                    removeFilter(filter.field, val, filter.type)
-                  );
-            }}
+            onDelete={
+              !disabledFilters?.includes(filter.label)
+                ? () => {
+                    filter.onClear
+                      ? filter.onClear()
+                      : filter.values.forEach((val) =>
+                          removeFilter(filter.field, val, filter.type)
+                        );
+                  }
+                : undefined
+            }
           />
         ))
       )}

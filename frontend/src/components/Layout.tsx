@@ -2,7 +2,6 @@ import React, {
   PropsWithChildren,
   useCallback,
   useEffect,
-  useMemo,
   useState
 } from 'react';
 import { styled } from '@mui/material/styles';
@@ -22,10 +21,7 @@ import { ContextType } from 'context';
 import { useUserTypeFilters } from 'hooks/useUserTypeFilters';
 import { useStaticsContext } from 'context/StaticsContext';
 import { useFilterDrawerContext } from 'context/FilterDrawerContext';
-
-const GLOBAL_ADMIN = 3;
-const REGIONAL_ADMIN = 2;
-const STANDARD_USER = 1;
+import { useUserLevel } from 'hooks/useUserLevel';
 
 const Main = styled('main', {
   shouldForwardProp: (prop) => prop !== 'open' && prop !== 'user'
@@ -82,22 +78,7 @@ export const Layout: React.FC<PropsWithChildren<ContextType>> = ({
   const { isFilterDrawerOpen, setIsFilterDrawerOpen } =
     useFilterDrawerContext();
 
-  const userLevel = useMemo(() => {
-    if (user && user.isRegistered) {
-      if (user.userType === 'standard') {
-        return STANDARD_USER;
-      } else if (user.userType === 'globalAdmin') {
-        return GLOBAL_ADMIN;
-      } else if (
-        user.userType === 'regionalAdmin' ||
-        user.userType === 'globalView'
-      ) {
-        return REGIONAL_ADMIN;
-      }
-      return 0;
-    }
-    return 0;
-  }, [user]);
+  const userLevel = useUserLevel().userLevel;
 
   const [loggedIn, setLoggedIn] = useState<boolean>(
     user !== null && user !== undefined ? true : false

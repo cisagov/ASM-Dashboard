@@ -30,6 +30,7 @@ import { FilterTags } from 'pages/Search/FilterTags';
 import { useLocation } from 'react-router-dom';
 import { useUserTypeFilters } from 'hooks/useUserTypeFilters';
 import { useStaticsContext } from 'context/StaticsContext';
+import { useUserLevel } from 'hooks/useUserLevel';
 
 export interface Point {
   id: string;
@@ -51,10 +52,6 @@ export interface VulnSeverities {
   disable?: boolean;
   amount?: number;
 }
-
-const GLOBAL_ADMIN = 3;
-const REGIONAL_ADMIN = 2;
-const STANDARD_USER = 1;
 
 // Color Scale used for map
 let colorScale = scaleLinear<string>()
@@ -118,22 +115,7 @@ const Risk: React.FC<ContextType> = ({
     return filters;
   }, [filters, searchTerm, setSearchTerm]);
 
-  const userLevel = useMemo(() => {
-    if (user && user.isRegistered) {
-      if (user.userType === 'standard') {
-        return STANDARD_USER;
-      } else if (user.userType === 'globalAdmin') {
-        return GLOBAL_ADMIN;
-      } else if (
-        user.userType === 'regionalAdmin' ||
-        user.userType === 'globalView'
-      ) {
-        return REGIONAL_ADMIN;
-      }
-      return 0;
-    }
-    return 0;
-  }, [user]);
+  const userLevel = useUserLevel().userLevel;
 
   const { regions } = useStaticsContext();
   const initialFiltersForUser = useUserTypeFilters(regions, user, userLevel);
