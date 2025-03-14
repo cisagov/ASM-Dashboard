@@ -16,7 +16,7 @@ async def handle_check_ip(ip_address: str):
     try:
         ip_obj = Blocklist.objects.get(ip=ip_address)
     except Exception as e:
-        raise HTTPException(status_code=500, details=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
     if ip_obj:
         return {"status": "BLOCKED"}
     return {"status": "UNBLOCKED"}
