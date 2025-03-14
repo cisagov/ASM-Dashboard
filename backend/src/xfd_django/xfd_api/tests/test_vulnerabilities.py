@@ -123,30 +123,6 @@ def vulnerability(domain, service):
     vulnerability.delete()
 
 
-@pytest.fixture
-def old_vulnerability():
-    """Create vuln fixture."""
-    vulnerability = Vulnerability.objects.create(
-        title="Old Vulnerability",
-        description="Old description.",
-        severity="Medium",
-        cvss=5.0,
-        createdAt=datetime.now(),
-        updatedAt=datetime.now(),
-        needsPopulation=True,
-        source="source1",
-        notes="old notes",
-        actions=[],
-        structuredData={},
-        isKev=False,
-        kevResults={},
-        domain_id="",
-        service_id="",
-    )
-    yield vulnerability
-    vulnerability.delete()
-
-
 @pytest.mark.django_db(transaction=True)
 def test_get_vulnerability_by_id(user, vulnerability):
     """Test vulnerability."""

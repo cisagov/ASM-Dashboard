@@ -22,6 +22,7 @@ from ..helpers.regionStateMap import REGION_STATE_MAP
 from ..models import Organization, OrganizationTag, Role, Scan, ScanTask, User
 from ..schema_models import organization_schema
 from ..tasks.es_client import ESClient
+from ..tools.serializers import serialize_role
 
 
 def is_valid_uuid(val: str) -> bool:
@@ -125,7 +126,7 @@ def get_organization(organization_id, current_user):
         # Authorization checks
         if not (
             is_org_admin(current_user, organization_id)
-            or is_global_write_admin(current_user)
+            or is_global_view_admin(current_user)
             or is_regional_admin_for_organization(current_user, organization_id)
         ):
             raise HTTPException(status_code=403, detail="Unauthorized")
@@ -858,15 +859,19 @@ def remove_role(organization_id: str, role_id, current_user):
 
     try:
         # Attempt to delete the role within the organization
-        result = Role.objects.filter(
-            organization_id=organization_id, id=role_id
-        ).delete()
+        role = Role.objects.get(organization_id=organization_id, id=role_id)
+
+        result = role.delete()
 
         # If no role was deleted, raise a 404
         if result[0] == 0:
             raise HTTPException(status_code=404, detail="Role not found")
 
-        return {"status": "success", "message": "Role removed successfully"}
+        return {
+            "status": "success",
+            "message": "Role removed successfully",
+            "roleDeleted": serialize_role(role),
+        }
 
     except HTTPException as http_exc:
         raise http_exc

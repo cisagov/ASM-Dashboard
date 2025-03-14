@@ -42,7 +42,6 @@ SAMPLE_DATA_DIR = os.path.join(settings.BASE_DIR, "xfd_api", "tasks", "sample_da
 services = json.load(open(os.path.join(SAMPLE_DATA_DIR, "services.json")))
 cpes = json.load(open(os.path.join(SAMPLE_DATA_DIR, "cpes.json")))
 vulnerabilities = json.load(open(os.path.join(SAMPLE_DATA_DIR, "vulnerabilities.json")))
-cves = json.load(open(os.path.join(SAMPLE_DATA_DIR, "cves.json")))
 nouns = json.load(open(os.path.join(SAMPLE_DATA_DIR, "nouns.json")))
 adjectives = json.load(open(os.path.join(SAMPLE_DATA_DIR, "adjectives.json")))
 
@@ -90,6 +89,10 @@ def populate_sample_data():
         # Create an API key for the user
         create_api_key_for_user(user)
 
+        test_user = create_test_user(org)
+
+        create_api_key_for_user(test_user)
+
 
 def create_sample_user(organization):
     """Create a sample user linked to an organization."""
@@ -104,6 +107,21 @@ def create_sample_user(organization):
     # Set user as the creator of the organization (optional)
     organization.createdBy = user
     organization.save()
+    return user
+
+
+def create_test_user(organization):
+    """Create a test user linked to an organization."""
+    user = User.objects.create(
+        firstName="Test",
+        lastName="User",
+        email=os.environ.get("PW_XFD_USERNAME"),
+        userType=UserType.GLOBAL_ADMIN,
+        state=random.choice(SAMPLE_STATES),
+        regionId=random.choice(SAMPLE_REGION_IDS),
+        organization=organization,
+    )
+
     return user
 
 
@@ -168,6 +186,7 @@ def create_sample_services_and_vulnerabilities(domain):
 
     # Add random vulnerabilities
     if random.random() < PROB_SAMPLE_VULNERABILITIES:
+        state = random.choice(["open", "closed"])
         Vulnerability.objects.create(
             title="Sample Vulnerability "
             + "".join(random.choices("ABCDEFGHIJKLMNOPQRSTUVWXYZ", k=3)),
@@ -198,9 +217,23 @@ def create_sample_services_and_vulnerabilities(domain):
                     "other",
                 ]
             ),
+            cve="CVE-"
+            + random.choice(
+                [
+                    "2024-47421",
+                    "2021-22501",
+                    "2024-53959",
+                    "2024-47422",
+                    "2024-47423",
+                    "2020-28163",
+                    "2020-29312",
+                ]
+            ),
             needsPopulation=True,
-            state="open",
-            substate="unconfirmed",
+            state=state,
+            substate=random.choice(["unconfirmed", "exploitable"])
+            if state == "open"
+            else random.choice(["false-positive", "accepted-risk", "remediated"]),
             source="sample_source",
             actions=[],
             structuredData={},
@@ -506,52 +539,3 @@ def sync_es_organizations():
     except Exception as e:
         print("Error syncing organizations: {}".format(e))
         raise e
-
-
-def create_scan_user():
-    """Create and configure the scanning user if it does not already exist."""
-    # Only create if not in the DMZ
-    is_dmz = os.getenv("IS_DMZ", "0") == "1"
-
-    if is_dmz:
-        print("IS_DMZ is set to 1. Skipping creation of the scanning user.")
-        return
-
-    user = os.getenv("POSTGRES_SCAN_USER")
-    password = os.getenv("POSTGRES_SCAN_PASSWORD")
-    if not user or not password:
-        print("POSTGRES_SCAN_USER or POSTGRES_SCAN_PASSWORD is not set.")
-        return
-
-    db_name = settings.DATABASES["default"]["NAME"]
-
-    with connections["default"].cursor() as cursor:
-        try:
-            # Check if the user already exists
-            cursor.execute("SELECT 1 FROM pg_roles WHERE rolname = %s;", [user])
-            user_exists = cursor.fetchone() is not None
-
-            if not user_exists:
-                # Create the user
-                cursor.execute(
-                    "CREATE ROLE {} LOGIN PASSWORD %s;".format(user), [password]
-                )
-                print("User '{}' created successfully.".format(user))
-            else:
-                print("User '{}' already exists. Skipping creation.".format(user))
-
-            # Grant privileges (idempotent as well)
-            cursor.execute("GRANT CONNECT ON DATABASE {} TO {};".format(db_name, user))
-            cursor.execute("GRANT USAGE ON SCHEMA public TO {};".format(user))
-            cursor.execute(
-                "GRANT SELECT ON ALL TABLES IN SCHEMA public TO {};".format(user)
-            )
-            cursor.execute(
-                "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO {};".format(
-                    user
-                )
-            )
-
-            print("User '{}' configured successfully.".format(user))
-        except Exception as e:
-            print("Error creating or configuring scan user: {}".format(e))

@@ -27,6 +27,7 @@ import {
 } from 'components/RegionAndOrganizationFilters';
 import { withSearch } from '@elastic/react-search-ui';
 import { FilterTags } from 'pages/Search/FilterTags';
+import { useLocation } from 'react-router-dom';
 
 export interface Point {
   id: string;
@@ -94,6 +95,7 @@ const Risk: React.FC<ContextType & {}> = ({
     };
   }, [filters]);
 
+  const { pathname } = useLocation();
   const filtersToDisplay = useMemo(() => {
     if (searchTerm !== '') {
       return [
@@ -136,6 +138,17 @@ const Risk: React.FC<ContextType & {}> = ({
       }
     }
   }, [user]);
+
+  useEffect(() => {
+    filters.forEach((filter) => {
+      if (
+        filter.field !== 'organization.regionId' &&
+        filter.field !== 'organizationId'
+      ) {
+        removeFilter(filter.field, filter.values[0], filter.type);
+      }
+    });
+  }, [pathname, removeFilter, filters]);
 
   const MapCard = ({
     title,
@@ -382,7 +395,6 @@ export const RiskWithSearch = withSearch(
     removeFilter,
     filters,
     facets,
-    clearFilters,
     searchTerm,
     setSearchTerm
   }: ContextType) => ({
@@ -390,7 +402,6 @@ export const RiskWithSearch = withSearch(
     removeFilter,
     filters,
     facets,
-    clearFilters,
     searchTerm,
     setSearchTerm
   })

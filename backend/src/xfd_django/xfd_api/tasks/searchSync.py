@@ -141,6 +141,7 @@ def handler(command_options):
                                 "title": vulnerability.title,
                                 "cvss": vulnerability.cvss,
                                 "severity": vulnerability.severity,
+                                "cve": vulnerability.cve,
                                 "state": vulnerability.state,
                                 "substate": vulnerability.substate,
                                 "description": vulnerability.description,

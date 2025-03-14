@@ -1,5 +1,3 @@
-import { describe } from 'node:test';
-
 const { test, expect, Page } = require('../../axe-test');
 
 test.describe.configure({ mode: 'parallel' });
@@ -16,9 +14,7 @@ test.describe('Inventory', () => {
     await page.close();
   });
   test('Test inventory accessibility', async ({ makeAxeBuilder }, testInfo) => {
-    await page.getByRole('link', { name: 'Inventory' }).click();
-    await expect(page).toHaveURL('/inventory');
-
+    await page.goto('/inventory');
     const accessibilityScanResults = await makeAxeBuilder().analyze();
 
     await testInfo.attach('accessibility-scan-results', {
@@ -30,10 +26,7 @@ test.describe('Inventory', () => {
   });
 
   test('Test domain accessibility', async ({ makeAxeBuilder }, testInfo) => {
-    await page.goto('/inventory');
-    await page.getByRole('link', { name: 'All Domains' }).click();
-    await expect(page).toHaveURL('/inventory/domains');
-
+    await page.goto('/inventory/domains');
     const accessibilityScanResults = await makeAxeBuilder().analyze();
 
     await testInfo.attach('accessibility-scan-results', {
@@ -44,7 +37,8 @@ test.describe('Inventory', () => {
     expect(accessibilityScanResults.violations).toHaveLength(0);
   });
 
-  test('Test domain details accessibility', async ({
+  // TODO: Skip this test until the domain table data is loaded in localhost.
+  test.skip('Test domain details accessibility', async ({
     makeAxeBuilder
   }, testInfo) => {
     await page.goto('/inventory/domains');
@@ -55,7 +49,9 @@ test.describe('Inventory', () => {
       .nth(8)
       .getByRole('button')
       .click();
-    await expect(page).toHaveURL(new RegExp('/inventory/domain/'));
+    await expect(page).toHaveURL(new RegExp('/inventory/domain/'), {
+      timeout: 10000
+    });
 
     const accessibilityScanResults = await makeAxeBuilder().analyze();
 
@@ -67,7 +63,8 @@ test.describe('Inventory', () => {
     expect(accessibilityScanResults.violations).toHaveLength(0);
   });
 
-  test('Test domain table filter', async () => {
+  // TODO: Skip this test until the domain table data is loaded in localhost.
+  test.skip('Test domain table filter', async () => {
     await page.goto('/inventory/domains');
     await page.getByLabel('Show filters').click();
     await page.getByPlaceholder('Filter value').click();
