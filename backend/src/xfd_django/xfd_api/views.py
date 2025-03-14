@@ -62,6 +62,7 @@ from .schema_models import scan as scanSchema
 from .schema_models import scan_tasks as scanTaskSchema
 from .schema_models import stat_schema
 from .schema_models.api_key import ApiKey as ApiKeySchema
+from .schema_models.blocklist import BlocklistCheckResponse
 from .schema_models.cpe import Cpe as CpeSchema
 from .schema_models.cve import Cve as CveSchema
 from .schema_models.domain import DomainSearch, DomainSearchResponse, GetDomainResponse
@@ -1371,6 +1372,7 @@ async def call_update_vulnerability(
 @api_router.get(
     "/blocklist/check",
     dependencies=[Depends(get_current_active_user)],
+    response_model=BlocklistCheckResponse,
     tags=["Blocklist"],
 )
 async def get_blocklist(
