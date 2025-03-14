@@ -1,6 +1,6 @@
 """Blocklist Schemas."""
 # Third-Party Libraries
-from pydanti import BaseModel
+from pydantic import BaseModel
 
 
 class BlocklistCheckResponse(BaseModel):
