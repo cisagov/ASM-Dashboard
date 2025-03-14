@@ -14,6 +14,7 @@ from redis import asyncio as aioredis
 from .api_methods import api_key as api_key_methods
 from .api_methods import notification as notification_methods
 from .api_methods import organization, proxy, scan, scan_tasks, user
+from .api_methods.blocklist import handle_check_ip
 from .api_methods.cpe import get_cpes_by_id
 from .api_methods.cve import get_cves_by_id, get_cves_by_name
 from .api_methods.domain import export_domains, get_domain_by_id, search_domains
@@ -61,6 +62,7 @@ from .schema_models import scan as scanSchema
 from .schema_models import scan_tasks as scanTaskSchema
 from .schema_models import stat_schema
 from .schema_models.api_key import ApiKey as ApiKeySchema
+from .schema_models.blocklist import BlocklistCheckResponse
 from .schema_models.cpe import Cpe as CpeSchema
 from .schema_models.cve import Cve as CveSchema
 from .schema_models.domain import DomainSearch, DomainSearchResponse, GetDomainResponse
@@ -1360,3 +1362,21 @@ async def call_update_vulnerability(
         object: a single vulnerability object that has been modified.
     """
     return update_vulnerability(vulnerability_id, data, current_user)
+
+
+# ========================================
+#   Blocklist Endpoints
+# ========================================
+
+
+@api_router.get(
+    "/blocklist/check",
+    dependencies=[Depends(get_current_active_user)],
+    response_model=BlocklistCheckResponse,
+    tags=["Blocklist"],
+)
+async def get_blocklist(
+    request: Request, ip_address: str = Query(..., description="IP address to check")
+):
+    """Determine if IP is on the blocklist."""
+    return await handle_check_ip(ip_address)
